@@ -10,7 +10,7 @@ the team through a **team library** saved on the server.
 
 | Path | |
 | --- | --- |
-| `storyboard.html` | the whole app, one self-extracting file |
+| `index.html` | the whole app, one self-extracting file |
 | `src/template.html` | readable app source — edit this, not the bundle |
 | `tools/bundle.py` | unpack / pack / check the bundle |
 | `list.php` `save.php` `delete.php` `lib.php` | team library endpoints |
@@ -22,11 +22,11 @@ the team through a **team library** saved on the server.
 ```sh
 python3 tools/bundle.py unpack   # if src/template.html is missing
 # edit src/template.html
-python3 tools/bundle.py pack     # rebuild storyboard.html
+python3 tools/bundle.py pack     # rebuild index.html
 python3 tools/bundle.py check    # confirm the two are in sync
 ```
 
-Commit both `src/template.html` and `storyboard.html`. Pushing to `main`
+Commit both `src/template.html` and `index.html`. Pushing to `main`
 deploys to `slate/` over FTPS.
 
 See [DEPLOY.md](DEPLOY.md) for the hosting layout, the one-time server setup

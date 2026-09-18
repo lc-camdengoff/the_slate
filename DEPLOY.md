@@ -8,7 +8,7 @@ public_html/filmmaking/
 ├── .htaccess          basic auth for the whole folder (cPanel Directory Privacy)
 ├── index.html         public "Filmmaking Team" page
 ├── slate/             ← deployed from this repo
-│   ├── storyboard.html
+│   ├── index.html
 │   ├── list.php  save.php  delete.php  lib.php
 │   ├── .htaccess  .user.ini
 └── saved/             ← the team's storyboards, NEVER deployed
@@ -66,8 +66,10 @@ before every save and refuses oversized boards with a message that tells the
 user to remove some images, because a body over `post_max_size` is discarded by
 PHP before the script runs and would otherwise fail silently.
 
-Also confirm <https://creativemedia.church/filmmaking/slate/> loads the app
-(that is `DirectoryIndex` in `slate/.htaccess`).
+Also confirm <https://creativemedia.church/filmmaking/slate/> loads the app,
+and that `slate/` contains no leftover `storyboard.html` — the app was renamed
+to `index.html` so the deploy owns the file the folder URL actually serves.
+Delete it by hand if the deploy left it behind.
 
 Those two checks double as confirmation that the dotfiles deployed: a sensible
 `maxBytes` means `.user.ini` arrived, and the bare folder URL loading the app
@@ -90,20 +92,20 @@ Both live inside `saved/`, so nothing here is touched by a deploy.
 
 ## Editing the app
 
-`storyboard.html` is a self-extracting bundle: an unpacker, a gzip+base64
+`index.html` is a self-extracting bundle: an unpacker, a gzip+base64
 manifest of libraries and fonts, and the actual app as one JSON-escaped string.
 Editing that string directly makes every change a single unreadable 100 KB line
 in git, so the readable source is `src/template.html`:
 
 ```sh
-python3 tools/bundle.py unpack   # storyboard.html -> src/template.html
+python3 tools/bundle.py unpack   # index.html -> src/template.html
 # edit src/template.html
-python3 tools/bundle.py pack     # src/template.html -> storyboard.html
+python3 tools/bundle.py pack     # src/template.html -> index.html
 python3 tools/bundle.py check    # verify the two are in sync before committing
 ```
 
 Commit both files. `pack` reproduces the bundler's exact encoding, so an
-unpack/pack round-trip with no edits leaves `storyboard.html` byte-identical.
+unpack/pack round-trip with no edits leaves `index.html` byte-identical.
 
 ## Requirements
 
