@@ -3,9 +3,10 @@
 # Basic auth is inherited from /filmmaking/.htaccess (cPanel Directory
 # Privacy); nothing here should touch authentication.
 
-# The app is a single self-extracting file named storyboard.html, so serve it
-# for the bare folder URL.
-DirectoryIndex storyboard.html index.html
+# The app is a single self-extracting index.html. This matches the server
+# default, but state it explicitly so the bare folder URL cannot be broken by
+# a host-level DirectoryIndex change.
+DirectoryIndex index.html
 
 Options -Indexes
 
