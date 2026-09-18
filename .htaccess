@@ -1,0 +1,18 @@
+# The Slate — /filmmaking/slate/
+#
+# Basic auth is inherited from /filmmaking/.htaccess (cPanel Directory
+# Privacy); nothing here should touch authentication.
+
+# The app is a single self-extracting file named storyboard.html, so serve it
+# for the bare folder URL.
+DirectoryIndex storyboard.html index.html
+
+Options -Indexes
+
+# Keep the team library JSON out of caches — it changes whenever someone saves.
+<IfModule mod_headers.c>
+  <FilesMatch "\.(php)$">
+    Header set Cache-Control "no-store"
+    Header set X-Content-Type-Options "nosniff"
+  </FilesMatch>
+</IfModule>

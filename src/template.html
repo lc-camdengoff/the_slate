@@ -1,0 +1,2006 @@
+<!DOCTYPE html>
+<html><head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="8c1bf615-7c7d-4333-a658-1609fb97b2ec"></script>
+</head>
+<body>
+<x-dc>
+
+<helmet>
+<style>/* ============================================================================
+   CRAIG GROESCHEL — DESIGN SYSTEM
+   colors_and_type.css — foundational tokens (color, type, fonts)
+   ----------------------------------------------------------------------------
+   Brand voice: "Our color expression is precise and relatable."
+                "The primary typeface conveys a bold, direct communication style."
+   ============================================================================ */
+
+/* ----------------------------------------------------------------------------
+   FONTS
+   Proxima Nova — primary web typeface (display + headings, used ALL CAPS).
+   Helvetica Neue — body / descriptive copy (system font; falls back cleanly).
+   Roboto Mono — spec annotations, labels, eyebrows, metadata.
+   (In print, Gotham is the headline face; Proxima Nova is the web substitute.)
+---------------------------------------------------------------------------- */
+@font-face {
+  font-family: "Proxima Nova";
+  src: url("02d537a2-a8d1-4780-b106-6beeb648315a") format("woff2"),
+       url("79eb10d4-2087-4d65-bc60-a269fdfc8f2a") format("woff");
+  font-weight: 100; font-style: normal; font-display: swap;
+}
+@font-face {
+  font-family: "Proxima Nova";
+  src: url("6a11f7cc-884a-48d8-aadc-34dc7da914f3") format("woff2"),
+       url("77afbe4a-05b0-446a-9838-66b55d62aa6c") format("woff");
+  font-weight: 300; font-style: normal; font-display: swap;
+}
+@font-face {
+  font-family: "Proxima Nova";
+  src: url("683735d6-4468-483f-bd44-914110030039") format("woff2"),
+       url("0b36fe8d-ce79-4da0-96dd-dadc6b023ef6") format("woff");
+  font-weight: 400; font-style: normal; font-display: swap;
+}
+@font-face {
+  font-family: "Proxima Nova";
+  src: url("f2a279bd-5fbc-462b-a3fe-c843b88774c7") format("woff2"),
+       url("39b93253-e0ab-461f-83f4-e07a6844ae78") format("woff");
+  font-weight: 600; font-style: normal; font-display: swap;
+}
+@font-face {
+  font-family: "Proxima Nova";
+  src: url("dcf67e9a-32ca-4f6e-bc14-fbbed1e0292c") format("woff2"),
+       url("8075ad10-6a1e-413c-9eef-6df78d99bc05") format("woff");
+  font-weight: 700; font-style: normal; font-display: swap;
+}
+@font-face {
+  font-family: "Proxima Nova";
+  src: url("fc7719bf-b9a3-4772-a5ef-f205f770190e") format("woff2"),
+       url("e1f325eb-77b5-4808-9bed-7d4165018f7f") format("woff");
+  font-weight: 900; font-style: normal; font-display: swap;
+}
+
+/* Helvetica Neue — body / descriptive copy. Self-hosted (the brand-supplied
+   OpenType family). Full weight ramp UltraLight (100) → Black (900), upright +
+   italic. */
+@font-face { font-family: "Helvetica Neue"; src: url("58e083a9-0eb8-4721-a54c-227cef86fb6b") format("opentype"); font-weight: 100; font-style: normal; font-display: swap; }
+@font-face { font-family: "Helvetica Neue"; src: url("05a0e1b4-70a9-4c58-9306-1aa2996d7c00") format("opentype"); font-weight: 100; font-style: italic; font-display: swap; }
+@font-face { font-family: "Helvetica Neue"; src: url("fed6803f-bfba-4262-ae08-d13e7b54ce2a") format("opentype"); font-weight: 200; font-style: normal; font-display: swap; }
+@font-face { font-family: "Helvetica Neue"; src: url("45f05d03-3f11-489a-a87c-0d7844870dd0") format("opentype"); font-weight: 200; font-style: italic; font-display: swap; }
+@font-face { font-family: "Helvetica Neue"; src: url("272af1ee-ec6c-4d60-9745-2a5fd7f9a753") format("opentype"); font-weight: 300; font-style: normal; font-display: swap; }
+@font-face { font-family: "Helvetica Neue"; src: url("e3c6f7ff-a75b-4894-9eb7-496685e45212") format("opentype"); font-weight: 300; font-style: italic; font-display: swap; }
+@font-face { font-family: "Helvetica Neue"; src: url("cdd60386-5195-4db5-be8f-d5c496334e95") format("opentype"); font-weight: 400; font-style: normal; font-display: swap; }
+@font-face { font-family: "Helvetica Neue"; src: url("ca1fd197-4f25-44ad-8bf3-5ffede917624") format("truetype"); font-weight: 400; font-style: italic; font-display: swap; }
+@font-face { font-family: "Helvetica Neue"; src: url("09f19d5c-cfba-4051-8086-64b4c0410a94") format("opentype"); font-weight: 500; font-style: normal; font-display: swap; }
+@font-face { font-family: "Helvetica Neue"; src: url("33d42667-2cf5-4d9d-9341-48a6da95981f") format("opentype"); font-weight: 500; font-style: italic; font-display: swap; }
+@font-face { font-family: "Helvetica Neue"; src: url("43465c1e-4010-4a13-a507-5fc5e00ef36a") format("opentype"); font-weight: 700; font-style: normal; font-display: swap; }
+@font-face { font-family: "Helvetica Neue"; src: url("6b0381e2-4456-4a4d-b72f-20922db182a6") format("opentype"); font-weight: 700; font-style: italic; font-display: swap; }
+@font-face { font-family: "Helvetica Neue"; src: url("35ce23b5-6c20-42b4-9151-7d66185e972b") format("opentype"); font-weight: 800; font-style: normal; font-display: swap; }
+@font-face { font-family: "Helvetica Neue"; src: url("e0599800-f6b9-4399-9258-883990e42175") format("opentype"); font-weight: 800; font-style: italic; font-display: swap; }
+@font-face { font-family: "Helvetica Neue"; src: url("7574d596-e2b3-48b9-ad81-21e679c88383") format("opentype"); font-weight: 900; font-style: normal; font-display: swap; }
+@font-face { font-family: "Helvetica Neue"; src: url("f31d83c5-58ea-48e7-b5ee-683dfacede65") format("opentype"); font-weight: 900; font-style: italic; font-display: swap; }
+
+/* Roboto Mono — eyebrows / spec labels / metadata. Self-hosted variable font
+   (was previously loaded from Google Fonts; now bundled). */
+@font-face { font-family: "Roboto Mono"; src: url("e87609ad-02e1-4705-bca3-f514a401e7ae") format("truetype"); font-weight: 100 700; font-style: normal; font-display: swap; }
+@font-face { font-family: "Roboto Mono"; src: url("9d4c0ac6-97f7-4b60-979e-f5d85798346a") format("truetype"); font-weight: 100 700; font-style: italic; font-display: swap; }
+
+:root {
+  /* ==========================================================================
+     COLOR — PRIMITIVES
+     ========================================================================== */
+
+  /* --- Grayscale (the workhorse neutral ramp) --- */
+  --white:    #FFFFFF;
+  --gray-2:   #FAFAFA;
+  --gray-5:   #F6F6F6;
+  --gray-10:  #ECECEC;
+  --gray-15:  #E6E6E6;
+  --gray-20:  #C6C6C6;
+  --gray-30:  #777779;
+  --gray-40:  #666667;
+  --gray-50:  #404041;
+  --gray-60:  #212121;
+  --black:    #000000;
+  /* The "true" interactive black used on solid buttons — a blue-charcoal. */
+  --ink:      #1D242B;   /* black-500 */
+  --ink-hover:#4A5055;   /* black-400 — the live-site button/hover step */
+
+  /* --- Extended brand palette (confirmed from the live craiggroeschel.com
+     stylesheet) — warm tans + a deeper link/UI blue + accents. --- */
+  --blue-500:  #367899;  /* primary link / UI blue on the marketing site */
+  --blue-100:  #EBF2F5;
+  --blue-highlight: #8BC3DE; /* hand-marker text highlight */
+  --tan-100:   #F7F5F2;
+  --tan-400:   #D5C3B3;
+  --tan-600:   #AD9B89;
+  --tan-800:   #5A4F45;
+  --orange-500:#FF7745;
+  --red-500:   #AD3B3B;
+  --light-400: #EFEDEB;
+  --light-500: #DAD8D6;
+
+  /* --- Core brand --- the essential neutral trio everything else hangs on. */
+  --brand-white: var(--white);
+  --brand-gray:  var(--gray-30);
+  --brand-black: var(--black);
+
+  /* --- Annual Campaign (Life.Church) — "Updated Yearly" ---
+     A seasonal accent set layered ON TOP of the core neutrals. Swap annually. */
+  --campaign-cream-5:  #E4E0D9;
+  --campaign-cream-10: #DCD7C8;
+  --campaign-gray-60:  #212121;
+  --campaign-yellow:   #FFD612;  /* Yellow 30   */
+  --campaign-orange:   #CF613F;  /* Orange 30   */
+  --campaign-blue:     #3175E4;  /* Electric Blue 30 */
+
+  /* --- CGLP — Craig Groeschel Leadership Podcast sub-brand --- */
+  --cglp-blue:    #56C4E5;   /* Blue 5 — the signature podcast cyan */
+  --cglp-white:   var(--white);
+  --cglp-black:   var(--black);
+
+  /* CGLP Blue — SHADES (darker) */
+  --cglp-blue-10-sh: #4DB0CE;
+  --cglp-blue-15-sh: #449CB7;
+  --cglp-blue-20-sh: #3C89A0;
+  --cglp-blue-25-sh: #337589;
+  --cglp-blue-30-sh: #2B6272;
+  --cglp-blue-35-sh: #224E5B;
+  --cglp-blue-40-sh: #193B44;
+  --cglp-blue-50-sh: #11272D;
+
+  /* CGLP Blue — TINTS (lighter) */
+  --cglp-blue-10-tt: #66C9E7;
+  --cglp-blue-15-tt: #77CFEA;
+  --cglp-blue-20-tt: #88D5EC;
+  --cglp-blue-25-tt: #99DBEF;
+  --cglp-blue-30-tt: #AAE1F2;
+  --cglp-blue-35-tt: #BBE7F4;
+  --cglp-blue-40-tt: #CCEDF7;
+  --cglp-blue-50-tt: #DDF3F9;
+  --cglp-blue-60-tt: #EEF9FC;
+
+  /* ==========================================================================
+     COLOR — SEMANTIC
+     ========================================================================== */
+  --fg-1:        var(--black);     /* primary text */
+  --fg-2:        var(--gray-30);   /* secondary / muted text */
+  --fg-3:        var(--gray-20);   /* disabled / hint text */
+  --fg-on-dark:  var(--white);     /* text on black surfaces */
+  --fg-on-dark-2:#DAD8D6;          /* secondary text on dark */
+
+  --bg-1:        var(--white);     /* page background */
+  --bg-2:        var(--gray-5);    /* subtle raised surface */
+  --bg-3:        var(--gray-10);   /* sunken / inset surface */
+  --bg-inverse:  var(--black);     /* dark sections */
+
+  --border-1:    var(--gray-20);   /* default hairline / divider */
+  --border-2:    var(--gray-15);   /* lighter divider */
+  --border-strong: var(--black);   /* emphasis outline */
+
+  --link:          var(--black);
+  --link-hover:    var(--gray-30);
+  --link-pressed:  var(--gray-50);
+  --link-underline:var(--gray-20);
+
+  /* ==========================================================================
+     TYPE
+     ========================================================================== */
+  --font-display: "Proxima Nova", "Helvetica Neue", Helvetica, Arial, sans-serif;
+  /* Body uses the brand-supplied Helvetica Neue (now self-hosted above);
+     the OS-sans stack remains as a graceful fallback. */
+  --font-body:    "Helvetica Neue", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, "Noto Sans", sans-serif;
+  --font-mono:    "Roboto Mono", ui-monospace, "SF Mono", Menlo, monospace;
+
+  /* Title scale — Proxima Nova BLACK (900), set ALL CAPS, tight leading.
+     "Use it in all caps for headings and titles to communicate certainty
+      and conviction." */
+  --title-xxl:    72px;
+  --title-xl:     56px;
+  --title-lg:     48px;
+  --title-md:     36px;
+  --title-sm:     28px;
+  --title-xs:     20px;
+  --title-leading-tight: 0.8;   /* xxl / xl */
+  --title-leading-auto:  1.0;   /* lg and down */
+  --title-tracking: -0.02em;
+
+  /* Paragraph scale — Helvetica Neue, Regular (400) / Bold (700). */
+  --para-lg:  20px;
+  --para-md:  16px;
+  --para-sm:  14px;
+  --para-xs:  12px;
+  --para-leading: 1.4;
+
+  --weight-regular: 400;
+  --weight-semibold: 600;
+  --weight-bold: 700;
+  --weight-black: 900;
+
+  /* ==========================================================================
+     SHAPE / SPACE / ELEVATION
+     The brand is square, clean and precise — radii are minimal.
+     ========================================================================== */
+  --radius-none: 0px;     /* near-square ethos */
+  --radius-xs: 1px;       /* buttons / inputs on the live site (rounded-xs) */
+  --radius-sm: 2px;       /* system panels */
+  --radius-card: 12px;    /* large content cards / sections */
+  --radius-pill: 999px;
+
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 16px;
+  --space-4: 24px;
+  --space-5: 40px;
+  --space-6: 64px;
+  --space-7: 96px;
+
+  --shadow-1: 0 1px 2px rgba(0,0,0,0.06);
+  --shadow-2: 0 4px 16px rgba(0,0,0,0.08);
+  --shadow-3: 0 12px 40px rgba(0,0,0,0.12);
+
+  --control-height: 44px;     /* buttons / inputs */
+  --transition: 160ms ease;
+}
+
+/* ============================================================================
+   SEMANTIC TYPE CLASSES
+   Headings are ALL CAPS Proxima Nova Black by brand rule.
+   ============================================================================ */
+.cg-title-xxl, .cg-title-xl, .cg-title-lg,
+.cg-title-md, .cg-title-sm, .cg-title-xs {
+  font-family: var(--font-display);
+  font-weight: var(--weight-black);
+  letter-spacing: var(--title-tracking);
+  text-transform: uppercase;
+  color: var(--fg-1);
+  margin: 0;
+}
+.cg-title-xxl { font-size: var(--title-xxl); line-height: var(--title-leading-tight); }
+.cg-title-xl  { font-size: var(--title-xl);  line-height: var(--title-leading-tight); }
+.cg-title-lg  { font-size: var(--title-lg);  line-height: var(--title-leading-auto); }
+.cg-title-md  { font-size: var(--title-md);  line-height: var(--title-leading-auto); }
+.cg-title-sm  { font-size: var(--title-sm);  line-height: var(--title-leading-auto); }
+.cg-title-xs  { font-size: var(--title-xs);  line-height: var(--title-leading-auto); }
+
+.cg-para-lg, .cg-para-md, .cg-para-sm, .cg-para-xs {
+  font-family: var(--font-body);
+  font-weight: var(--weight-regular);
+  line-height: var(--para-leading);
+  color: var(--fg-1);
+  margin: 0;
+}
+.cg-para-lg { font-size: var(--para-lg); }
+.cg-para-md { font-size: var(--para-md); }
+.cg-para-sm { font-size: var(--para-sm); }
+.cg-para-xs { font-size: var(--para-xs); }
+.cg-para-muted { color: var(--fg-2); }
+.cg-bold { font-weight: var(--weight-bold); }
+
+/* Eyebrow / spec label — Roboto Mono, used above titles and as metadata. */
+.cg-eyebrow {
+  font-family: var(--font-mono);
+  font-size: var(--para-xs);
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--fg-2);
+  margin: 0;
+}
+</style>
+<script src="4f167feb-99d4-4639-bde2-6879c38930ce"></script>
+<script src="00a2f763-eb24-4e23-a464-9ab87a5ab58a"></script>
+<style>
+  *{box-sizing:border-box}
+  html,body{margin:0;padding:0}
+  body{background:var(--gray-5);font-family:var(--font-body);-webkit-font-smoothing:antialiased}
+  input,textarea,button,select{font-family:inherit;color:inherit}
+  textarea{outline:none}
+  input{outline:none}
+  input:focus,textarea:focus{border-color:var(--black)!important}
+  ::placeholder{color:var(--gray-20);font-weight:400}
+  ::-webkit-scrollbar{height:10px;width:10px}
+  ::-webkit-scrollbar-thumb{background:var(--gray-20);border-radius:0}
+  ::-webkit-scrollbar-track{background:transparent}
+  @keyframes cgpop{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
+  .cg-card{animation:cgpop .18s ease both}
+  @media print{
+    [data-noprint]{display:none!important}
+    body{background:#fff}
+    .cg-board{overflow:visible!important}
+    .cg-card{break-inside:avoid;page-break-inside:avoid}
+  }
+</style>
+</helmet>
+
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <defs>
+    <g fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <symbol id="cm-static" sc-camel-view-box="0 0 24 24"><rect x="4" y="7" width="16" height="10"></rect><circle cx="12" cy="12" r="1.4" fill="currentColor" stroke="none"></circle></symbol>
+      <symbol id="cm-pan-left" sc-camel-view-box="0 0 24 24"><path d="M20 12H4"></path><path d="M10 6l-6 6 6 6"></path></symbol>
+      <symbol id="cm-pan-right" sc-camel-view-box="0 0 24 24"><path d="M4 12h16"></path><path d="M14 6l6 6-6 6"></path></symbol>
+      <symbol id="cm-tilt-up" sc-camel-view-box="0 0 24 24"><path d="M12 20V4"></path><path d="M6 10l6-6 6 6"></path></symbol>
+      <symbol id="cm-tilt-down" sc-camel-view-box="0 0 24 24"><path d="M12 4v16"></path><path d="M6 14l6 6 6-6"></path></symbol>
+      <symbol id="cm-zoom-in" sc-camel-view-box="0 0 24 24"><circle cx="11" cy="11" r="6"></circle><path d="M20 20l-4.3-4.3"></path><path d="M11 8.5v5M8.5 11h5"></path></symbol>
+      <symbol id="cm-zoom-out" sc-camel-view-box="0 0 24 24"><circle cx="11" cy="11" r="6"></circle><path d="M20 20l-4.3-4.3"></path><path d="M8.5 11h5"></path></symbol>
+      <symbol id="cm-dolly-in" sc-camel-view-box="0 0 24 24"><path d="M7 13l5-5 5 5"></path><path d="M7 18l5-5 5 5"></path></symbol>
+      <symbol id="cm-dolly-out" sc-camel-view-box="0 0 24 24"><path d="M7 11l5 5 5-5"></path><path d="M7 6l5 5 5-5"></path></symbol>
+      <symbol id="cm-truck" sc-camel-view-box="0 0 24 24"><path d="M4 12h16"></path><path d="M10 6l-6 6 6 6"></path><path d="M14 6l6 6-6 6"></path></symbol>
+      <symbol id="cm-pedestal" sc-camel-view-box="0 0 24 24"><path d="M12 4v16"></path><path d="M6 10l6-6 6 6"></path><path d="M6 14l6 6 6-6"></path></symbol>
+      <symbol id="cm-handheld" sc-camel-view-box="0 0 24 24"><path d="M3 14c2-6 4-6 6 0s4 6 6 0 4-6 6 0"></path></symbol>
+      <symbol id="cm-crane" sc-camel-view-box="0 0 24 24"><path d="M5 19A14 14 0 0 1 19 5"></path><path d="M14 5h5v5"></path></symbol>
+      <symbol id="cm-tracking" sc-camel-view-box="0 0 24 24"><path d="M4 12h11" stroke-dasharray="2.4 2.6"></path><path d="M14 9l4 3-4 3"></path></symbol>
+      <symbol id="cm-drone" sc-camel-view-box="0 0 24 24"><circle cx="12" cy="12" r="2"></circle><path d="M6 6l3.2 3.2M18 6l-3.2 3.2M6 18l3.2-3.2M18 18l-3.2-3.2"></path><circle cx="6" cy="6" r="2"></circle><circle cx="18" cy="6" r="2"></circle><circle cx="6" cy="18" r="2"></circle><circle cx="18" cy="18" r="2"></circle></symbol>
+      <symbol id="ui-grid" sc-camel-view-box="0 0 24 24"><rect x="4" y="4" width="7" height="7"></rect><rect x="13" y="4" width="7" height="7"></rect><rect x="4" y="13" width="7" height="7"></rect><rect x="13" y="13" width="7" height="7"></rect></symbol>
+      <symbol id="ui-strip" sc-camel-view-box="0 0 24 24"><rect x="3" y="7" width="6" height="10"></rect><rect x="11" y="7" width="6" height="10"></rect><path d="M20 7v10"></path></symbol>
+      <symbol id="ui-list" sc-camel-view-box="0 0 24 24"><rect x="4" y="6" width="7" height="5"></rect><rect x="4" y="13" width="7" height="5"></rect><path d="M14 7.5h6M14 11h4M14 14.5h6M14 18h4"></path></symbol>
+      <symbol id="ui-plus" sc-camel-view-box="0 0 24 24"><path d="M12 5v14M5 12h14"></path></symbol>
+      <symbol id="ui-trash" sc-camel-view-box="0 0 24 24"><path d="M5 7h14M10 7V5h4v2M6 7l1 12h10l1-12"></path></symbol>
+      <symbol id="ui-copy" sc-camel-view-box="0 0 24 24"><rect x="8" y="8" width="12" height="12"></rect><path d="M16 8V4H4v12h4"></path></symbol>
+      <symbol id="ui-clipboard" sc-camel-view-box="0 0 24 24"><rect x="6" y="4" width="12" height="17" rx="1"></rect><path d="M9 4V3a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v1"></path><path d="M9 11h6M9 15h6"></path></symbol>
+      <symbol id="ui-drag" sc-camel-view-box="0 0 24 24" stroke="none" fill="currentColor"><circle cx="9" cy="6" r="1.6"></circle><circle cx="15" cy="6" r="1.6"></circle><circle cx="9" cy="12" r="1.6"></circle><circle cx="15" cy="12" r="1.6"></circle><circle cx="9" cy="18" r="1.6"></circle><circle cx="15" cy="18" r="1.6"></circle></symbol>
+      <symbol id="ui-close" sc-camel-view-box="0 0 24 24"><path d="M6 6l12 12M18 6L6 18"></path></symbol>
+      <symbol id="ui-image" sc-camel-view-box="0 0 24 24"><rect x="3" y="5" width="18" height="14"></rect><circle cx="8.5" cy="10" r="1.6"></circle><path d="M21 16l-5-5-6 6"></path></symbol>
+      <symbol id="ui-print" sc-camel-view-box="0 0 24 24"><path d="M7 9V4h10v5M7 18H5v-6a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v6h-2M7 15h10v5H7z"></path></symbol>
+      <symbol id="ui-caret" sc-camel-view-box="0 0 24 24"><path d="M7 10l5 5 5-5"></path></symbol>
+      <symbol id="ui-cloud" sc-camel-view-box="0 0 24 24"><path d="M7.5 19h9.2a3.8 3.8 0 0 0 .6-7.55A5.6 5.6 0 0 0 6.7 10.3 4.4 4.4 0 0 0 7.5 19z"></path><path d="M12 16.5V9.6M9.4 12.2L12 9.5l2.6 2.7"></path></symbol>
+      <symbol id="ui-refresh" sc-camel-view-box="0 0 24 24"><path d="M20 12a8 8 0 1 1-2.4-5.7"></path><path d="M20 4v4.5h-4.5"></path></symbol>
+      <symbol id="ui-pdf" sc-camel-view-box="0 0 24 24"><path d="M6 2h9l5 5v15H6z"></path><path d="M15 2v5h5"></path><path d="M8.5 17.5v-4h1.2a1.2 1.2 0 0 1 0 2.4H8.5M12.3 17.5v-4h1a1.6 1.6 0 0 1 0 4h-1zM17.5 13.5h-2v4M15.5 15.3h1.7" stroke-width="1.6"></path></symbol>
+    </g>
+  </defs>
+</svg>
+
+<sc-if value="{{ isMenuView }}" hint-placeholder-val="{{ true }}">
+  <div style="min-height:100vh;background:var(--gray-5);padding:48px 32px">
+    <div style="max-width:1100px;margin:0 auto">
+      <div style="font-family:var(--font-mono);font-size:11px;letter-spacing:0.14em;text-transform:uppercase;color:var(--gray-30);margin-bottom:8px">Storyboard</div>
+      <div style="display:flex;align-items:flex-end;justify-content:space-between;flex-wrap:wrap;gap:16px;margin-bottom:32px">
+        <div style="font-family:var(--font-display);font-weight:900;font-size:40px;line-height:0.9;letter-spacing:-0.02em;text-transform:uppercase;color:var(--black)">Your Storyboards</div>
+        <button sc-camel-on-click="{{ newBoard }}" style="{{ addBtnStyle }}" style-hover="opacity:0.88">
+          <svg width="18" height="18" style="stroke:#FFFFFF;fill:#FFFFFF;stroke-width:4px"><use href="#ui-plus"></use></svg>New Shot List
+        </button>
+      </div>
+
+      <sc-if value="{{ noBoards }}" hint-placeholder-val="{{ true }}">
+        <div style="border:2px dashed var(--gray-20);background:var(--white);padding:64px 32px;text-align:center;display:flex;flex-direction:column;align-items:center;gap:14px">
+          <svg width="40" height="40" style="color:var(--gray-20)"><use href="#ui-grid"></use></svg>
+          <div style="font-family:var(--font-display);font-weight:900;font-size:22px;letter-spacing:-0.01em;text-transform:uppercase;color:var(--black)">No storyboards yet</div>
+          <div style="font-size:14px;color:var(--gray-30)">Start a new shot list to begin planning your shots.</div>
+        </div>
+      </sc-if>
+
+      <div style="display:grid;grid-template-columns:repeat(auto-fill, minmax(300px, 1fr));gap:18px">
+        <sc-for list="{{ boards }}" as="b" hint-placeholder-count="0">
+          <div sc-camel-on-click="{{ openBoard }}" data-id="{{ b.id }}" style="background:var(--white);border:1px solid var(--gray-15);padding:20px;cursor:pointer;display:flex;flex-direction:column;gap:6px;position:relative" style-hover="border-color:var(--black)">
+            <button data-id="{{ b.id }}" sc-camel-on-click="{{ deleteBoard }}" title="Delete" data-noprint="" style="position:absolute;top:12px;right:12px;width:28px;height:28px;background:transparent;border:1px solid var(--gray-15);color:var(--gray-40);cursor:pointer;display:flex;align-items:center;justify-content:center" style-hover="color:var(--red-500);border-color:var(--red-500)">
+              <svg width="15" height="15"><use href="#ui-trash"></use></svg>
+            </button>
+            <div style="font-family:var(--font-display);font-weight:900;font-size:19px;letter-spacing:-0.01em;text-transform:uppercase;color:var(--black);padding-right:30px">{{ b.title }}</div>
+            <div style="font-family:var(--font-mono);font-size:11px;letter-spacing:0.04em;text-transform:uppercase;color:var(--gray-30);margin-top:4px">{{ b.shotCount }} shots · Updated {{ b.updatedLabel }}</div>
+          </div>
+        </sc-for>
+      </div>
+
+      <sc-if value="{{ libraryEnabled }}" hint-placeholder-val="{{ true }}">
+        <div style="margin-top:56px;border-top:1px solid var(--gray-15);padding-top:32px">
+          <div style="display:flex;align-items:flex-end;justify-content:space-between;flex-wrap:wrap;gap:16px;margin-bottom:20px">
+            <div>
+              <div style="font-family:var(--font-mono);font-size:11px;letter-spacing:0.14em;text-transform:uppercase;color:var(--gray-30);margin-bottom:8px">Shared</div>
+              <div style="font-family:var(--font-display);font-weight:900;font-size:30px;line-height:0.9;letter-spacing:-0.02em;text-transform:uppercase;color:var(--black)">Team Library</div>
+              <div style="font-size:13px;color:var(--gray-30);margin-top:8px">{{ libraryHint }}</div>
+            </div>
+            <button sc-camel-on-click="{{ loadLibrary }}" style="display:flex;align-items:center;gap:6px;height:36px;padding:0 12px;background:transparent;border:1px solid var(--gray-15);color:var(--gray-50);font-size:12px;font-weight:700;cursor:pointer;text-transform:uppercase;letter-spacing:0.04em" style-hover="background:var(--gray-5)">
+              <svg width="15" height="15"><use href="#ui-refresh"></use></svg>Refresh
+            </button>
+          </div>
+
+          <sc-if value="{{ hasLibraryError }}" hint-placeholder-val="{{ false }}">
+            <div style="border:1px solid var(--gray-15);background:var(--white);padding:20px;font-size:13px;color:var(--gray-50)">{{ libraryError }}</div>
+          </sc-if>
+
+          <sc-if value="{{ libraryEmpty }}" hint-placeholder-val="{{ false }}">
+            <div style="border:2px dashed var(--gray-20);background:var(--white);padding:44px 32px;text-align:center;display:flex;flex-direction:column;align-items:center;gap:12px">
+              <svg width="34" height="34" style="color:var(--gray-20)"><use href="#ui-cloud"></use></svg>
+              <div style="font-family:var(--font-display);font-weight:900;font-size:19px;letter-spacing:-0.01em;text-transform:uppercase;color:var(--black)">Nothing shared yet</div>
+              <div style="font-size:14px;color:var(--gray-30)">Open a storyboard and choose Save to Library to share it with the team.</div>
+            </div>
+          </sc-if>
+
+          <div style="display:grid;grid-template-columns:repeat(auto-fill, minmax(300px, 1fr));gap:18px">
+            <sc-for list="{{ libraryBoards }}" as="l" hint-placeholder-count="0">
+              <div sc-camel-on-click="{{ openLibraryBoard }}" data-id="{{ l.id }}" style="background:var(--white);border:1px solid var(--gray-15);padding:20px;cursor:pointer;display:flex;flex-direction:column;gap:6px;position:relative" style-hover="border-color:var(--black)">
+                <button data-id="{{ l.id }}" sc-camel-on-click="{{ deleteLibraryBoard }}" title="Remove from the team library" data-noprint="" style="position:absolute;top:12px;right:12px;width:28px;height:28px;background:transparent;border:1px solid var(--gray-15);color:var(--gray-40);cursor:pointer;display:flex;align-items:center;justify-content:center" style-hover="color:var(--red-500);border-color:var(--red-500)">
+                  <svg width="15" height="15"><use href="#ui-trash"></use></svg>
+                </button>
+                <div style="font-family:var(--font-display);font-weight:900;font-size:19px;letter-spacing:-0.01em;text-transform:uppercase;color:var(--black);padding-right:30px">{{ l.title }}</div>
+                <sc-if value="{{ l.hasProject }}" hint-placeholder-val="{{ false }}">
+                  <div style="font-size:13px;font-weight:600;color:var(--gray-40)">{{ l.project }}</div>
+                </sc-if>
+                <div style="font-family:var(--font-mono);font-size:11px;letter-spacing:0.04em;text-transform:uppercase;color:var(--gray-30);margin-top:4px">{{ l.line }}</div>
+              </div>
+            </sc-for>
+          </div>
+        </div>
+      </sc-if>
+    </div>
+  </div>
+</sc-if>
+
+<sc-if value="{{ isBoardView }}" hint-placeholder-val="{{ false }}">
+<div class="cg-board-wrap" style="min-height:100vh;display:flex;flex-direction:column">
+
+  <header style="background:var(--white);border-bottom:1px solid var(--gray-15);padding:26px 32px 22px">
+    <div style="max-width:1440px;margin:0 auto;display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap">
+      <button sc-camel-on-click="{{ goToMenu }}" data-noprint="" style="display:flex;align-items:center;gap:6px;height:32px;padding:0 12px;background:transparent;border:1px solid var(--gray-15);color:var(--gray-50);font-size:12px;font-weight:700;cursor:pointer;text-transform:uppercase;letter-spacing:0.04em" style-hover="background:var(--gray-5)">
+        <svg width="15" height="15" style="transform:rotate(90deg)"><use href="#ui-caret"></use></svg>All Storyboards
+      </button>
+    </div>
+    <div style="max-width:1440px;margin:0 auto">
+      <div style="display:flex;flex-wrap:wrap;gap:24px;align-items:flex-start;justify-content:space-between">
+        <div style="flex:1;min-width:280px">
+          <div style="font-family:var(--font-mono);font-size:11px;letter-spacing:0.14em;text-transform:uppercase;color:var(--gray-30);margin-bottom:8px">Storyboard</div>
+          <input data-field="title" sc-camel-default-value="{{ meta.title }}" sc-camel-on-input="{{ onMetaInput }}" placeholder="UNTITLED STORYBOARD" style="font-family:var(--font-display);font-weight:900;font-size:40px;line-height:0.9;letter-spacing:-0.02em;text-transform:uppercase;color:var(--black);border:none;background:transparent;width:100%;padding:0 0 4px">
+        </div>
+        <div style="padding:14px 16px;flex:0 0 auto;min-width:260px">
+          <div style="font-family:var(--font-mono);font-size:10px;letter-spacing:0.09em;text-transform:uppercase;color:var(--gray-30);margin-bottom:10px">Color Key</div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px 18px">
+            <sc-for list="{{ tagKey }}" as="t" hint-placeholder-count="5">
+              <div style="display:flex;align-items:center;gap:6px">
+                <span style="{{ t.swatchStyle }}"></span>
+                <input data-key="{{ t.key }}" value="{{ t.label }}" sc-camel-on-input="{{ onTagLabelInput }}" placeholder="{{ t.placeholder }}" style="font-size:13px;font-weight:600;border:none;background:transparent;padding:2px 0;width:100%;min-width:0">
+              </div>
+            </sc-for>
+          </div>
+        </div>
+      </div>
+      <div style="display:flex;flex-wrap:wrap;gap:26px;margin-top:16px">
+        <label style="display:flex;flex-direction:column;gap:3px;min-width:150px">
+          <span style="font-family:var(--font-mono);font-size:10px;letter-spacing:0.09em;text-transform:uppercase;color:var(--gray-30)">Project / Client</span>
+          <input data-field="project" sc-camel-default-value="{{ meta.project }}" sc-camel-on-input="{{ onMetaInput }}" placeholder="Add project" style="font-size:14px;font-weight:700;border:none;border-bottom:1px solid var(--gray-15);background:transparent;padding:4px 0">
+        </label>
+        <label style="display:flex;flex-direction:column;gap:3px;min-width:150px">
+          <span style="font-family:var(--font-mono);font-size:10px;letter-spacing:0.09em;text-transform:uppercase;color:var(--gray-30)">Director</span>
+          <input data-field="director" sc-camel-default-value="{{ meta.director }}" sc-camel-on-input="{{ onMetaInput }}" placeholder="Add name" style="font-size:14px;font-weight:700;border:none;border-bottom:1px solid var(--gray-15);background:transparent;padding:4px 0">
+        </label>
+        <label style="display:flex;flex-direction:column;gap:3px;min-width:110px">
+          <span style="font-family:var(--font-mono);font-size:10px;letter-spacing:0.09em;text-transform:uppercase;color:var(--gray-30)">Date</span>
+          <input data-field="date" sc-camel-default-value="{{ meta.date }}" sc-camel-on-input="{{ onMetaInput }}" placeholder="Add date" style="font-size:14px;font-weight:700;border:none;border-bottom:1px solid var(--gray-15);background:transparent;padding:4px 0">
+        </label>
+      </div>
+    </div>
+  </header>
+
+  <div data-noprint="" style="position:sticky;top:0;z-index:20;background:var(--white);border-bottom:1px solid var(--gray-15);padding:12px 32px">
+    <div style="max-width:1440px;margin:0 auto;display:flex;align-items:center;gap:18px;flex-wrap:wrap">
+      <div style="font-family:var(--font-mono);font-size:12px;letter-spacing:0.06em;text-transform:uppercase;color:var(--gray-40);font-weight:500">{{ shotCount }} Shots</div>
+
+      <div style="display:flex;align-items:center;gap:16px;margin-left:auto;flex-wrap:wrap">
+        <div style="display:flex;align-items:center;gap:8px">
+          <span style="font-family:var(--font-mono);font-size:10px;letter-spacing:0.09em;text-transform:uppercase;color:var(--gray-30)">Layout</span>
+          <div style="display:flex;border:1px solid var(--gray-15)">
+            <sc-for list="{{ layouts }}" as="opt" hint-placeholder-count="3">
+              <button data-key="{{ opt.key }}" sc-camel-on-click="{{ setLayoutEvt }}" title="{{ opt.label }}" style="{{ opt.style }}">
+                <svg width="17" height="17"><use href="{{ opt.icon }}"></use></svg>
+              </button>
+            </sc-for>
+          </div>
+        </div>
+
+        <sc-if value="{{ showDayBreakBtn }}" hint-placeholder-val="{{ false }}">
+          <button sc-camel-on-click="{{ insertDayBreak }}" title="Insert a shooting-day break above the selected shot" style="display:flex;align-items:center;gap:6px;height:36px;padding:0 12px;background:transparent;border:1px solid var(--gray-15);color:var(--gray-50);font-size:12px;font-weight:700;cursor:pointer;text-transform:uppercase;letter-spacing:0.04em" style-hover="background:var(--gray-5)">Day Break</button>
+        </sc-if>
+
+        <sc-if value="{{ libraryEnabled }}" hint-placeholder-val="{{ true }}">
+          <sc-if value="{{ hasLibraryStatus }}" hint-placeholder-val="{{ false }}">
+            <span style="font-family:var(--font-mono);font-size:11px;letter-spacing:0.06em;text-transform:uppercase;color:var(--gray-40)">{{ libraryStatus }}</span>
+          </sc-if>
+          <button sc-camel-on-click="{{ saveToLibrary }}" title="Save this storyboard to the shared team library" style="{{ libSaveBtnStyle }}" style-hover="background:var(--gray-5)">
+            <svg width="16" height="16"><use href="#ui-cloud"></use></svg>{{ libSaveLabel }}
+          </button>
+        </sc-if>
+
+        <button sc-camel-on-click="{{ printBoard }}" style="display:flex;align-items:center;gap:6px;height:36px;padding:0 12px;background:transparent;border:1px solid var(--gray-15);color:var(--gray-50);font-size:12px;font-weight:700;cursor:pointer;text-transform:uppercase;letter-spacing:0.04em" style-hover="background:var(--gray-5)">
+          <svg width="16" height="16"><use href="#ui-print"></use></svg>Print
+        </button>
+        <div style="position:relative">
+          <button sc-camel-on-click="{{ toggleExportMenu }}" style="display:flex;align-items:center;gap:6px;height:36px;padding:0 12px;background:transparent;border:1px solid var(--gray-15);color:var(--gray-50);font-size:12px;font-weight:700;cursor:pointer;text-transform:uppercase;letter-spacing:0.04em" style-hover="background:var(--gray-5)">
+            <svg width="16" height="16"><use href="#ui-copy"></use></svg>Export
+            <svg width="14" height="14"><use href="#ui-caret"></use></svg>
+          </button>
+          <sc-if value="{{ exportMenuOpen }}" hint-placeholder-val="{{ false }}">
+            <div data-noprint="" sc-camel-on-click="{{ closeExportMenu }}" style="position:fixed;inset:0;z-index:40"></div>
+            <div data-noprint="" style="position:absolute;top:40px;left:0;width:150px;background:var(--white);border:1px solid var(--gray-15);box-shadow:var(--shadow-2);padding:6px;z-index:41;display:flex;flex-direction:column;gap:2px">
+              <button sc-camel-on-click="{{ exportBoard }}" style="padding:8px 10px;border:none;background:var(--white);cursor:pointer;text-align:left;font-size:13px;font-weight:600;display:flex;align-items:center;gap:8px" style-hover="background:var(--gray-5)">
+                <svg width="15" height="15"><use href="#ui-copy"></use></svg>JSON
+              </button>
+              <button sc-camel-on-click="{{ exportPdf }}" style="padding:8px 10px;border:none;background:var(--white);cursor:pointer;text-align:left;font-size:13px;font-weight:600;display:flex;align-items:center;gap:8px" style-hover="background:var(--gray-5)">
+                <svg width="15" height="15"><use href="#ui-pdf"></use></svg>PDF
+              </button>
+            </div>
+          </sc-if>
+        </div>
+        <label style="display:flex;align-items:center;gap:6px;height:36px;padding:0 12px;background:transparent;border:1px solid var(--gray-15);color:var(--gray-50);font-size:12px;font-weight:700;cursor:pointer;text-transform:uppercase;letter-spacing:0.04em">
+          <svg width="16" height="16"><use href="#ui-image"></use></svg>Import
+          <input type="file" accept="application/json" sc-camel-on-change="{{ importBoard }}" style="display:none">
+        </label>
+        <div style="position:relative">
+          <button sc-camel-on-click="{{ toggleOrganizeMenu }}" title="Group shots by a field" style="{{ organizeBtnStyle }}">
+            <svg width="16" height="16"><use href="#ui-grid"></use></svg>{{ organizeLabel }}
+            <svg width="14" height="14"><use href="#ui-caret"></use></svg>
+          </button>
+          <sc-if value="{{ organizeMenuOpen }}" hint-placeholder-val="{{ false }}">
+            <div data-noprint="" sc-camel-on-click="{{ closeOrganizeMenu }}" style="position:fixed;inset:0;z-index:40"></div>
+            <div data-noprint="" style="position:absolute;top:40px;left:0;width:180px;background:var(--white);border:1px solid var(--gray-15);box-shadow:var(--shadow-2);padding:6px;z-index:41;display:flex;flex-direction:column;gap:2px">
+              <sc-if value="{{ isOrganized }}" hint-placeholder-val="{{ false }}">
+                <button sc-camel-on-click="{{ restoreOrder }}" style="padding:8px 10px;border:none;background:var(--white);cursor:pointer;text-align:left;font-size:13px;font-weight:700;color:var(--red-500)" style-hover="background:var(--gray-5)">Restore Order</button>
+                <div style="height:1px;background:var(--gray-10);margin:2px 0"></div>
+              </sc-if>
+              <sc-for list="{{ organizeOptions }}" as="o" hint-placeholder-count="6">
+                <button data-key="{{ o.key }}" sc-camel-on-click="{{ chooseOrganize }}" style="{{ o.style }}" style-hover="background:var(--gray-5)">
+                  <span style="{{ o.badgeStyle }}">{{ o.badgeLabel }}</span>{{ o.label }}
+                </button>
+              </sc-for>
+            </div>
+          </sc-if>
+        </div>
+        <button sc-camel-on-click="{{ clearAll }}" style="height:36px;padding:0 12px;background:transparent;border:1px solid var(--gray-15);color:var(--gray-30);font-size:12px;font-weight:700;cursor:pointer;text-transform:uppercase;letter-spacing:0.04em" style-hover="color:var(--red-500);border-color:var(--red-500)">Clear</button>
+        <button sc-camel-on-click="{{ addFrame }}" style="{{ addBtnStyle }}" style-hover="opacity:0.88">
+          <svg width="18" height="18" style="stroke: #FFFFFF; fill: #FFFFFF; stroke-width: 4px"><use href="#ui-plus"></use></svg>Add Shot
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <main style="flex:1;padding:28px 32px 64px">
+    <div style="max-width:1440px;margin:0 auto">
+
+      <sc-if value="{{ isEmpty }}" hint-placeholder-val="{{ true }}">
+        <div style="border:2px dashed var(--gray-20);background:var(--white);padding:64px 32px;text-align:center;display:flex;flex-direction:column;align-items:center;gap:18px">
+          <svg width="46" height="46" style="color:var(--gray-20)"><use href="#ui-image"></use></svg>
+          <div>
+            <div style="font-family:var(--font-display);font-weight:900;font-size:26px;letter-spacing:-0.01em;text-transform:uppercase;color:var(--black)">Start your board</div>
+            <div style="font-size:14px;color:var(--gray-30);margin-top:6px;max-width:420px">Add a shot, then drag in a reference image, set the lens and camera move, and write the action and dialogue.</div>
+          </div>
+          <div style="display:flex;gap:10px">
+            <button sc-camel-on-click="{{ addFrame }}" style="{{ addBtnStyle }}" style-hover="opacity:0.88"><svg width="18" height="18"><use href="#ui-plus"></use></svg>Add First Shot</button>
+            <button sc-camel-on-click="{{ addThree }}" style="height:44px;padding:0 18px;background:transparent;border:1px solid var(--gray-20);color:var(--gray-50);font-size:13px;font-weight:700;cursor:pointer;text-transform:uppercase;letter-spacing:0.04em" style-hover="background:var(--gray-5)">Add 3 Shots</button>
+          </div>
+        </div>
+      </sc-if>
+
+      <div class="cg-board" ref="{{ setBoardRef }}" sc-camel-on-mouse-down="{{ onBoardMouseDown }}" style="{{ containerStyle }}">
+        <sc-if value="{{ marqueeOn }}" hint-placeholder-val="{{ false }}">
+          <div data-noprint="" style="{{ marqueeStyle }}"></div>
+        </sc-if>
+        <sc-for list="{{ frames }}" as="f" hint-placeholder-count="0">
+          <sc-if value="{{ f.showDayBreak }}" hint-placeholder-val="{{ false }}">
+            <div data-noprint="" style="display:flex;align-items:center;gap:10px;margin:6px 0 -6px;width:100%">
+              <div style="height:1px;flex:0 0 20px;background:var(--gray-20)"></div>
+              <input data-id="{{ f.id }}" data-field="dayLabel" value="{{ f.dayLabel }}" sc-camel-on-input="{{ onFieldInput }}" placeholder="SHOOTING DAY" style="font-family:var(--font-mono);font-size:11px;font-weight:700;letter-spacing:0.1em;text-transform:uppercase;color:var(--gray-40);border:none;background:transparent;padding:2px 0;flex:0 1 220px">
+              <div style="height:1px;flex:1;background:var(--gray-20)"></div>
+            </div>
+          </sc-if>
+          <div class="cg-card" ref="{{ f.setRef }}" data-id="{{ f.id }}" sc-camel-on-drag-over="{{ onCardDragOver }}" sc-camel-on-drop="{{ onCardDrop }}" style="{{ f.cardStyle }}">
+            <sc-if value="{{ f.showBefore }}" hint-placeholder-val="{{ false }}"><div style="{{ barBefore }}"></div></sc-if>
+            <sc-if value="{{ f.showAfter }}" hint-placeholder-val="{{ false }}"><div style="{{ barAfter }}"></div></sc-if>
+            <sc-if value="{{ f.hasTag }}" hint-placeholder-val="{{ false }}"><div style="{{ f.tagStripStyle }}"></div></sc-if>
+
+            <sc-if value="{{ f.showImage }}" hint-placeholder-val="{{ true }}">
+            <div data-id="{{ f.id }}" sc-camel-on-mouse-enter="{{ onImgHoverIn }}" sc-camel-on-mouse-leave="{{ onImgHoverOut }}" style="{{ f.wrapStyle }}">
+              <sc-if value="{{ f.hasImage }}" hint-placeholder-val="{{ false }}">
+                <div data-id="{{ f.id }}" sc-camel-on-pointer-down="{{ onImgPointerDown }}" title="Drag to reposition" style="position:absolute;inset:0;overflow:hidden;cursor:move;touch-action:none">
+                  <img src="{{ f.image }}" alt="" draggable="{{ false }}" style="width:100%;height:100%;object-fit:cover;object-position:{{ f.cropPos }};transform:scale({{ f.zoom }});transform-origin:{{ f.cropPos }};display:block;pointer-events:none;user-select:none">
+                </div>
+              </sc-if>
+              <sc-if value="{{ f.noImage }}" hint-placeholder-val="{{ true }}">
+                <label data-id="{{ f.id }}" sc-camel-on-drag-over="{{ onImgDragOver }}" sc-camel-on-drag-leave="{{ onImgDragLeave }}" sc-camel-on-drop="{{ onImgDrop }}" style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;cursor:pointer;overflow:hidden">
+                  <input type="file" accept="image/*" data-id="{{ f.id }}" sc-camel-on-change="{{ onImgPick }}" style="display:none">
+                  <span style="display:flex;flex-direction:column;align-items:center;gap:8px;color:var(--gray-20);pointer-events:none">
+                    
+                    <span style="font-family:var(--font-mono);font-size:10px;letter-spacing:0.06em;text-transform:uppercase">Drag image or click</span>
+                  </span>
+                </label>
+              </sc-if>
+              <div style="position:absolute;top:8px;left:8px;background:var(--black);font-family:var(--font-mono);font-size:11px;font-weight:600;letter-spacing:0.06em;padding:3px 7px;pointer-events:none;color:{{ f.accent }}">{{ f.badge }}</div>
+              <sc-if value="{{ f.hasMove }}" hint-placeholder-val="{{ false }}">
+                <div style="position:absolute;bottom:8px;left:8px;display:flex;align-items:center;gap:6px;pointer-events:none;color:{{ f.accent }}">
+                  <svg width="17" height="17" style="color: var(--cglp-blue); fill: #56C4E4; background-color: #00000000"><use href="{{ f.iconHref }}"></use></svg>
+                  <span style="font-family: var(--font-mono); font-size: 10px; font-weight: 600; letter-spacing: 0.05em; text-transform: uppercase; background-color: #00000000">{{ f.moveLabel }}</span>
+                </div>
+              </sc-if>
+              <sc-if value="{{ f.hasImage }}" hint-placeholder-val="{{ false }}">
+                <div data-noprint="" style="{{ f.toolbarStyle }}">
+                  <input type="range" min="1" max="3" step="0.01" value="{{ f.zoom }}" data-id="{{ f.id }}" sc-camel-on-input="{{ onZoom }}" title="Zoom" style="accent-color: var(--cglp-blue); cursor: pointer; width: 70px; position: sticky; padding-left: 0px; padding-right: 0px">
+                  <button data-id="{{ f.id }}" sc-camel-on-click="{{ openAspectMenu }}" title="Aspect ratio" style="height:26px;padding:0 8px;background:rgba(0,0,0,0.55);border:none;color:#fff;font-family:var(--font-mono);font-size:10px;font-weight:600;letter-spacing:0.04em;cursor:pointer">{{ f.aspectLabel }}</button>
+                  <label title="Replace image" style="width:26px;height:26px;background:rgba(0,0,0,0.55);color:#fff;cursor:pointer;display:flex;align-items:center;justify-content:center">
+                    <input type="file" accept="image/*" data-id="{{ f.id }}" sc-camel-on-change="{{ onImgPick }}" style="display:none">
+                    <svg width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><use href="#ui-image"></use></svg>
+                  </label>
+                  <button data-id="{{ f.id }}" sc-camel-on-click="{{ removeImage }}" title="Remove image" style="width:26px;height:26px;background:rgba(0,0,0,0.55);border:none;color:#fff;cursor:pointer;display:flex;align-items:center;justify-content:center">
+                    <svg width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><use href="#ui-close"></use></svg>
+                  </button>
+                </div>
+              </sc-if>
+            </div>
+            </sc-if>
+
+            <div style="{{ fieldsStyle }}">
+              <div style="display:flex;align-items:flex-start;gap:10px">
+                <div style="display:flex;flex-direction:column;gap:2px;width:52px;flex:0 0 52px">
+                  <span style="font-family:var(--font-mono);font-size:9px;letter-spacing:0.08em;text-transform:uppercase;color:var(--gray-30)">Scene</span>
+                  <input data-id="{{ f.id }}" data-field="scene" value="{{ f.scene }}" sc-camel-on-input="{{ onFieldInput }}" placeholder="1" style="font-family:var(--font-display);font-weight:900;font-size:18px;border:none;border-bottom:1px solid var(--gray-15);background:transparent;padding:2px 0;width:100%">
+                </div>
+                <div style="display:flex;flex-direction:column;gap:2px;width:52px;flex:0 0 52px">
+                  <span style="font-family:var(--font-mono);font-size:9px;letter-spacing:0.08em;text-transform:uppercase;color:var(--gray-30)">Shot</span>
+                  <input value="{{ f.shotNum }}" sc-camel-read-only="{{ true }}" style="font-family:var(--font-display);font-weight:900;font-size:18px;border:none;border-bottom:1px solid var(--gray-15);background:transparent;padding:2px 0;width:100%">
+                </div>
+                <div style="display:flex;flex-direction:column;gap:2px;flex:1;min-width:0">
+                  <span style="font-family:var(--font-mono);font-size:9px;letter-spacing:0.08em;text-transform:uppercase;color:var(--gray-30)">Shot Type</span>
+                  <sc-raw-select data-id="{{ f.id }}" data-field="shotType" value="{{ f.shotType }}" sc-camel-on-change="{{ onFieldInput }}" style="font-size:13px;font-weight:700;border:none;border-bottom:1px solid var(--gray-15);background:transparent;padding:3px 0;width:100%">
+                    <option value="">—</option>
+                    <option value="Establishing">Establishing</option>
+                    <option value="Wide (WS)">Wide (WS)</option>
+                    <option value="Medium (MS)">Medium (MS)</option>
+                    <option value="Medium Close (MCU)">Medium Close (MCU)</option>
+                    <option value="Close-Up (CU)">Close-Up (CU)</option>
+                    <option value="Extreme Close-Up (ECU)">Extreme Close-Up (ECU)</option>
+                    <option value="Over-the-Shoulder (OTS)">Over-the-Shoulder (OTS)</option>
+                    <option value="Two-Shot">Two-Shot</option>
+                    <option value="POV">POV</option>
+                    <option value="Insert">Insert</option>
+                    <option value="Aerial">Aerial</option>
+                  </sc-raw-select>
+                </div>
+                <div style="display:flex;flex-direction:column;gap:2px;width:74px;flex:0 0 74px">
+                  <span style="font-family:var(--font-mono);font-size:9px;letter-spacing:0.08em;text-transform:uppercase;color:var(--gray-30)">Lens</span>
+                  <sc-raw-select data-id="{{ f.id }}" data-field="lens" value="{{ f.lens }}" sc-camel-on-change="{{ onFieldInput }}" style="font-size:13px;font-weight:700;border:none;border-bottom:1px solid var(--gray-15);background:transparent;padding:3px 0;width:100%">
+                    <option value="">—</option>
+                    <option value="14mm">14mm</option>
+                    <option value="18mm">18mm</option>
+                    <option value="24mm">24mm</option>
+                    <option value="35mm">35mm</option>
+                    <option value="50mm">50mm</option>
+                    <option value="85mm">85mm</option>
+                    <option value="100mm">100mm</option>
+                    <option value="135mm">135mm</option>
+                    <option value="Zoom">Zoom</option>
+                  </sc-raw-select>
+                </div>
+                <sc-if value="{{ f.camInline }}" hint-placeholder-val="{{ false }}">
+                <div style="display:flex;flex-direction:column;gap:2px;flex:1;min-width:0">
+                  <span style="font-family:var(--font-mono);font-size:9px;letter-spacing:0.08em;text-transform:uppercase;color:var(--gray-30)">Camera Move</span>
+                  <button data-id="{{ f.id }}" sc-camel-on-click="{{ openCamMenu }}" data-noprint="" style="display:flex;align-items:center;gap:6px;border:1px solid var(--gray-15);background:var(--white);padding:5px 7px;cursor:pointer;text-align:left" style-hover="background:var(--gray-5)">
+                    <svg width="16" height="16" style="flex:0 0 auto;color:var(--cglp-blue)"><use href="{{ f.iconHref }}"></use></svg>
+                    <span style="font-size:13px;font-weight:700;flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{ f.moveLabel }}</span>
+                  </button>
+                </div>
+                </sc-if>
+              </div>
+
+              <sc-if value="{{ f.camStandalone }}" hint-placeholder-val="{{ true }}">
+              <div style="display:flex;flex-direction:column;gap:2px">
+                <span style="font-family:var(--font-mono);font-size:9px;letter-spacing:0.08em;text-transform:uppercase;color:var(--gray-30)">Camera Move</span>
+                <button data-id="{{ f.id }}" sc-camel-on-click="{{ openCamMenu }}" data-noprint="" style="display:flex;align-items:center;gap:9px;border:1px solid var(--gray-15);background:var(--white);padding:7px 9px;cursor:pointer;text-align:left" style-hover="background:var(--gray-5)">
+                  <svg width="20" height="20" style="flex:0 0 auto;color:var(--cglp-blue)"><use href="{{ f.iconHref }}"></use></svg>
+                  <span style="font-size:13px;font-weight:700;flex:1">{{ f.moveLabel }}</span>
+                  <svg width="16" height="16" style="color:var(--gray-30)"><use href="#ui-caret"></use></svg>
+                </button>
+              </div>
+              </sc-if>
+
+              <div style="display:flex;gap:10px">
+                <div style="display:flex;flex-direction:column;gap:2px;flex:1;min-width:0">
+                  <span style="font-family:var(--font-mono);font-size:9px;letter-spacing:0.08em;text-transform:uppercase;color:var(--gray-30)">Subject</span>
+                  <input data-id="{{ f.id }}" data-field="subject" value="{{ f.subject }}" sc-camel-on-input="{{ onFieldInput }}" placeholder="Who/what is in frame" style="font-size:13px;font-weight:700;border:none;border-bottom:1px solid var(--gray-15);background:transparent;padding:3px 0;width:100%">
+                </div>
+                <div style="display:flex;flex-direction:column;gap:2px;flex:1;min-width:0">
+                  <span style="font-family:var(--font-mono);font-size:9px;letter-spacing:0.08em;text-transform:uppercase;color:var(--gray-30)">Location</span>
+                  <input data-id="{{ f.id }}" data-field="location" value="{{ f.location }}" sc-camel-on-input="{{ onFieldInput }}" placeholder="Where it's shot" style="font-size:13px;font-weight:700;border:none;border-bottom:1px solid var(--gray-15);background:transparent;padding:3px 0;width:100%">
+                </div>
+                <sc-if value="{{ f.camInline }}" hint-placeholder-val="{{ false }}">
+                <div style="display:flex;flex-direction:column;gap:2px;flex:1;min-width:0">
+                  <span style="font-family:var(--font-mono);font-size:9px;letter-spacing:0.08em;text-transform:uppercase;color:var(--gray-30)">Notes</span>
+                  <input data-id="{{ f.id }}" data-field="notes" value="{{ f.notes }}" sc-camel-on-input="{{ onFieldInput }}" placeholder="Custom note" style="font-size:13px;font-weight:700;border:none;border-bottom:1px solid var(--gray-15);background:transparent;padding:3px 0;width:100%">
+                </div>
+                </sc-if>
+              </div>
+
+              <div style="{{ f.descDialogueWrapStyle }}">
+              <div style="display:flex;flex-direction:column;gap:2px;flex:1;min-width:0">
+                <span style="font-family:var(--font-mono);font-size:9px;letter-spacing:0.08em;text-transform:uppercase;color:var(--gray-30)">Action / Description</span>
+                <textarea data-id="{{ f.id }}" data-field="description" value="{{ f.description }}" sc-camel-on-input="{{ onFieldInput }}" placeholder="What happens in this shot…" style="font-size:13px;line-height:1.45;color:var(--gray-60);border:1px solid var(--gray-15);background:var(--gray-2);padding:8px;width:100%;resize:vertical;min-height:52px"></textarea>
+              </div>
+
+              <div style="display:flex;flex-direction:column;gap:2px;flex:1;min-width:0">
+                <span style="font-family:var(--font-mono);font-size:9px;letter-spacing:0.08em;text-transform:uppercase;color:var(--gray-30)">Dialogue / VO</span>
+                <textarea data-id="{{ f.id }}" data-field="dialogue" value="{{ f.dialogue }}" sc-camel-on-input="{{ onFieldInput }}" placeholder="Spoken lines or voiceover…" style="font-size:13px;line-height:1.45;font-style:italic;color:var(--gray-60);border:1px solid var(--gray-15);background:var(--gray-2);padding:8px;width:100%;resize:vertical;min-height:44px"></textarea>
+              </div>
+              </div>
+
+              <div data-noprint="" style="display:flex;align-items:center;gap:6px;margin-top:2px;padding-top:8px;border-top:1px solid var(--gray-10)">
+                <span data-id="{{ f.id }}" draggable="{{ true }}" sc-camel-on-drag-start="{{ onHandleDragStart }}" sc-camel-on-drag-end="{{ onHandleDragEnd }}" sc-camel-on-click="{{ onHandleClick }}" title="Click to select (shift/cmd for multiple) — drag to move" style="{{ f.handleStyle }}">
+                  <svg width="16" height="16"><use href="#ui-drag"></use></svg>{{ f.handleLabel }}
+                </span>
+                <div style="margin-left:auto;display:flex;align-items:center;gap:6px">
+                  <sc-for list="{{ f.tags }}" as="t" hint-placeholder-count="5">
+                    <button data-id="{{ f.id }}" data-key="{{ t.key }}" sc-camel-on-click="{{ chooseTagEvt }}" title="{{ t.label }}" style="{{ t.style }}"></button>
+                  </sc-for>
+                </div>
+                <button data-id="{{ f.id }}" sc-camel-on-click="{{ addShotAfter }}" title="Add shot after" style="width:30px;height:30px;background:transparent;border:1px solid var(--gray-15);color:var(--cglp-blue);cursor:pointer;display:flex;align-items:center;justify-content:center" style-hover="background:var(--gray-5)">
+                  <svg width="22" height="22" stroke-width="4" style="stroke: #56C4E5EB; fill: #56C4E5"><use href="#ui-plus"></use></svg>
+                </button>
+                <button data-id="{{ f.id }}" sc-camel-on-click="{{ duplicateFrame }}" title="Duplicate" style="width:30px;height:30px;background:transparent;border:1px solid var(--gray-15);color:var(--gray-40);cursor:pointer;display:flex;align-items:center;justify-content:center" style-hover="background:var(--gray-5)">
+                  <svg width="16" height="16"><use href="#ui-copy"></use></svg>
+                </button>
+                <button data-id="{{ f.id }}" sc-camel-on-click="{{ deleteFrame }}" title="Delete shot" style="width:30px;height:30px;background:transparent;border:1px solid var(--gray-15);color:var(--gray-40);cursor:pointer;display:flex;align-items:center;justify-content:center" style-hover="color:var(--red-500);border-color:var(--red-500)">
+                  <svg width="16" height="16"><use href="#ui-trash"></use></svg>
+                </button>
+              </div>
+            </div>
+          </div>
+        </sc-for>
+      </div>
+
+      <sc-if value="{{ hasFrames }}" hint-placeholder-val="{{ false }}">
+        <button data-noprint="" sc-camel-on-click="{{ addFrame }}" style="margin-top:22px;display:flex;align-items:center;justify-content:center;gap:8px;width:100%;max-width:280px;height:48px;background:transparent;border:2px dashed var(--gray-20);color:var(--gray-40);font-size:13px;font-weight:700;cursor:pointer;text-transform:uppercase;letter-spacing:0.05em" style-hover="border-color:var(--black);color:var(--black)">
+          <svg width="18" height="18"><use href="#ui-plus"></use></svg>Add Shot
+        </button>
+      </sc-if>
+    </div>
+  </main>
+
+</div>
+</sc-if>
+
+<sc-if value="{{ aspectMenuOpen }}" hint-placeholder-val="{{ false }}">
+  <div data-noprint="" sc-camel-on-click="{{ closeAspectMenu }}" style="position:fixed;inset:0;z-index:40"></div>
+  <div data-noprint="" style="{{ aspectMenuStyle }}">
+    <div style="font-family:var(--font-mono);font-size:10px;letter-spacing:0.08em;text-transform:uppercase;color:var(--gray-30);padding:2px 4px 8px">Aspect Ratio</div>
+    <div style="display:flex;flex-direction:column;gap:2px">
+      <sc-for list="{{ aspects }}" as="a" hint-placeholder-count="5">
+        <button data-key="{{ a.key }}" sc-camel-on-click="{{ chooseAspectEvt }}" style="{{ a.menuStyle }}" style-hover="background:var(--gray-5)">{{ a.label }}</button>
+      </sc-for>
+    </div>
+  </div>
+</sc-if>
+
+<sc-if value="{{ camMenuOpen }}" hint-placeholder-val="{{ false }}">
+  <div data-noprint="" sc-camel-on-click="{{ closeCamMenu }}" style="position:fixed;inset:0;z-index:40"></div>
+  <div data-noprint="" style="{{ camMenuStyle }}">
+    <div style="font-family:var(--font-mono);font-size:10px;letter-spacing:0.08em;text-transform:uppercase;color:var(--gray-30);padding:2px 4px 8px">Camera Move</div>
+    <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:4px">
+      <sc-for list="{{ moves }}" as="m" hint-placeholder-count="14">
+        <button data-key="{{ m.key }}" sc-camel-on-click="{{ chooseMoveEvt }}" style="{{ m.style }}" style-hover="background:var(--gray-5)">
+          <svg width="22" height="22" style="color:var(--cglp-blue)"><use href="{{ m.href }}"></use></svg>
+          <span style="font-family:var(--font-mono);font-size:9px;letter-spacing:0.02em;text-transform:uppercase;color:var(--gray-40);text-align:center;line-height:1.1">{{ m.label }}</span>
+        </button>
+      </sc-for>
+    </div>
+  </div>
+</sc-if>
+</x-dc>
+<script type="text/x-dc" data-dc-script="" data-props="{&quot;accent&quot;:{&quot;editor&quot;:&quot;color&quot;,&quot;default&quot;:&quot;#56C4E5&quot;,&quot;tsType&quot;:&quot;string&quot;,&quot;section&quot;:&quot;Style&quot;,&quot;options&quot;:[&quot;#1D242B&quot;,&quot;#56C4E5&quot;,&quot;#367899&quot;]},&quot;startLayout&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;default&quot;:&quot;grid&quot;,&quot;tsType&quot;:&quot;string&quot;,&quot;section&quot;:&quot;Defaults&quot;,&quot;options&quot;:[&quot;grid&quot;,&quot;filmstrip&quot;,&quot;list&quot;]}}">
+const KEY = 'cg_storyboard_v1';
+const INDEX_KEY = 'cg_storyboard_boards_index';
+const CLIPBOARD_KEY = 'cg_storyboard_clipboard';
+const boardKey = (id) => 'cg_storyboard_board_' + id;
+const IDB_NAME = 'cg_storyboard_db';
+const IDB_STORE = 'boards';
+let idbPromise = null;
+function idbOpen() {
+  if (idbPromise) return idbPromise;
+  idbPromise = new Promise((resolve, reject) => {
+    const req = indexedDB.open(IDB_NAME, 1);
+    req.onupgradeneeded = () => { req.result.createObjectStore(IDB_STORE); };
+    req.onsuccess = () => resolve(req.result);
+    req.onerror = () => reject(req.error);
+  });
+  return idbPromise;
+}
+async function idbSet(id, value) {
+  const db = await idbOpen();
+  return new Promise((resolve, reject) => {
+    const tx = db.transaction(IDB_STORE, 'readwrite');
+    tx.objectStore(IDB_STORE).put(value, id);
+    tx.oncomplete = () => resolve();
+    tx.onerror = () => reject(tx.error);
+  });
+}
+async function idbGet(id) {
+  const db = await idbOpen();
+  return new Promise((resolve, reject) => {
+    const tx = db.transaction(IDB_STORE, 'readonly');
+    const req = tx.objectStore(IDB_STORE).get(id);
+    req.onsuccess = () => resolve(req.result || null);
+    req.onerror = () => reject(req.error);
+  });
+}
+async function idbDel(id) {
+  const db = await idbOpen();
+  return new Promise((resolve, reject) => {
+    const tx = db.transaction(IDB_STORE, 'readwrite');
+    tx.objectStore(IDB_STORE).delete(id);
+    tx.oncomplete = () => resolve();
+    tx.onerror = () => reject(tx.error);
+  });
+}
+// Team library: storyboards shared through the server folder next to this one.
+// The endpoints only exist when a web server is serving the page; opened
+// straight off disk the app still works, minus the library.
+const LIB_ENABLED = location.protocol === 'http:' || location.protocol === 'https:';
+const LIB_NAME_KEY = 'cg_storyboard_lib_name';
+
+async function libRequest(url, options) {
+  const res = await fetch(url, Object.assign({ credentials: 'same-origin', cache: 'no-store' }, options || {}));
+  let data = null;
+  try { data = await res.json(); } catch (err) {}
+  if (!res.ok || !data || data.ok !== true) {
+    const err = new Error((data && data.error) || ('http_' + res.status));
+    err.status = res.status;
+    err.data = data || {};
+    throw err;
+  }
+  return data;
+}
+
+const LIB_ERRORS = {
+  too_large: 'This storyboard is too large for the team library. Remove or replace a few reference images and try again.',
+  empty_body: 'The server would not accept the upload — the storyboard is probably too large.',
+  not_a_storyboard: 'The server could not read that storyboard.',
+  storage_unavailable: 'The shared folder on the server is missing or not writable.',
+  cross_origin: 'That request was blocked. Reload the page and try again.',
+  busy: 'Someone else is saving this storyboard right now. Try again in a moment.',
+  not_found: 'That storyboard is no longer in the team library.',
+};
+function libMessage(err) {
+  return LIB_ERRORS[err && err.message] || 'Could not reach the team library. Check your connection and try again.';
+}
+
+function libWhen(ms) {
+  if (!ms) return '';
+  const mins = Math.round((Date.now() - ms) / 60000);
+  if (mins < 1) return 'just now';
+  if (mins < 60) return mins === 1 ? '1 minute ago' : mins + ' minutes ago';
+  const hours = Math.round(mins / 60);
+  if (hours < 24) return hours === 1 ? '1 hour ago' : hours + ' hours ago';
+  return 'on ' + new Date(ms).toLocaleDateString();
+}
+
+function libSize(bytes) {
+  if (!bytes) return '';
+  return bytes >= 1048576
+    ? (bytes / 1048576).toFixed(1) + ' MB'
+    : Math.max(1, Math.round(bytes / 1024)) + ' KB';
+}
+
+const ORGANIZE_OPTIONS = [
+  { key: 'scene', label: 'Scene' },
+  { key: 'subject', label: 'Subject' },
+  { key: 'location', label: 'Location' },
+  { key: 'move', label: 'Camera Move' },
+  { key: 'shotType', label: 'Shot Type' },
+  { key: 'tag', label: 'Tag Color' },
+  { key: 'lens', label: 'Lens' },
+];
+const MOVES = [
+  { key: 'static', label: 'Static' },
+  { key: 'pan-left', label: 'Pan Left' },
+  { key: 'pan-right', label: 'Pan Right' },
+  { key: 'tilt-up', label: 'Tilt Up' },
+  { key: 'tilt-down', label: 'Tilt Down' },
+  { key: 'zoom-in', label: 'Zoom In' },
+  { key: 'zoom-out', label: 'Zoom Out' },
+  { key: 'dolly-in', label: 'Dolly In' },
+  { key: 'dolly-out', label: 'Dolly Out' },
+  { key: 'truck', label: 'Truck' },
+  { key: 'pedestal', label: 'Pedestal' },
+  { key: 'handheld', label: 'Handheld' },
+  { key: 'crane', label: 'Crane' },
+  { key: 'tracking', label: 'Tracking' },
+  { key: 'drone', label: 'Drone' },
+];
+const LABELS = Object.fromEntries(MOVES.map(m => [m.key, m.label]));
+const LAYOUTS = [
+  { key: 'grid', label: 'Grid', icon: '#ui-grid' },
+  { key: 'filmstrip', label: 'Strip', icon: '#ui-strip' },
+  { key: 'list', label: 'List', icon: '#ui-list' },
+];
+const ASPECTS = [
+  { key: '16 / 9', label: '16:9' },
+  { key: '2.39 / 1', label: '2.39' },
+  { key: '4 / 3', label: '4:3' },
+  { key: '1 / 1', label: '1:1' },
+  { key: '9 / 16', label: '9:16' },
+];
+const TAGS = [
+  { key: 'purple', color: 'oklch(0.55 0.18 300)', label: 'Purple' },
+  { key: 'orange', color: 'var(--orange-500)', label: 'Orange' },
+  { key: 'yellow', color: 'var(--campaign-yellow)', label: 'Yellow' },
+  { key: 'blue', color: 'var(--cglp-blue)', label: 'Blue' },
+  { key: 'green', color: 'oklch(0.62 0.13 152)', label: 'Green' },
+];
+
+class Component extends DCLogic {
+  state = {
+    view: 'menu',
+    boards: [],
+    boardId: null,
+    meta: { title: '', project: '', director: '', date: '' },
+    layout: 'grid',
+    aspect: '16 / 9',
+    frames: [],
+    tagNames: {},
+    camFor: null,
+    camPos: { top: 0, left: 0 },
+    selected: [],
+    marquee: null,
+    libraryId: null,
+    libraryRev: 0,
+    library: [],
+    libraryUser: null,
+    libraryMax: 0,
+    libraryLoading: false,
+    libraryError: '',
+    librarySaving: false,
+    libraryStatus: '',
+  };
+  cardEls = {};
+
+  componentDidMount() {
+    this.initBoards();
+    if (LIB_ENABLED) this.loadLibrary();
+    window.addEventListener('keydown', this.onKeyDown);
+  }
+  componentWillUnmount() {
+    window.removeEventListener('keydown', this.onKeyDown);
+  }
+
+  initBoards = async () => {
+    let index = null;
+    try { index = JSON.parse(localStorage.getItem(INDEX_KEY)); } catch (e) {}
+    if (!index) {
+      let legacy = null;
+      try { legacy = JSON.parse(localStorage.getItem(KEY)); } catch (e) {}
+      if (legacy && legacy.frames && legacy.frames.length) {
+        const id = 'b' + Date.now().toString(36);
+        try {
+          localStorage.removeItem(KEY);
+          await idbSet(id, legacy);
+        } catch (e) {}
+        index = [{ id, title: (legacy.meta && legacy.meta.title) || '', shotCount: legacy.frames.length, updatedAt: Date.now() }];
+        try { localStorage.setItem(INDEX_KEY, JSON.stringify(index)); } catch (e) {}
+      } else {
+        index = [];
+      }
+    }
+    // one-time migration: pull any leftover per-board data out of localStorage into IndexedDB
+    for (const b of index) {
+      const raw = localStorage.getItem(boardKey(b.id));
+      if (raw) {
+        try {
+          await idbSet(b.id, JSON.parse(raw));
+          localStorage.removeItem(boardKey(b.id));
+        } catch (e) {}
+      }
+    }
+    this.setState({ boards: index });
+  };
+
+  refreshIndex = () => {
+    let index = [];
+    try { index = JSON.parse(localStorage.getItem(INDEX_KEY)) || []; } catch (e) {}
+    this.setState({ boards: index });
+  };
+
+  newBoard = () => {
+    const id = 'b' + Date.now().toString(36) + Math.random().toString(36).slice(2, 5);
+    this.setState({
+      view: 'board', boardId: id,
+      meta: { title: '', project: '', director: '', date: '' },
+      layout: this.props.startLayout || 'grid', aspect: '16 / 9', frames: [], selected: [],
+      tagNames: {},
+      libraryId: null, libraryRev: 0, libraryStatus: '',
+    });
+  };
+  onTagLabelInput = (e) => {
+    const key = e.currentTarget.dataset.key;
+    this.state.tagNames[key] = e.target.value;
+    this.forceUpdate();
+    this.save();
+  };
+  openBoard = async (e) => {
+    const id = e.currentTarget.dataset.id;
+    let data = null;
+    try { data = await idbGet(id); } catch (err) {}
+    if (!data) {
+      try { data = JSON.parse(localStorage.getItem(boardKey(id))); } catch (err) {}
+      if (!data) { try { data = JSON.parse(localStorage.getItem(KEY)); } catch (err) {} }
+      if (data) {
+        try {
+          await idbSet(id, data);
+          localStorage.removeItem(boardKey(id));
+          localStorage.removeItem(KEY);
+        } catch (err) {}
+      }
+    }
+    if (!data) { window.alert('This storyboard\u2019s data could not be found.'); return; }
+    this.setState({
+      view: 'board', boardId: id,
+      meta: Object.assign({ title: '', project: '', director: '', date: '' }, data.meta || {}),
+      layout: data.layout || 'grid', aspect: data.aspect || '16 / 9', frames: data.frames || [], selected: [],
+      tagNames: data.tagNames || {},
+      libraryId: data.libraryId || null, libraryRev: data.libraryRev || 0, libraryStatus: '',
+    });
+  };
+  goToMenu = () => {
+    this.save();
+    this.refreshIndex();
+    this.setState({ view: 'menu' });
+    if (LIB_ENABLED) this.loadLibrary();
+  };
+  deleteBoard = (e) => {
+    e.stopPropagation();
+    const id = e.currentTarget.dataset.id;
+    if (!window.confirm('Delete this storyboard? This cannot be undone.')) return;
+    idbDel(id).catch(() => {});
+    try { localStorage.removeItem(boardKey(id)); } catch (err) {}
+    this.setState(s => ({ boards: s.boards.filter(b => b.id !== id) }), () => {
+      try { localStorage.setItem(INDEX_KEY, JSON.stringify(this.state.boards)); } catch (err) {}
+    });
+  };
+
+  save = () => {
+    if (!this.state.boardId) return;
+    const { meta, layout, aspect, frames, tagNames, libraryId, libraryRev } = this.state;
+    const boardId = this.state.boardId;
+    idbSet(boardId, { meta, layout, aspect, frames, tagNames, libraryId, libraryRev }).catch(() => {
+      window.alert('This storyboard is too large to save (your reference images take up too much browser storage). Try removing a few images or using smaller photos.');
+    });
+    const now = Date.now();
+    this.setState(s => {
+      const idx = s.boards.slice();
+      const i = idx.findIndex(b => b.id === boardId);
+      const entry = { id: boardId, title: meta.title || '', shotCount: frames.length, updatedAt: now, libraryId: libraryId || null };
+      if (i >= 0) idx[i] = entry; else idx.push(entry);
+      try { localStorage.setItem(INDEX_KEY, JSON.stringify(idx)); } catch (e) {}
+      return { boards: idx };
+    });
+  };
+
+  newFrame = () => ({
+    id: 'f' + Date.now().toString(36) + Math.random().toString(36).slice(2, 5),
+    shot: String(this.state.frames.length + 1), shotType: '', lens: '',
+    move: '', dialogue: '', description: '', image: '', cropX: 50, cropY: 50, zoom: 1, aspect: this.state.aspect || '16 / 9',
+  });
+
+  // Selection & marquee
+  setBoardRef = (el) => { this.boardEl = el; };
+  setCardRef = (id) => (el) => { if (el) this.cardEls[id] = el; else delete this.cardEls[id]; };
+  isSelected = (id) => this.state.selected.indexOf(id) !== -1;
+  onHandleClick = (e) => {
+    const id = e.currentTarget.dataset.id;
+    const multi = e.shiftKey || e.metaKey || e.ctrlKey;
+    this.setState(s => {
+      const has = s.selected.indexOf(id) !== -1;
+      if (multi) {
+        return { selected: has ? s.selected.filter(x => x !== id) : [...s.selected, id] };
+      }
+      return { selected: (has && s.selected.length === 1) ? [] : [id] };
+    });
+  };
+  onBoardMouseDown = (e) => {
+    if (e.button !== 0) return;
+    if (e.target.closest && e.target.closest('.cg-card')) return;
+    if (!this.boardEl) return;
+    const rect = this.boardEl.getBoundingClientRect();
+    this._marqueeStart = { x: e.clientX, y: e.clientY };
+    this._marqueeAdd = e.shiftKey || e.metaKey || e.ctrlKey;
+    this._moved = false;
+    this.setState({ marquee: { left: e.clientX - rect.left, top: e.clientY - rect.top, width: 0, height: 0 } });
+    window.addEventListener('mousemove', this.onBoardMouseMove);
+    window.addEventListener('mouseup', this.onBoardMouseUp);
+  };
+  onBoardMouseMove = (e) => {
+    if (!this.boardEl || !this._marqueeStart) return;
+    this._moved = true;
+    const rect = this.boardEl.getBoundingClientRect();
+    const x0 = this._marqueeStart.x, y0 = this._marqueeStart.y;
+    const left = Math.min(x0, e.clientX) - rect.left;
+    const top = Math.min(y0, e.clientY) - rect.top;
+    const width = Math.abs(e.clientX - x0);
+    const height = Math.abs(e.clientY - y0);
+    this.setState({ marquee: { left, top, width, height } });
+  };
+  onBoardMouseUp = (e) => {
+    window.removeEventListener('mousemove', this.onBoardMouseMove);
+    window.removeEventListener('mouseup', this.onBoardMouseUp);
+    const moved = this._moved;
+    const mq = this.state.marquee;
+    this._marqueeStart = null; this._moved = false;
+    if (!moved || !mq || (mq.width < 4 && mq.height < 4)) {
+      this.setState({ marquee: null, selected: this._marqueeAdd ? this.state.selected : [] });
+      return;
+    }
+    const rect = this.boardEl.getBoundingClientRect();
+    const box = { left: rect.left + mq.left, top: rect.top + mq.top, right: rect.left + mq.left + mq.width, bottom: rect.top + mq.top + mq.height };
+    const hitIds = [];
+    this.state.frames.forEach(f => {
+      const el = this.cardEls[f.id];
+      if (!el) return;
+      const r = el.getBoundingClientRect();
+      const overlap = r.left < box.right && r.right > box.left && r.top < box.bottom && r.bottom > box.top;
+      if (overlap) hitIds.push(f.id);
+    });
+    this.setState(s => ({
+      marquee: null,
+      selected: this._marqueeAdd ? Array.from(new Set([...s.selected, ...hitIds])) : hitIds,
+    }));
+  };
+
+  addFrame = () => { this.snapshot(); this.setState(s => ({ frames: [...s.frames, this.newFrame()] }), this.save); };
+  addShotAfter = (e) => {
+    const id = e.currentTarget.dataset.id;
+    this.snapshot();
+    this.setState(s => {
+      const arr = [...s.frames];
+      const i = arr.findIndex(f => f.id === id);
+      arr.splice(i + 1, 0, this.newFrame());
+      return { frames: arr };
+    }, this.save);
+  };
+  addThree = () => { this.snapshot(); this.setState(s => {
+    const arr = [...s.frames];
+    for (let i = 0; i < 3; i++) arr.push({
+      id: 'f' + Date.now().toString(36) + i + Math.random().toString(36).slice(2, 5),
+      shot: String(arr.length + 1), shotType: '', lens: '', move: '', dialogue: '', description: '', image: '', cropX: 50, cropY: 50, zoom: 1, aspect: '16 / 9',
+    });
+    return { frames: arr };
+  }, this.save); };
+
+  deleteFrame = (e) => {
+    const id = e.currentTarget.dataset.id;
+    this.snapshot();
+    this.setState(s => ({ frames: s.frames.filter(f => f.id !== id) }), this.save);
+  };
+  insertDayBreak = () => {
+    const ids = this.state.selected;
+    if (!ids || !ids.length) { window.alert('Select a shot first, then click Day Break to mark it as the start of a new shooting day.'); return; }
+    this.snapshot();
+    ids.forEach(id => {
+      const f = this.state.frames.find(x => x.id === id);
+      if (f) f.dayBreak = !f.dayBreak;
+    });
+    this.forceUpdate();
+    this.save();
+  };
+  duplicateFrame = (e) => {
+    const id = e.currentTarget.dataset.id;
+    this.snapshot();
+    this.setState(s => {
+      const i = s.frames.findIndex(f => f.id === id);
+      if (i < 0) return null;
+      const copy = Object.assign({}, s.frames[i], {
+        id: 'f' + Date.now().toString(36) + Math.random().toString(36).slice(2, 5),
+      });
+      const arr = [...s.frames];
+      arr.splice(i + 1, 0, copy);
+      return { frames: arr };
+    }, this.save);
+  };
+
+  copySelection = () => {
+    const ids = this.state.selected;
+    if (!ids || !ids.length) return;
+    const items = ids.map(id => this.state.frames.find(f => f.id === id)).filter(Boolean);
+    if (!items.length) return;
+    try { localStorage.setItem(CLIPBOARD_KEY, JSON.stringify(items)); } catch (err) {}
+  };
+  pasteClipboard = () => {
+    let items = null;
+    try { items = JSON.parse(localStorage.getItem(CLIPBOARD_KEY)); } catch (err) {}
+    if (!items || !items.length) return;
+    this.setState(s => {
+      const pasted = items.map(it => Object.assign({}, it, { id: 'f' + Date.now().toString(36) + Math.random().toString(36).slice(2, 5) }));
+      return { frames: [...s.frames, ...pasted] };
+    }, this.save);
+  };
+  onKeyDown = (e) => {
+    const isMeta = e.metaKey || e.ctrlKey;
+    if (!isMeta) return;
+    const tag = (e.target.tagName || '').toLowerCase();
+    if (tag === 'input' || tag === 'textarea') return;
+    if (e.key === 'c' || e.key === 'C') { this.copySelection(); }
+    else if (e.key === 'v' || e.key === 'V') { this.pasteClipboard(); }
+    else if (e.key === 'z' || e.key === 'Z') { e.preventDefault(); this.undo(); }
+  };
+  history = [];
+  snapshot = () => {
+    if (this._skipHistory) return;
+    this.history.push(JSON.stringify(this.state.frames));
+    if (this.history.length > 50) this.history.shift();
+  };
+  undo = () => {
+    if (!this.history.length) return;
+    const prev = this.history.pop();
+    let frames;
+    try { frames = JSON.parse(prev); } catch (err) { return; }
+    this._skipHistory = true;
+    this.setState({ frames }, () => {
+      this._skipHistory = false;
+      this.save();
+    });
+  };
+
+  // Text fields: mutate object + persist, no re-render (inputs are uncontrolled).
+  onFieldInput = (e) => {
+    const { id, field } = e.target.dataset;
+    const f = this.state.frames.find(x => x.id === id);
+    if (f) {
+      if (!this._fieldTimer) this.snapshot();
+      clearTimeout(this._fieldTimer);
+      this._fieldTimer = setTimeout(() => { this._fieldTimer = null; }, 800);
+      f[field] = e.target.value;
+      this.forceUpdate(); // keep controlled fields synced to their frame, so text follows the shot on reorder
+      this.save();
+    }
+  };
+  onMetaInput = (e) => {
+    this.state.meta[e.target.dataset.field] = e.target.value;
+    this.save();
+  };
+
+  setLayoutEvt = (e) => this.setState({ layout: e.currentTarget.dataset.key }, this.save);
+  setAspectEvt = (e) => this.setState({ aspect: e.currentTarget.dataset.key }, this.save);
+
+  openAspectMenu = (e) => {
+    const id = e.currentTarget.dataset.id;
+    const r = e.currentTarget.getBoundingClientRect();
+    const W = 130, margin = 10;
+    let left = r.right - W;
+    if (left < margin) left = margin;
+    if (left + W > window.innerWidth - margin) left = window.innerWidth - W - margin;
+    this.setState({ aspectFor: id, aspectPos: { top: r.bottom + 6, left } });
+  };
+  closeAspectMenu = () => this.setState({ aspectFor: null });
+  chooseTagEvt = (e) => {
+    const id = e.currentTarget.dataset.id;
+    const key = e.currentTarget.dataset.key;
+    const targetIds = this.isSelected(id) && this.state.selected.length > 1 ? this.state.selected : [id];
+    const anchor = this.state.frames.find(x => x.id === id);
+    const newVal = anchor && anchor.tag === key ? '' : key;
+    this.snapshot();
+    targetIds.forEach(tid => {
+      const f = this.state.frames.find(x => x.id === tid);
+      if (f) f.tag = newVal;
+    });
+    this.forceUpdate();
+    this.save();
+  };
+  chooseAspectEvt = (e) => {
+    const key = e.currentTarget.dataset.key;
+    const id = this.state.aspectFor;
+    const f = this.state.frames.find(x => x.id === id);
+    if (f) { this.snapshot(); f.aspect = key; }
+    this.setState({ aspectFor: null }, this.save);
+  };
+
+  // Camera move menu
+  openCamMenu = (e) => {
+    const id = e.currentTarget.dataset.id;
+    const r = e.currentTarget.getBoundingClientRect();
+    const W = 300, margin = 10;
+    let left = r.left;
+    if (left + W > window.innerWidth - margin) left = window.innerWidth - W - margin;
+    if (left < margin) left = margin;
+    let top = r.bottom + 6;
+    this.setState({ camFor: id, camPos: { top, left } });
+  };
+  closeCamMenu = () => this.setState({ camFor: null });
+  chooseMoveEvt = (e) => {
+    const key = e.currentTarget.dataset.key;
+    const id = this.state.camFor;
+    const f = this.state.frames.find(x => x.id === id);
+    if (f) { this.snapshot(); f.move = key; }
+    this.setState({ camFor: null }, this.save);
+  };
+
+  // Images: downscale + re-encode to keep browser storage usage sane
+  readFile = (id, file) => {
+    if (!file || !file.type || file.type.indexOf('image') !== 0) return;
+    const img = new Image();
+    const url = URL.createObjectURL(file);
+    img.onload = () => {
+      URL.revokeObjectURL(url);
+      const MAX = 1600;
+      const scale = Math.min(1, MAX / Math.max(img.width, img.height));
+      const w = Math.max(1, Math.round(img.width * scale));
+      const h = Math.max(1, Math.round(img.height * scale));
+      const canvas = document.createElement('canvas');
+      canvas.width = w; canvas.height = h;
+      canvas.getContext('2d').drawImage(img, 0, 0, w, h);
+      const dataUrl = canvas.toDataURL('image/jpeg', 0.82);
+      const f = this.state.frames.find(x => x.id === id);
+      if (f) { this.snapshot(); f.image = dataUrl; this.forceUpdate(); this.save(); }
+    };
+    img.onerror = () => URL.revokeObjectURL(url);
+    img.src = url;
+  };
+  onImgPick = (e) => { this.readFile(e.target.dataset.id, e.target.files[0]); e.target.value = ''; };
+  onImgHoverIn = (e) => this.setState({ hoverImg: e.currentTarget.dataset.id });
+  onImgHoverOut = () => this.setState({ hoverImg: null });
+  onZoom = (e) => {
+    const f = this.state.frames.find(x => x.id === e.target.dataset.id);
+    if (f) {
+      if (!this._zoomTimer) this.snapshot();
+      clearTimeout(this._zoomTimer);
+      this._zoomTimer = setTimeout(() => { this._zoomTimer = null; }, 800);
+      f.zoom = parseFloat(e.target.value); this.forceUpdate(); this.save();
+    }
+  };
+  clamp01 = (v) => Math.max(0, Math.min(100, v));
+  onImgPointerDown = (e) => {
+    const surface = e.currentTarget;
+    const f = this.state.frames.find(x => x.id === surface.dataset.id);
+    if (!f) return;
+    this.snapshot();
+    const r = surface.getBoundingClientRect();
+    this._pan = { id: f.id, sx: e.clientX, sy: e.clientY, x0: f.cropX ?? 50, y0: f.cropY ?? 50, w: r.width, h: r.height };
+    try { surface.setPointerCapture(e.pointerId); } catch (err) {}
+    window.addEventListener('pointermove', this.onImgPointerMove);
+    window.addEventListener('pointerup', this.onImgPointerUp);
+  };
+  onImgPointerMove = (e) => {
+    const p = this._pan; if (!p) return;
+    const f = this.state.frames.find(x => x.id === p.id); if (!f) return;
+    f.cropX = this.clamp01(p.x0 - (e.clientX - p.sx) / p.w * 100);
+    f.cropY = this.clamp01(p.y0 - (e.clientY - p.sy) / p.h * 100);
+    this.forceUpdate();
+  };
+  onImgPointerUp = () => {
+    window.removeEventListener('pointermove', this.onImgPointerMove);
+    window.removeEventListener('pointerup', this.onImgPointerUp);
+    this._pan = null;
+    this.save();
+  };
+  onImgDrop = (e) => {
+    e.preventDefault(); e.stopPropagation();
+    e.currentTarget.style.background = '';
+    this.readFile(e.currentTarget.dataset.id, e.dataTransfer.files[0]);
+  };
+  onImgDragOver = (e) => { e.preventDefault(); e.currentTarget.style.background = 'rgba(0,0,0,0.05)'; };
+  onImgDragLeave = (e) => { e.currentTarget.style.background = ''; };
+  removeImage = (e) => {
+    const id = e.currentTarget.dataset.id;
+    this.snapshot();
+    const f = this.state.frames.find(x => x.id === id);
+    if (f) { f.image = ''; f.cropX = 50; f.cropY = 50; f.zoom = 1; this.forceUpdate(); this.save(); }
+  };
+
+  // Reorder
+  onHandleDragStart = (e) => {
+    const id = e.currentTarget.dataset.id;
+    const ids = this.isSelected(id) && this.state.selected.length > 1 ? this.state.selected.slice() : [id];
+    this._drag = ids;
+    e.dataTransfer.effectAllowed = 'move';
+  };
+  onHandleDragEnd = () => { this._drag = null; this.setState({ overId: null, overSide: null }); };
+  onCardDragOver = (e) => {
+    if (!this._drag) return;
+    e.preventDefault();
+    const id = e.currentTarget.dataset.id;
+    if (this._drag.indexOf(id) !== -1) {
+      if (this.state.overId) this.setState({ overId: null, overSide: null });
+      return;
+    }
+    const r = e.currentTarget.getBoundingClientRect();
+    const side = this.state.layout === 'list'
+      ? (e.clientY < r.top + r.height / 2 ? 'before' : 'after')
+      : (e.clientX < r.left + r.width / 2 ? 'before' : 'after');
+    if (this.state.overId !== id || this.state.overSide !== side) {
+      this.setState({ overId: id, overSide: side });
+    }
+  };
+  onCardDrop = (e) => {
+    const from = this._drag;
+    if (from && from.length) this.snapshot();
+    const overId = this.state.overId, overSide = this.state.overSide;
+    this.setState({ overId: null, overSide: null });
+    if (!from || !from.length) return;
+    e.preventDefault();
+    const to = e.currentTarget.dataset.id;
+    if (from.indexOf(to) !== -1) return;
+    this.setState(s => {
+      const moveSet = new Set(from);
+      const moving = s.frames.filter(f => moveSet.has(f.id));
+      const rest = s.frames.filter(f => !moveSet.has(f.id));
+      let ti = rest.findIndex(f => f.id === (overId || to));
+      if (ti < 0) return null;
+      if ((overSide || 'before') === 'after') ti += 1;
+      const arr = rest.slice();
+      arr.splice(ti, 0, ...moving);
+      return { frames: arr };
+    }, this.save);
+  };
+
+  toggleOrganizeMenu = () => this.setState(s => ({ organizeMenuOpen: !s.organizeMenuOpen }));
+  closeOrganizeMenu = () => this.setState({ organizeMenuOpen: false });
+  restoreOrder = () => {
+    this.snapshot();
+    const savedOrder = this.state.preOrganizeOrder || [];
+    this.setState(s => {
+      const byId = Object.fromEntries(s.frames.map(f => [f.id, f]));
+      const arr = savedOrder.map(id => byId[id]).filter(Boolean);
+      s.frames.forEach(f => { if (arr.indexOf(f) === -1) arr.push(f); });
+      return { frames: arr, organizedByKeys: [], preOrganizeOrder: null, organizeMenuOpen: false };
+    }, this.save);
+  };
+  rankerFor = (key, base) => {
+    if (key === 'tag') {
+      const order = TAGS.map(t => t.key).concat(['']);
+      return (f) => order.indexOf(f.tag || '');
+    }
+    if (key === 'move') {
+      const order = MOVES.map(m => m.key).concat(['']);
+      return (f) => order.indexOf(f.move || '');
+    }
+    const firstSeen = new Map();
+    base.forEach(f => {
+      const v = (f[key] || '').trim().toLowerCase();
+      if (v && !firstSeen.has(v)) firstSeen.set(v, firstSeen.size);
+    });
+    return (f) => {
+      const v = (f[key] || '').trim().toLowerCase();
+      return v ? firstSeen.get(v) : Infinity;
+    };
+  };
+  applyOrganize = (keys) => {
+    this.snapshot();
+    this.setState(s => {
+      const base = s.preOrganizeOrder
+        ? (() => {
+            const byId = Object.fromEntries(s.frames.map(f => [f.id, f]));
+            const arr = s.preOrganizeOrder.map(id => byId[id]).filter(Boolean);
+            s.frames.forEach(f => { if (arr.indexOf(f) === -1) arr.push(f); });
+            return arr;
+          })()
+        : s.frames;
+      const preOrganizeOrder = s.preOrganizeOrder || s.frames.map(f => f.id);
+      if (!keys.length) {
+        const byId = Object.fromEntries(s.frames.map(f => [f.id, f]));
+        const arr = preOrganizeOrder.map(id => byId[id]).filter(Boolean);
+        return { frames: arr, organizedByKeys: [], preOrganizeOrder: null };
+      }
+      const rankers = keys.map(k => this.rankerFor(k, base));
+      const arr = base.slice().sort((a, b) => {
+        for (const r of rankers) {
+          const d = r(a) - r(b);
+          if (d !== 0) return d;
+        }
+        return 0;
+      });
+      return { frames: arr, organizedByKeys: keys, preOrganizeOrder };
+    }, this.save);
+  };
+  chooseOrganize = (e) => {
+    const key = e.currentTarget.dataset.key;
+    const current = this.state.organizedByKeys || [];
+    const next = current.includes(key) ? current.filter(k => k !== key) : [...current, key];
+    this.applyOrganize(next);
+  };
+  clearAll = () => {
+    if (!window.confirm('Clear the whole board? This removes all shots.')) return;
+    this.snapshot();
+    this.setState({ frames: [] }, this.save);
+  };
+  toggleExportMenu = () => this.setState(s => ({ exportMenuOpen: !s.exportMenuOpen }));
+  closeExportMenu = () => this.setState({ exportMenuOpen: false });
+  boardPayload = () => {
+    const { meta, layout, aspect, frames, tagNames } = this.state;
+    return { version: 1, meta, layout, aspect, frames, tagNames };
+  };
+  exportBoard = () => {
+    this.setState({ exportMenuOpen: false });
+    const { meta } = this.state;
+    const blob = new Blob([JSON.stringify(this.boardPayload(), null, 2)], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    const name = (meta.title || 'storyboard').trim().replace(/[^a-z0-9\-_ ]/gi, '').replace(/\s+/g, '-') || 'storyboard';
+    a.href = url; a.download = name + '.json';
+    document.body.appendChild(a); a.click(); document.body.removeChild(a);
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
+  };
+  importBoard = (e) => {
+    const file = e.target.files[0];
+    e.target.value = '';
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = () => {
+      try {
+        const data = JSON.parse(reader.result);
+        if (!data || !Array.isArray(data.frames)) throw new Error('bad file');
+        this.setState({
+          meta: Object.assign({ title: '', project: '', director: '', date: '' }, data.meta || {}),
+          layout: data.layout || 'grid',
+          aspect: data.aspect || '16 / 9',
+          frames: data.frames,
+          tagNames: data.tagNames || {},
+          // An imported file is a copy, not a link to whatever is in the
+          // library — saving it should not overwrite anyone else's board.
+          libraryId: null, libraryRev: 0, libraryStatus: '',
+        }, this.save);
+      } catch (err) {
+        window.alert('Could not read that file — make sure it\u2019s a storyboard JSON export.');
+      }
+    };
+    reader.readAsText(file);
+  };
+  // ---- Team library -------------------------------------------------------
+
+  loadLibrary = async () => {
+    if (!LIB_ENABLED) return;
+    this.setState({ libraryLoading: true, libraryError: '' });
+    try {
+      const data = await libRequest('list.php');
+      this.setState({
+        library: data.boards || [],
+        libraryUser: data.user || null,
+        libraryMax: data.maxBytes || 0,
+        libraryLoading: false,
+      });
+    } catch (err) {
+      this.setState({ libraryLoading: false, libraryError: libMessage(err) });
+    }
+  };
+
+  // Basic auth already identifies everyone, but whether PHP can see that name
+  // depends on the server, so ask once and remember if it cannot.
+  libraryName = () => {
+    if (this.state.libraryUser) return this.state.libraryUser;
+    let name = '';
+    try { name = localStorage.getItem(LIB_NAME_KEY) || ''; } catch (err) {}
+    if (!name) {
+      name = (window.prompt('Your name, so the team knows who saved this:', '') || '').trim();
+      if (!name) return null;
+      try { localStorage.setItem(LIB_NAME_KEY, name); } catch (err) {}
+    }
+    return name;
+  };
+
+  saveToLibrary = async () => {
+    if (!LIB_ENABLED || this.state.librarySaving) return;
+    const { meta, frames } = this.state;
+    const body = new Blob([JSON.stringify(this.boardPayload())], { type: 'application/json' });
+    const max = this.state.libraryMax;
+    if (max && body.size > max) {
+      window.alert('This storyboard is ' + libSize(body.size) + ', and the server accepts up to '
+        + libSize(max) + '. Remove or replace a few reference images and try again.');
+      return;
+    }
+    const savedBy = this.libraryName();
+    if (savedBy === null) return;
+
+    const post = (opts) => {
+      const params = new URLSearchParams({
+        title: meta.title || '', project: meta.project || '',
+        shots: String(frames.length), as: savedBy,
+      });
+      if (opts.id) { params.set('id', opts.id); params.set('rev', String(opts.rev || 0)); }
+      if (opts.force) params.set('force', '1');
+      return libRequest('save.php?' + params.toString(), {
+        method: 'POST', headers: { 'Content-Type': 'application/json' }, body,
+      });
+    };
+
+    const id = this.state.libraryId;
+    const rev = this.state.libraryRev;
+    this.setState({ librarySaving: true, libraryStatus: 'Saving…' });
+    try {
+      let data;
+      try {
+        data = await post({ id, rev });
+      } catch (err) {
+        if (err.status !== 409) throw err;
+        const who = err.data.savedBy || 'Someone';
+        if (window.confirm(who + ' saved a newer version of this storyboard ' + libWhen(err.data.updatedAt)
+          + '.\n\nOverwrite it with your copy? The version on the server is kept as a backup.')) {
+          data = await post({ id, rev, force: true });
+        } else if (window.confirm('Save your version as a separate copy in the library instead?')) {
+          data = await post({});
+        } else {
+          this.setState({ librarySaving: false, libraryStatus: '' });
+          return;
+        }
+      }
+      this.setState({
+        libraryId: data.id, libraryRev: data.updatedAt,
+        librarySaving: false, libraryStatus: 'Saved to library',
+      }, this.save);
+      this.loadLibrary();
+      setTimeout(() => {
+        if (this.state.libraryStatus === 'Saved to library') this.setState({ libraryStatus: '' });
+      }, 4000);
+    } catch (err) {
+      this.setState({ librarySaving: false, libraryStatus: '' });
+      window.alert(libMessage(err));
+    }
+  };
+
+  openLibraryBoard = async (e) => {
+    const libId = e.currentTarget.dataset.id;
+    const entry = (this.state.library || []).find(b => b.id === libId);
+    if (!entry) return;
+
+    // Already pulled this one down before — open that copy rather than
+    // cluttering the list with duplicates.
+    const existing = (this.state.boards || []).find(b => b.libraryId === libId);
+    if (existing) {
+      this.openBoard({ currentTarget: { dataset: { id: existing.id } } });
+      return;
+    }
+
+    this.setState({ libraryLoading: true, libraryError: '' });
+    let data = null;
+    try {
+      const res = await fetch(entry.file, { credentials: 'same-origin', cache: 'no-store' });
+      if (!res.ok) throw new Error('http_' + res.status);
+      data = await res.json();
+    } catch (err) {
+      this.setState({ libraryLoading: false });
+      window.alert('Could not open that storyboard from the team library.');
+      return;
+    }
+    if (!data || !Array.isArray(data.frames)) {
+      this.setState({ libraryLoading: false });
+      window.alert('That file in the team library is not a storyboard.');
+      return;
+    }
+
+    const localId = 'b' + Date.now().toString(36) + Math.random().toString(36).slice(2, 5);
+    const board = {
+      meta: Object.assign({ title: '', project: '', director: '', date: '' }, data.meta || {}),
+      layout: data.layout || 'grid',
+      aspect: data.aspect || '16 / 9',
+      frames: data.frames,
+      tagNames: data.tagNames || {},
+      libraryId: entry.id,
+      libraryRev: entry.updatedAt || 0,
+    };
+    try {
+      await idbSet(localId, board);
+    } catch (err) {
+      this.setState({ libraryLoading: false });
+      window.alert('This storyboard is too large to keep in your browser’s storage.');
+      return;
+    }
+    this.setState(s => {
+      const idx = s.boards.slice();
+      idx.push({
+        id: localId, title: board.meta.title || '', shotCount: board.frames.length,
+        updatedAt: Date.now(), libraryId: entry.id,
+      });
+      try { localStorage.setItem(INDEX_KEY, JSON.stringify(idx)); } catch (err) {}
+      return { boards: idx };
+    });
+    this.setState(Object.assign({
+      view: 'board', boardId: localId, selected: [], libraryLoading: false, libraryStatus: '',
+    }, board));
+  };
+
+  deleteLibraryBoard = async (e) => {
+    e.stopPropagation();
+    const libId = e.currentTarget.dataset.id;
+    const entry = (this.state.library || []).find(b => b.id === libId);
+    const title = (entry && entry.title) || 'this storyboard';
+    if (!window.confirm('Remove “' + title + '” from the team library?\n\n'
+      + 'It moves to a trash folder on the server, and your own copy stays on this computer.')) return;
+    try {
+      await libRequest('delete.php?id=' + encodeURIComponent(libId), { method: 'POST' });
+      this.setState(s => ({ library: s.library.filter(b => b.id !== libId) }));
+    } catch (err) {
+      window.alert(libMessage(err));
+    }
+  };
+
+  printBoard = () => window.print();
+  exportPdf = async () => {
+    this.setState({ exportMenuOpen: false });
+    if (!window.html2canvas || !window.jspdf) { window.print(); return; }
+    const target = document.querySelector('.cg-board-wrap') || document.body;
+    const hidden = [...document.querySelectorAll('[data-noprint]')];
+    hidden.forEach(el => { el.dataset.__wasHidden = el.style.display || ''; el.style.display = 'none'; });
+    try {
+      const canvas = await window.html2canvas(target, { scale: 2, backgroundColor: '#ffffff', useCORS: true });
+      const { jsPDF } = window.jspdf;
+      const pageW = 792, pageH = 612; // letter landscape, pt
+      const ratio = canvas.width / canvas.height;
+      const imgW = pageW - 40;
+      const imgH = imgW / ratio;
+      const pdf = new jsPDF({ orientation: imgH > pageH - 40 ? 'portrait' : 'landscape', unit: 'pt', format: 'letter' });
+      const pw = pdf.internal.pageSize.getWidth(), ph = pdf.internal.pageSize.getHeight();
+      const sliceHeightPx = canvas.width / ((pw - 40) / (ph - 40));
+      let y = 0, first = true;
+      while (y < canvas.height) {
+        const h = Math.min(sliceHeightPx, canvas.height - y);
+        const slice = document.createElement('canvas');
+        slice.width = canvas.width; slice.height = h;
+        slice.getContext('2d').drawImage(canvas, 0, y, canvas.width, h, 0, 0, canvas.width, h);
+        const imgData = slice.toDataURL('image/jpeg', 0.92);
+        if (!first) pdf.addPage();
+        pdf.addImage(imgData, 'JPEG', 20, 20, pw - 40, (h / canvas.width) * (pw - 40));
+        y += h; first = false;
+      }
+      const name = (this.state.meta.title || 'storyboard').trim().replace(/[^a-z0-9\-_ ]/gi, '').replace(/\s+/g, '-') || 'storyboard';
+      pdf.save(name + '.pdf');
+    } catch (err) {
+      window.print();
+    } finally {
+      hidden.forEach(el => { el.style.display = el.dataset.__wasHidden; delete el.dataset.__wasHidden; });
+    }
+  };
+
+  renderVals() {
+    const accent = this.props.accent || '#1D242B';
+    const { layout, aspect, frames } = this.state;
+    const isMenuView = this.state.view === 'menu';
+    const isBoardView = this.state.view === 'board';
+    const boardsSorted = this.state.boards.slice().sort((a, b) => (b.updatedAt || 0) - (a.updatedAt || 0));
+    const uiBoards = boardsSorted.map(b => {
+      const d = b.updatedAt ? new Date(b.updatedAt) : null;
+      return {
+        id: b.id,
+        title: b.title && b.title.trim() ? b.title : 'Untitled Storyboard',
+        subtitle: b.shotCount === 1 ? '1 shot' : '',
+        shotCount: b.shotCount || 0,
+        updatedLabel: d ? d.toLocaleDateString() : '',
+      };
+    });
+
+    const container = layout === 'grid'
+      ? { display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))', gap: '20px', alignItems: 'start', position: 'relative' }
+      : layout === 'filmstrip'
+      ? { display: 'flex', flexDirection: 'column', gap: '12px', position: 'relative' }
+      : { display: 'flex', flexDirection: 'column', gap: '16px', position: 'relative' };
+
+    const cardBase = { background: 'var(--white)', border: '1px solid var(--gray-15)', display: 'flex', position: 'relative', minWidth: 0 };
+    const card = layout === 'list'
+      ? Object.assign({}, cardBase, { flexDirection: 'row', flexWrap: 'wrap' })
+      : layout === 'filmstrip'
+      ? Object.assign({}, cardBase, { flexDirection: 'row', flexWrap: 'wrap', width: '100%' })
+      : Object.assign({}, cardBase, { flexDirection: 'column' });
+
+    const imgWrapBase = { position: 'relative', background: 'var(--gray-5)', borderBottom: '1px solid var(--gray-15)', overflow: 'hidden' };
+    const imgWrap = layout === 'list'
+      ? Object.assign({}, imgWrapBase, { width: '340px', flex: '0 0 340px', alignSelf: 'flex-start', borderBottom: 'none', borderRight: '1px solid var(--gray-15)' })
+      : Object.assign({}, imgWrapBase, { width: '100%' });
+
+    const fields = { padding: '14px 16px', display: 'flex', flexDirection: 'column', gap: '11px', flex: '1', minWidth: '240px' };
+
+    const stacked = layout === 'list' || layout === 'filmstrip';
+    const barBase = { position: 'absolute', background: accent, zIndex: 6, pointerEvents: 'none' };
+    const barBefore = stacked
+      ? Object.assign({}, barBase, { left: 0, right: 0, top: '-9px', height: '4px' })
+      : Object.assign({}, barBase, { top: 0, bottom: 0, left: '-11px', width: '4px' });
+    const barAfter = stacked
+      ? Object.assign({}, barBase, { left: 0, right: 0, bottom: '-9px', height: '4px' })
+      : Object.assign({}, barBase, { top: 0, bottom: 0, right: '-11px', width: '4px' });
+
+    const layouts = LAYOUTS.map(l => ({
+      key: l.key, label: l.label, icon: l.icon,
+      style: this.toggleStyle(layout === l.key, accent, { width: '38px', height: '34px' }),
+    }));
+    const aspects = ASPECTS.map(a => ({
+      key: a.key, label: a.label,
+      menuStyle: { padding: '8px 10px', border: 'none', background: 'var(--white)', cursor: 'pointer', textAlign: 'left', fontSize: '13px', fontWeight: '600' },
+    }));
+
+    const moves = MOVES.map(m => ({
+      key: m.key, label: m.label, href: '#cm-' + m.key,
+      style: {
+        display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '5px',
+        padding: '9px 4px', cursor: 'pointer', background: 'var(--white)',
+        border: '1px solid var(--gray-15)',
+      },
+    }));
+
+    let __lastScene = Symbol();
+    let __sceneCount = 0;
+    const shotNums = frames.map(f => {
+      const scene = f.scene || '';
+      if (scene !== __lastScene) { __lastScene = scene; __sceneCount = 0; }
+      __sceneCount += 1;
+      return __sceneCount;
+    });
+    const uiFrames = frames.map((f, i) => {
+      const selected = this.isSelected(f.id);
+      return {
+      id: f.id, shot: f.shot, scene: f.scene || '', shotType: f.shotType, lens: f.lens,
+      subject: f.subject || '', location: f.location || '', notes: f.notes || '',
+      dialogue: f.dialogue, description: f.description, image: f.image,
+      hasImage: !!f.image, noImage: !f.image,
+      cropPos: (f.cropX ?? 50) + '% ' + (f.cropY ?? 50) + '%', zoom: f.zoom ?? 1,
+      aspectLabel: (ASPECTS.find(a => a.key === (f.aspect || '16 / 9')) || ASPECTS[0]).label,
+      wrapStyle: Object.assign({}, imgWrap, { aspectRatio: f.aspect || '16 / 9' }),
+      showImage: layout !== 'filmstrip',
+      camInline: layout === 'filmstrip',
+      camStandalone: layout !== 'filmstrip',
+      descDialogueWrapStyle: layout === 'filmstrip'
+        ? { display: 'flex', gap: '10px' }
+        : { display: 'flex', flexDirection: 'column', gap: '11px' },
+      toolbarStyle: {
+        position: 'absolute', top: 0, left: 0, right: 0, display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: '7px', padding: '6px',
+        background: 'linear-gradient(rgba(0,0,0,0.5),rgba(0,0,0,0))', zIndex: 4,
+        opacity: this.state.hoverImg === f.id ? 1 : 0, transition: 'opacity 160ms ease', pointerEvents: this.state.hoverImg === f.id ? 'auto' : 'none',
+      },
+      hasMove: !!f.move,
+      iconHref: f.move ? '#cm-' + f.move : '#cm-static',
+      moveLabel: f.move ? LABELS[f.move] : 'Select move', accent,
+      shotNum: String(shotNums[i]),
+      badge: (f.scene ? 'SC ' + f.scene + ' \u00b7 ' : '') + 'SH ' + shotNums[i],
+      showBefore: this.state.overId === f.id && this.state.overSide === 'before',
+      showAfter: this.state.overId === f.id && this.state.overSide === 'after',
+      hasTag: !!f.tag,
+      tagStripStyle: { position: 'absolute', top: 0, left: 0, right: 0, height: '10px', background: (TAGS.find(t => t.key === f.tag) || {}).color || 'transparent', zIndex: 3 },
+      tags: TAGS.map(t => ({
+        key: t.key, label: this.state.tagNames[t.key] || t.label,
+        style: {
+          width: '20px', height: '20px', borderRadius: '50%', background: t.color, cursor: 'pointer', padding: 0,
+          border: f.tag === t.key ? '2px solid var(--black)' : '2px solid transparent',
+          boxShadow: f.tag === t.key ? 'none' : '0 0 0 1px var(--gray-15)',
+        },
+      })),
+      setRef: this.setCardRef(f.id),
+      cardStyle: selected ? Object.assign({}, card, { outline: '2px solid ' + accent, outlineOffset: '-2px' }) : card,
+      handleStyle: {
+        display: 'flex', alignItems: 'center', gap: '4px', cursor: 'grab',
+        fontFamily: 'var(--font-mono)', fontSize: '10px', letterSpacing: '0.06em', textTransform: 'uppercase', padding: '4px 2px',
+        color: selected ? accent : 'var(--gray-30)', fontWeight: selected ? '700' : '400',
+      },
+      handleLabel: selected ? 'Selected' : 'Drag',
+      showDayBreak: layout === 'filmstrip' && !!f.dayBreak,
+      dayLabel: f.dayLabel || '',
+    };
+    });
+
+    return {
+      meta: this.state.meta,
+      frames: uiFrames,
+      shotCount: frames.length,
+      hasFrames: frames.length > 0,
+      isEmpty: frames.length === 0,
+      containerStyle: container,
+      cardStyle: card,
+      imgWrapStyle: imgWrap,
+      fieldsStyle: fields,
+      layouts, aspects, moves,
+      barBefore, barAfter,
+      setBoardRef: this.setBoardRef, onBoardMouseDown: this.onBoardMouseDown,
+      onHandleClick: this.onHandleClick,
+      marqueeOn: !!this.state.marquee,
+      marqueeStyle: this.state.marquee ? {
+        position: 'absolute', left: this.state.marquee.left + 'px', top: this.state.marquee.top + 'px',
+        width: this.state.marquee.width + 'px', height: this.state.marquee.height + 'px',
+        background: 'rgba(86,196,229,0.15)', border: '1px solid var(--cglp-blue)', zIndex: 30, pointerEvents: 'none',
+      } : null,
+      addBtnStyle: {
+        display: 'flex', alignItems: 'center', gap: '6px', height: '44px', padding: '0 18px',
+        background: accent, border: 'none', color: '#fff', fontSize: '13px', fontWeight: '700',
+        cursor: 'pointer', textTransform: 'uppercase', letterSpacing: '0.05em',
+      },
+      camMenuOpen: !!this.state.camFor,
+      camMenuStyle: {
+        position: 'fixed', zIndex: 41, top: this.state.camPos.top + 'px', left: this.state.camPos.left + 'px',
+        width: '300px', background: 'var(--white)', border: '1px solid var(--gray-15)',
+        boxShadow: 'var(--shadow-2)', padding: '10px',
+      },
+      onMetaInput: this.onMetaInput, onFieldInput: this.onFieldInput, onTagLabelInput: this.onTagLabelInput,
+      tagKey: TAGS.map(t => ({
+        key: t.key, label: this.state.tagNames[t.key] || '', placeholder: t.label,
+        swatchStyle: { width: '14px', height: '14px', borderRadius: '50%', background: t.color, display: 'inline-block', flex: '0 0 auto' },
+      })),
+      addFrame: this.addFrame, addThree: this.addThree, addShotAfter: this.addShotAfter,
+      deleteFrame: this.deleteFrame, duplicateFrame: this.duplicateFrame,
+      insertDayBreak: this.insertDayBreak, showDayBreakBtn: layout === 'filmstrip',
+
+      setLayoutEvt: this.setLayoutEvt, setAspectEvt: this.setAspectEvt,
+      openCamMenu: this.openCamMenu, closeCamMenu: this.closeCamMenu, chooseMoveEvt: this.chooseMoveEvt,
+      openAspectMenu: this.openAspectMenu, closeAspectMenu: this.closeAspectMenu, chooseAspectEvt: this.chooseAspectEvt,
+      chooseTagEvt: this.chooseTagEvt,
+      aspectMenuOpen: !!this.state.aspectFor,
+      aspectMenuStyle: {
+        position: 'fixed', zIndex: 41, top: (this.state.aspectPos ? this.state.aspectPos.top : 0) + 'px', left: (this.state.aspectPos ? this.state.aspectPos.left : 0) + 'px',
+        width: '130px', background: 'var(--white)', border: '1px solid var(--gray-15)', boxShadow: 'var(--shadow-2)', padding: '8px',
+      },
+      onImgPick: this.onImgPick, onImgDrop: this.onImgDrop, onImgDragOver: this.onImgDragOver,
+      onImgDragLeave: this.onImgDragLeave, removeImage: this.removeImage,
+      onImgPointerDown: this.onImgPointerDown, onZoom: this.onZoom,
+      onImgHoverIn: this.onImgHoverIn, onImgHoverOut: this.onImgHoverOut,
+      onHandleDragStart: this.onHandleDragStart, onHandleDragEnd: this.onHandleDragEnd,
+      onCardDragOver: this.onCardDragOver, onCardDrop: this.onCardDrop,
+      clearAll: this.clearAll, printBoard: this.printBoard, exportPdf: this.exportPdf,
+      toggleExportMenu: this.toggleExportMenu, closeExportMenu: this.closeExportMenu,
+      exportMenuOpen: !!this.state.exportMenuOpen,
+      toggleOrganizeMenu: this.toggleOrganizeMenu, closeOrganizeMenu: this.closeOrganizeMenu,
+      chooseOrganize: this.chooseOrganize, restoreOrder: this.restoreOrder,
+      organizeMenuOpen: !!this.state.organizeMenuOpen,
+      isOrganized: !!(this.state.organizedByKeys && this.state.organizedByKeys.length),
+      organizeLabel: (this.state.organizedByKeys && this.state.organizedByKeys.length)
+        ? 'By ' + this.state.organizedByKeys.map(k => (ORGANIZE_OPTIONS.find(o => o.key === k) || {}).label).join(' + ')
+        : 'Organize',
+      organizeOptions: ORGANIZE_OPTIONS.map(o => {
+        const keys = this.state.organizedByKeys || [];
+        const pos = keys.indexOf(o.key);
+        const active = pos !== -1;
+        return {
+          key: o.key, label: o.label,
+          badgeLabel: active ? String(pos + 1) : '',
+          badgeStyle: {
+            display: 'inline-flex', alignItems: 'center', justifyContent: 'center', width: '16px', height: '16px',
+            marginRight: '8px', fontSize: '10px', fontWeight: '700', fontFamily: 'var(--font-mono)',
+            background: active ? accent : 'var(--gray-10)', color: active ? '#fff' : 'transparent',
+            borderRadius: '50%', flex: '0 0 auto',
+          },
+          style: {
+            display: 'flex', alignItems: 'center', padding: '8px 10px', border: 'none', cursor: 'pointer', textAlign: 'left', fontSize: '13px', fontWeight: '600',
+            background: active ? 'var(--gray-5)' : 'var(--white)',
+            color: active ? accent : 'var(--black)',
+          },
+        };
+      }),
+      isMenuView, isBoardView, noBoards: uiBoards.length === 0, boards: uiBoards,
+
+      libraryEnabled: LIB_ENABLED,
+      loadLibrary: this.loadLibrary, saveToLibrary: this.saveToLibrary,
+      openLibraryBoard: this.openLibraryBoard, deleteLibraryBoard: this.deleteLibraryBoard,
+      libraryBoards: (this.state.library || []).map(b => ({
+        id: b.id,
+        title: b.title && b.title.trim() ? b.title : 'Untitled Storyboard',
+        line: ((b.shotCount === 1) ? '1 shot' : (b.shotCount || 0) + ' shots')
+          + ' · ' + (b.savedBy || 'Unknown') + ' · ' + libWhen(b.updatedAt),
+        project: b.project || '',
+        hasProject: !!(b.project && b.project.trim()),
+      })),
+      libraryLoading: !!this.state.libraryLoading,
+      libraryEmpty: !this.state.libraryLoading && !this.state.libraryError
+        && (this.state.library || []).length === 0,
+      hasLibraryError: !!this.state.libraryError,
+      libraryError: this.state.libraryError,
+      libraryHint: this.state.libraryUser
+        ? 'Saved on the server for the whole team. Signed in as ' + this.state.libraryUser + '.'
+        : 'Saved on the server for the whole team.',
+      hasLibraryStatus: !!this.state.libraryStatus,
+      libraryStatus: this.state.libraryStatus,
+      libSaveLabel: this.state.librarySaving
+        ? 'Saving…'
+        : (this.state.libraryId ? 'Update Library' : 'Save to Library'),
+      libSaveBtnStyle: {
+        display: 'flex', alignItems: 'center', gap: '6px', height: '36px', padding: '0 12px',
+        background: 'transparent', border: '1px solid var(--gray-15)',
+        color: this.state.librarySaving ? 'var(--gray-30)' : 'var(--gray-50)',
+        fontSize: '12px', fontWeight: '700',
+        cursor: this.state.librarySaving ? 'default' : 'pointer',
+        textTransform: 'uppercase', letterSpacing: '0.04em',
+      },
+      newBoard: this.newBoard, openBoard: this.openBoard, goToMenu: this.goToMenu, deleteBoard: this.deleteBoard,
+      organizeBtnStyle: {
+        display: 'flex', alignItems: 'center', gap: '6px', height: '36px', padding: '0 12px',
+        background: (this.state.organizedByKeys && this.state.organizedByKeys.length) ? accent : 'transparent',
+        border: '1px solid ' + ((this.state.organizedByKeys && this.state.organizedByKeys.length) ? accent : 'var(--gray-15)'),
+        color: (this.state.organizedByKeys && this.state.organizedByKeys.length) ? '#fff' : 'var(--gray-50)', fontSize: '12px', fontWeight: '700', cursor: 'pointer',
+        textTransform: 'uppercase', letterSpacing: '0.04em',
+      },
+      exportBoard: this.exportBoard, importBoard: this.importBoard,
+    };
+  }
+
+  toggleStyle(active, accent, extra) {
+    return Object.assign({
+      display: 'flex', alignItems: 'center', justifyContent: 'center',
+      border: 'none', cursor: 'pointer',
+      color: active ? '#fff' : 'var(--gray-40)',
+      background: active ? accent : 'var(--white)',
+    }, extra || {});
+  }
+}
+</script>
+
+
+</body></html>

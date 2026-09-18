@@ -24,4 +24,8 @@ jobs:
             **/.git*
             **/.git*/**
             **/saved/**
+            src/**
+            tools/**
+            server/**
             README.md
+            DEPLOY.md
