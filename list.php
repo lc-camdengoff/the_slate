@@ -14,17 +14,24 @@
 declare(strict_types=1);
 
 require __DIR__ . '/lib.php';
+require __DIR__ . '/auth.php';
+
+slate_install_error_handler('json');
 
 if (!in_array($_SERVER['REQUEST_METHOD'] ?? '', ['GET', 'HEAD'], true)) {
     header('Allow: GET, HEAD');
     slate_fail(405, 'method_not_allowed');
 }
 
+$account = slate_require_api_user();
 $user = slate_user();
 $response = [
     'ok' => true,
     'user' => $user['name'],
-    'userSource' => $user['source'],
+    'username' => $user['username'],
+    'isAdmin' => $user['is_admin'],
+    // The client echoes this back on writes; see slate_require_api_write().
+    'csrf' => slate_csrf_token(),
     'maxBytes' => slate_max_bytes(),
     'versionsKept' => SLATE_VERSIONS_KEPT,
     'boards' => [],
@@ -53,10 +60,12 @@ foreach (glob($saved . '/*.json') ?: [] as $path) {
         'title' => (string) ($meta['title'] ?? $name),
         'project' => (string) ($meta['project'] ?? ''),
         'savedBy' => (string) ($meta['savedBy'] ?? 'Unknown'),
+        'savedByUser' => (string) ($meta['savedByUser'] ?? ''),
         'updatedAt' => (int) ($meta['updatedAt'] ?? ((int) filemtime($path) * 1000)),
         'shotCount' => (int) ($meta['shotCount'] ?? 0),
         'bytes' => (int) ($meta['bytes'] ?? ($size === false ? 0 : $size)),
-        'file' => '../saved/' . $name . '.json',
+        // Reads go through load.php now: ../saved/ is closed to the web.
+        'file' => 'load.php?id=' . $name,
     ];
 }
 

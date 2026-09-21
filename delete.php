@@ -12,8 +12,12 @@
 declare(strict_types=1);
 
 require __DIR__ . '/lib.php';
+require __DIR__ . '/auth.php';
+
+slate_install_error_handler('json');
 
 slate_require_write_request();
+slate_require_api_write();
 
 $saved = slate_saved_dir();
 if ($saved === null) {

@@ -352,6 +352,19 @@
 <sc-if value="{{ isMenuView }}" hint-placeholder-val="{{ true }}">
   <div style="min-height:100vh;background:var(--gray-5);padding:48px 32px">
     <div style="max-width:1100px;margin:0 auto">
+      <sc-if value="{{ signedIn }}" hint-placeholder-val="{{ false }}">
+        <div style="display:flex;align-items:center;justify-content:flex-end;gap:14px;flex-wrap:wrap;margin-bottom:22px;padding-bottom:16px;border-bottom:1px solid var(--gray-15)">
+          <span style="font-family:var(--font-mono);font-size:11px;letter-spacing:0.06em;text-transform:uppercase;color:var(--gray-40)">Signed in as {{ signedInAs }}</span>
+          <a href="account.php" style="font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:0.04em;color:var(--gray-50);text-decoration:none;border:1px solid var(--gray-15);padding:7px 11px">Account</a>
+          <sc-if value="{{ isLibraryAdmin }}" hint-placeholder-val="{{ false }}">
+            <a href="admin.php" style="font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:0.04em;color:var(--gray-50);text-decoration:none;border:1px solid var(--gray-15);padding:7px 11px">Team Admin</a>
+          </sc-if>
+          <form method="post" action="logout.php" style="margin:0">
+            <input type="hidden" name="csrf" value="{{ libraryCsrf }}">
+            <button type="submit" style="height:32px;padding:0 11px;background:transparent;border:1px solid var(--gray-15);color:var(--gray-50);font-size:12px;font-weight:700;cursor:pointer;text-transform:uppercase;letter-spacing:0.04em">Sign out</button>
+          </form>
+        </div>
+      </sc-if>
       <div style="font-family:var(--font-mono);font-size:11px;letter-spacing:0.14em;text-transform:uppercase;color:var(--gray-30);margin-bottom:8px">Storyboard</div>
       <div style="display:flex;align-items:flex-end;justify-content:space-between;flex-wrap:wrap;gap:16px;margin-bottom:32px">
         <div style="font-family:var(--font-display);font-weight:900;font-size:40px;line-height:0.9;letter-spacing:-0.02em;text-transform:uppercase;color:var(--black)">Your Storyboards</div>
@@ -827,12 +840,23 @@ async function idbDel(id) {
 // The endpoints only exist when a web server is serving the page; opened
 // straight off disk the app still works, minus the library.
 const LIB_ENABLED = location.protocol === 'http:' || location.protocol === 'https:';
-const LIB_NAME_KEY = 'cg_storyboard_lib_name';
+
+// Signed out mid-session — the cookie expired, or an admin turned the account
+// off. Nothing the app can do but send them back to the sign-in page, which is
+// what a reload lands on.
+let libSignedOut = false;
+function libSignedOutNotice() {
+  if (libSignedOut) return;
+  libSignedOut = true;
+  window.alert('Your sign-in has expired. Taking you back to the sign-in page — your work is saved on this computer.');
+  window.location.reload();
+}
 
 async function libRequest(url, options) {
   const res = await fetch(url, Object.assign({ credentials: 'same-origin', cache: 'no-store' }, options || {}));
   let data = null;
   try { data = await res.json(); } catch (err) {}
+  if (res.status === 401) libSignedOutNotice();
   if (!res.ok || !data || data.ok !== true) {
     const err = new Error((data && data.error) || ('http_' + res.status));
     err.status = res.status;
@@ -848,6 +872,8 @@ const LIB_ERRORS = {
   not_a_storyboard: 'The server could not read that storyboard.',
   storage_unavailable: 'The shared folder on the server is missing or not writable.',
   cross_origin: 'That request was blocked. Reload the page and try again.',
+  bad_csrf: 'That request was blocked. Reload the page and try again.',
+  not_signed_in: 'You are no longer signed in. Reload the page to sign in again.',
   busy: 'Someone else is saving this storyboard right now. Try again in a moment.',
   not_found: 'That storyboard is no longer in the team library.',
 };
@@ -937,6 +963,9 @@ class Component extends DCLogic {
     libraryRev: 0,
     library: [],
     libraryUser: null,
+    libraryUsername: null,
+    libraryIsAdmin: false,
+    libraryCsrf: '',
     libraryMax: 0,
     libraryLoading: false,
     libraryError: '',
@@ -1543,26 +1572,15 @@ class Component extends DCLogic {
       this.setState({
         library: data.boards || [],
         libraryUser: data.user || null,
+        libraryUsername: data.username || null,
+        libraryIsAdmin: !!data.isAdmin,
+        libraryCsrf: data.csrf || '',
         libraryMax: data.maxBytes || 0,
         libraryLoading: false,
       });
     } catch (err) {
       this.setState({ libraryLoading: false, libraryError: libMessage(err) });
     }
-  };
-
-  // Basic auth already identifies everyone, but whether PHP can see that name
-  // depends on the server, so ask once and remember if it cannot.
-  libraryName = () => {
-    if (this.state.libraryUser) return this.state.libraryUser;
-    let name = '';
-    try { name = localStorage.getItem(LIB_NAME_KEY) || ''; } catch (err) {}
-    if (!name) {
-      name = (window.prompt('Your name, so the team knows who saved this:', '') || '').trim();
-      if (!name) return null;
-      try { localStorage.setItem(LIB_NAME_KEY, name); } catch (err) {}
-    }
-    return name;
   };
 
   saveToLibrary = async () => {
@@ -1575,18 +1593,23 @@ class Component extends DCLogic {
         + libSize(max) + '. Remove or replace a few reference images and try again.');
       return;
     }
-    const savedBy = this.libraryName();
-    if (savedBy === null) return;
+    // The signed-in account is the author; the server ignores anything the
+    // client might claim. The token proves the request came from this page.
+    if (!this.state.libraryCsrf) await this.loadLibrary();
+    const csrf = this.state.libraryCsrf;
+    if (!csrf) { window.alert(libMessage(new Error('not_signed_in'))); return; }
 
     const post = (opts) => {
       const params = new URLSearchParams({
         title: meta.title || '', project: meta.project || '',
-        shots: String(frames.length), as: savedBy,
+        shots: String(frames.length),
       });
       if (opts.id) { params.set('id', opts.id); params.set('rev', String(opts.rev || 0)); }
       if (opts.force) params.set('force', '1');
       return libRequest('save.php?' + params.toString(), {
-        method: 'POST', headers: { 'Content-Type': 'application/json' }, body,
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'X-Slate-CSRF': csrf },
+        body,
       });
     };
 
@@ -1641,6 +1664,7 @@ class Component extends DCLogic {
     let data = null;
     try {
       const res = await fetch(entry.file, { credentials: 'same-origin', cache: 'no-store' });
+      if (res.status === 401) { libSignedOutNotice(); throw new Error('not_signed_in'); }
       if (!res.ok) throw new Error('http_' + res.status);
       data = await res.json();
     } catch (err) {
@@ -1693,7 +1717,9 @@ class Component extends DCLogic {
     if (!window.confirm('Remove “' + title + '” from the team library?\n\n'
       + 'It moves to a trash folder on the server, and your own copy stays on this computer.')) return;
     try {
-      await libRequest('delete.php?id=' + encodeURIComponent(libId), { method: 'POST' });
+      await libRequest('delete.php?id=' + encodeURIComponent(libId), {
+        method: 'POST', headers: { 'X-Slate-CSRF': this.state.libraryCsrf || '' },
+      });
       this.setState(s => ({ library: s.library.filter(b => b.id !== libId) }));
     } catch (err) {
       window.alert(libMessage(err));
@@ -1963,9 +1989,11 @@ class Component extends DCLogic {
         && (this.state.library || []).length === 0,
       hasLibraryError: !!this.state.libraryError,
       libraryError: this.state.libraryError,
-      libraryHint: this.state.libraryUser
-        ? 'Saved on the server for the whole team. Signed in as ' + this.state.libraryUser + '.'
-        : 'Saved on the server for the whole team.',
+      libraryHint: 'Saved on the server for the whole team.',
+      signedIn: !!this.state.libraryUser,
+      signedInAs: this.state.libraryUser || '',
+      isLibraryAdmin: !!this.state.libraryIsAdmin,
+      libraryCsrf: this.state.libraryCsrf || '',
       hasLibraryStatus: !!this.state.libraryStatus,
       libraryStatus: this.state.libraryStatus,
       libSaveLabel: this.state.librarySaving

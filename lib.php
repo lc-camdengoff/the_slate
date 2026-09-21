@@ -39,22 +39,24 @@ function slate_internal_dir(string $saved, string $name): ?string
 }
 
 /**
- * The basic-auth user the web server already authenticated.
+ * Who is making this request.
  *
- * Which variable carries it depends on the SAPI and on how LiteSpeed passes
- * the header through, so try the usual suspects and report which one worked —
- * list.php hands that back to the client, which falls back to a typed name
- * when none of them are populated.
+ * Accounts live in PostgreSQL now (see auth.php), so this is the signed-in
+ * user rather than a guess at whichever server variable happened to carry the
+ * basic-auth username. Every endpoint requires a session, so there is no
+ * fallback and no typed-name path left: attribution is always exact.
  */
 function slate_user(): array
 {
-    $candidates = ['PHP_AUTH_USER', 'REMOTE_USER', 'REDIRECT_REMOTE_USER'];
-    foreach ($candidates as $key) {
-        if (!empty($_SERVER[$key])) {
-            return ['name' => slate_clean_text((string) $_SERVER[$key], 64), 'source' => $key];
-        }
+    $user = slate_current_user();
+    if ($user === null) {
+        return ['name' => null, 'username' => null, 'is_admin' => false];
     }
-    return ['name' => null, 'source' => null];
+    return [
+        'name' => slate_clean_text((string) $user['display_name'], 64),
+        'username' => (string) $user['username'],
+        'is_admin' => (bool) $user['is_admin'],
+    ];
 }
 
 /** Collapse untrusted text to something safe to store and display. */
