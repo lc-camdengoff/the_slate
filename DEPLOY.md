@@ -220,6 +220,32 @@ Two things to keep right:
   it an FTP deploy with `server-dir: ./<tool>/` (the FTP account is rooted at
   `filmmaking`).
 
+### A tool on its own subdomain
+
+The Cage lives at `cage.creativemedia.church`, not in a folder here. Three
+things have to line up for one sign-in to cover it:
+
+1. **`cookie_domain`** in the config, e.g. `.creativemedia.church`. Without it
+   the session cookie is host-only and never reaches the subdomain. Setting it
+   also forces the cookie path to `/`, since a tool at the root of its
+   subdomain would never receive `/filmmaking/`.
+2. **`auth_url`** set to the absolute URL of this folder, so the tool can link
+   back to the shared sign-in.
+3. **A `url` entry rather than `path`** in `auth/tools.php`. That also
+   registers the origin as somewhere `?next=` may return to — the sign-in
+   accepts a return to registered origins and nothing else, which is what
+   stops it becoming an open redirect.
+
+The subdomain's code needs to reach `auth/` and the database. On the same
+cPanel account it can `require` these files by absolute path, e.g.
+`/home/creaueyu/public_html/filmmaking/auth/auth.php`, and it will read the
+same config from above the web root.
+
+**Worth being deliberate about `cookie_domain`:** the session cookie is then
+sent to every host under that domain, including unrelated or future ones. It is
+the normal approach on a domain you fully control and only host your own things
+on; it is a bad idea on one where anyone else can stand up a subdomain.
+
 Every account can use every tool. If one ever needs restricting — say gear
 checkout for leads only — that is an `app_access` table and one check in that
 tool's front door, with nothing else changing.

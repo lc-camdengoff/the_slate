@@ -108,9 +108,48 @@ function fm_base_path(): string
     return $base = ($up === '' || $up === '.' ? '' : $up) . '/';
 }
 
-/** URL of the shared auth folder, e.g. "/filmmaking/auth/". */
+/**
+ * Domain to scope the session cookie to.
+ *
+ * Empty means host-only: the cookie stays on the host that set it. Set
+ * cookie_domain to something like ".creativemedia.church" to share one sign-in
+ * across subdomains — needed when a tool lives on its own subdomain rather
+ * than in a folder here.
+ */
+function fm_cookie_domain(): string
+{
+    return trim((string) (fm_config()['cookie_domain'] ?? ''));
+}
+
+/**
+ * Path to scope the session cookie to.
+ *
+ * Normally the tools folder, so the cookie is not sent to unrelated parts of
+ * the site. A cookie shared across subdomains has to be path "/" instead: a
+ * tool at the root of its own subdomain would never receive "/filmmaking/".
+ */
+function fm_cookie_path(): string
+{
+    $configured = trim((string) (fm_config()['cookie_path'] ?? ''));
+    if ($configured !== '') {
+        return $configured;
+    }
+    return fm_cookie_domain() !== '' ? '/' : fm_base_path();
+}
+
+/**
+ * URL of the shared auth folder, e.g. "/filmmaking/auth/".
+ *
+ * Set auth_url in the config to an absolute URL when tools live on other
+ * hosts: they need to link here, and a relative path would resolve against
+ * their own host.
+ */
 function fm_auth_url(string $page = ''): string
 {
+    $configured = trim((string) (fm_config()['auth_url'] ?? ''));
+    if ($configured !== '') {
+        return rtrim($configured, '/') . '/' . $page;
+    }
     return fm_base_path() . 'auth/' . $page;
 }
 
@@ -127,8 +166,33 @@ function fm_safe_next(?string $next): string
     if (!is_string($next) || $next === '') {
         return $base;
     }
-    // No control characters, no scheme, and no "//host" protocol-relative URL.
-    if (preg_match('/[\x00-\x1F\x7F]/', $next) || preg_match('#^[a-z][a-z0-9+.-]*:#i', $next)) {
+    if (preg_match('/[\x00-\x1F\x7F]/', $next)) {
+        return $base;
+    }
+
+    // A tool on its own host needs an absolute return URL. Allowed only when
+    // its origin is one we registered in tools.php — never an origin taken
+    // from the request, which is what would make this an open redirect.
+    if (preg_match('#^https?://#i', $next)) {
+        $parts = parse_url($next);
+        if (empty($parts['scheme']) || empty($parts['host'])) {
+            return $base;
+        }
+        $origin = strtolower($parts['scheme'] . '://' . $parts['host']
+            . (isset($parts['port']) ? ':' . $parts['port'] : ''));
+        if (!in_array($origin, fm_tool_origins(), true)) {
+            return $base;
+        }
+        foreach (explode('/', (string) ($parts['path'] ?? '')) as $segment) {
+            if (strtolower(rawurldecode($segment)) === '..') {
+                return $base;
+            }
+        }
+        return $next;
+    }
+
+    // Anything else with a scheme (javascript:, data:, ...) is refused.
+    if (preg_match('#^[a-z][a-z0-9+.-]*:#i', $next)) {
         return $base;
     }
     if (strpos($next, '//') === 0 || strpos($next, '\\') !== false) {
@@ -239,15 +303,21 @@ function fm_start_session(int $userId): void
         substr((string) ($_SERVER['HTTP_USER_AGENT'] ?? ''), 0, 300),
     ]);
 
-    setcookie(FM_COOKIE, $token, [
+    $cookie = [
         'expires' => time() + fm_session_days() * 86400,
-        'path' => fm_base_path(),
+        'path' => fm_cookie_path(),
         'secure' => fm_is_https(),
         'httponly' => true,
         // Lax keeps the cookie off cross-site POSTs, which is most of CSRF
-        // handled before the token check below even runs.
+        // handled before the token check below even runs. Subdomains of one
+        // registrable domain are same-site, so this still allows the shared
+        // sign-in to reach a tool on its own subdomain.
         'samesite' => 'Lax',
-    ]);
+    ];
+    if (fm_cookie_domain() !== '') {
+        $cookie['domain'] = fm_cookie_domain();
+    }
+    setcookie(FM_COOKIE, $token, $cookie);
 }
 
 /** The signed-in user, or null. Extends the session as a side effect. */
@@ -294,13 +364,18 @@ function fm_end_session(): void
         $stmt = fm_db()->prepare('DELETE FROM sessions WHERE token_hash = ?');
         $stmt->execute([hash('sha256', $token)]);
     }
-    setcookie(FM_COOKIE, '', [
+    // Must match how it was set, or the browser keeps the original.
+    $cookie = [
         'expires' => time() - 3600,
-        'path' => fm_base_path(),
+        'path' => fm_cookie_path(),
         'secure' => fm_is_https(),
         'httponly' => true,
         'samesite' => 'Lax',
-    ]);
+    ];
+    if (fm_cookie_domain() !== '') {
+        $cookie['domain'] = fm_cookie_domain();
+    }
+    setcookie(FM_COOKIE, '', $cookie);
 }
 
 /** Drop every session for a user — used after a password change. */
