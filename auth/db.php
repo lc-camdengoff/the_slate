@@ -87,6 +87,7 @@ function fm_migrate(PDO $pdo): void
 
     $exists = $pdo->query("SELECT to_regclass('public.users') IS NOT NULL AS ok")->fetch();
     if (!empty($exists['ok'])) {
+        fm_migrate_columns($pdo);
         return;
     }
 
@@ -102,5 +103,33 @@ function fm_migrate(PDO $pdo): void
         }
     } finally {
         $pdo->exec('SELECT pg_advisory_unlock(8264773)');
+    }
+}
+
+/**
+ * Bring an existing database up to date.
+ *
+ * schema.sql only runs on a database that has no users table, so a column
+ * added later would never reach an install that already exists. These are
+ * checked rather than blindly re-applied: ALTER TABLE takes an exclusive lock
+ * even when it turns out to be a no-op, and this runs on a live site.
+ */
+function fm_migrate_columns(PDO $pdo): void
+{
+    $stmt = $pdo->query(
+        "SELECT count(*) AS n FROM information_schema.columns
+          WHERE table_schema = 'public' AND table_name = 'users' AND column_name = 'email'"
+    );
+    if ((int) ($stmt->fetch()['n'] ?? 0) > 0) {
+        return;
+    }
+
+    $pdo->exec('SELECT pg_advisory_lock(8264774)');
+    try {
+        $pdo->exec('ALTER TABLE users ADD COLUMN IF NOT EXISTS email text');
+        $pdo->exec('CREATE UNIQUE INDEX IF NOT EXISTS users_email_lower_idx
+                        ON users (lower(email)) WHERE email IS NOT NULL');
+    } finally {
+        $pdo->exec('SELECT pg_advisory_unlock(8264774)');
     }
 }
