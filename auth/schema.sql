@@ -13,8 +13,20 @@ CREATE TABLE IF NOT EXISTS users (
     is_admin      boolean     NOT NULL DEFAULT false,
     is_active     boolean     NOT NULL DEFAULT true,
     created_at    timestamptz NOT NULL DEFAULT now(),
-    last_login_at timestamptz
+    last_login_at timestamptz,
+    -- Collected at signup but never verified: mail to @life.church is held in
+    -- quarantine inbound, so a verification link would not arrive. The invite
+    -- code is what keeps an unverified address reasonable. The Cage refuses a
+    -- sign-in from an account without one, since a username cannot receive an
+    -- overdue notice. See auth/email.php.
+    email         text
 );
+
+-- Addresses are matched lowercased, so Jordan.West@ and jordan.west@ are one
+-- mailbox. This index is also what fm_set_email() relies on to catch a
+-- duplicate as 23505 rather than silently writing it.
+CREATE UNIQUE INDEX IF NOT EXISTS users_email_lower_idx
+    ON users (lower(email)) WHERE email IS NOT NULL;
 
 -- Shared signup codes. Stored in the clear on purpose: an admin has to be able
 -- to read one back to pass it to the team, and a code only grants the ability
