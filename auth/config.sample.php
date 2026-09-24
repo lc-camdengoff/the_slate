@@ -47,8 +47,27 @@ return [
     // How long a sign-in lasts, in days. Sliding: it extends on each request.
     'session_days' => 30,
 
-    // The folder holding the tools, which is what the session cookie is scoped
-    // to — the reason one sign-in covers all of them. Worked out automatically
-    // from where auth/ sits; set it only if that guess is wrong.
+    // The folder holding the tools. Worked out automatically from where auth/
+    // sits; set it only if that guess is wrong.
     // 'base_path' => '/filmmaking/',
+
+    // ---- Tools on their own subdomain -------------------------------------
+    // By default the session cookie is host-only and scoped to the tools
+    // folder, so it never leaves /filmmaking/ on this host. A tool on its own
+    // subdomain (cage.creativemedia.church) would not receive it, and would
+    // need its own separate sign-in.
+    //
+    // Setting cookie_domain shares one sign-in across every subdomain. Be
+    // deliberate: the cookie is then sent to EVERY host under that domain,
+    // including any unrelated or future one. Only do this on a domain you
+    // fully control and only host your own things on.
+    //
+    // Path becomes "/" automatically when this is set, because a tool at the
+    // root of its subdomain would never receive "/filmmaking/".
+    // 'cookie_domain' => '.creativemedia.church',
+    // 'cookie_path' => '/',
+
+    // Absolute URL of the auth folder. Tools on other hosts need this to link
+    // back here; a relative path would resolve against their own host.
+    // 'auth_url' => 'https://creativemedia.church/filmmaking/auth/',
 ];
