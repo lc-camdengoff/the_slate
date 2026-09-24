@@ -67,7 +67,7 @@ if (($_SERVER['REQUEST_METHOD'] ?? '') === 'POST') {
 fm_page_head('Reset password');
 ?>
 <div class="card">
-  <div class="eyebrow">The Slate</div>
+  <div class="eyebrow">Filmmaking tools</div>
   <h1>Reset password</h1>
 
   <?php if ($done): ?>

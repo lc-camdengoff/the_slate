@@ -353,7 +353,12 @@
   <div style="min-height:100vh;background:var(--gray-5);padding:48px 32px">
     <div style="max-width:1100px;margin:0 auto">
       <sc-if value="{{ signedIn }}" hint-placeholder-val="{{ false }}">
-        <div style="display:flex;align-items:center;justify-content:flex-end;gap:14px;flex-wrap:wrap;margin-bottom:22px;padding-bottom:16px;border-bottom:1px solid var(--gray-15)">
+        <div style="display:flex;align-items:center;gap:14px;flex-wrap:wrap;margin-bottom:22px;padding-bottom:16px;border-bottom:1px solid var(--gray-15)">
+          <a href="{{ homeUrl }}" style="font-family:var(--font-display);font-weight:900;font-size:14px;letter-spacing:-0.01em;color:var(--black);text-decoration:none">Filmmaking Team</a>
+          <sc-for list="{{ otherTools }}" as="t" hint-placeholder-count="0">
+            <a href="{{ t.url }}" style="font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:0.04em;color:var(--gray-50);text-decoration:none;padding:7px 10px">{{ t.label }}</a>
+          </sc-for>
+          <span style="margin-left:auto"></span>
           <span style="font-family:var(--font-mono);font-size:11px;letter-spacing:0.06em;text-transform:uppercase;color:var(--gray-40)">Signed in as {{ signedInAs }}</span>
           <a href="{{ accountUrl }}" style="font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:0.04em;color:var(--gray-50);text-decoration:none;border:1px solid var(--gray-15);padding:7px 11px">Account</a>
           <sc-if value="{{ isLibraryAdmin }}" hint-placeholder-val="{{ false }}">
@@ -967,6 +972,7 @@ class Component extends DCLogic {
     libraryIsAdmin: false,
     libraryCsrf: '',
     libraryUrls: {},
+    libraryTools: [],
     libraryMax: 0,
     libraryLoading: false,
     libraryError: '',
@@ -1580,7 +1586,9 @@ class Component extends DCLogic {
           account: data.accountUrl || '',
           admin: data.adminUrl || '',
           logout: data.logoutUrl || '',
+          home: data.homeUrl || '',
         },
+        libraryTools: (data.tools || []).filter(t => !t.current),
         libraryMax: data.maxBytes || 0,
         libraryLoading: false,
       });
@@ -2003,6 +2011,9 @@ class Component extends DCLogic {
       accountUrl: (this.state.libraryUrls || {}).account || '',
       adminUrl: (this.state.libraryUrls || {}).admin || '',
       logoutUrl: (this.state.libraryUrls || {}).logout || '',
+      homeUrl: (this.state.libraryUrls || {}).home || '',
+      otherTools: this.state.libraryTools || [],
+      hasOtherTools: (this.state.libraryTools || []).length > 0,
       hasLibraryStatus: !!this.state.libraryStatus,
       libraryStatus: this.state.libraryStatus,
       libSaveLabel: this.state.librarySaving

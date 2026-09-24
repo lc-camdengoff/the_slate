@@ -63,19 +63,8 @@ $sessions = $sessions->fetchAll();
 fm_page_head('Your account');
 ?>
 <div class="card wide">
-  <div class="topbar">
-    <div>
-      <div class="eyebrow">The Slate</div>
-      <h1>Your account</h1>
-    </div>
-    <div class="row">
-      <a class="btn ghost small" href="<?= fm_h($next) ?>">Back to tools</a>
-      <form method="post" action="logout.php">
-        <input type="hidden" name="csrf" value="<?= fm_h(fm_csrf_token()) ?>">
-        <button class="ghost small" type="submit">Sign out</button>
-      </form>
-    </div>
-  </div>
+  <div class="eyebrow">Filmmaking tools</div>
+  <h1>Your account</h1>
 
   <?php if ($error !== ''): ?><div class="msg bad"><?= fm_h($error) ?></div><?php endif; ?>
   <?php if ($notice !== ''): ?><div class="msg good"><?= fm_h($notice) ?></div><?php endif; ?>

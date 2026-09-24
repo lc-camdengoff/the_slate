@@ -37,6 +37,10 @@ $response = [
     'accountUrl' => fm_auth_url_with_next('account.php', fm_base_path() . 'slate/'),
     'adminUrl' => fm_auth_url_with_next('admin.php', fm_base_path() . 'slate/'),
     'logoutUrl' => fm_auth_url('logout.php'),
+    // The same registry the account pages use, so a new tool shows up in the
+    // app's header without touching the app.
+    'homeUrl' => fm_base_path(),
+    'tools' => fm_tool_links('slate/'),
     'maxBytes' => slate_max_bytes(),
     'versionsKept' => SLATE_VERSIONS_KEPT,
     'boards' => [],

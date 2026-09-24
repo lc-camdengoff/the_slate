@@ -38,7 +38,7 @@ $firstRun = fm_user_count() === 0;
 fm_page_head('Sign in');
 ?>
 <div class="card">
-  <div class="eyebrow">The Slate</div>
+  <div class="eyebrow">Filmmaking tools</div>
   <h1>Sign in</h1>
 
   <?php if ($error !== ''): ?>

@@ -159,9 +159,20 @@ require __DIR__ . '/../auth/auth.php';
 $user = fm_require_login();   // bounces to the shared sign-in, comes back here
 ```
 
+Then add one line to `auth/tools.php` so it appears in the nav everywhere:
+
+```php
+['label' => 'The Cage', 'path' => 'cage/', 'blurb' => 'Gear checkout'],
+```
+
 That is the whole integration. Anyone signed in to The Slate is already signed
 in to it, and signing out of either signs out of both. `$user` gives you
 `display_name`, `username` and `is_admin`.
+
+If the tool renders its own pages with `auth/page.php`, it gets the shared
+nav bar automatically. If it renders its own markup, call `fm_nav('cage/')`
+where the header should go, or read `fm_tool_links()` and lay it out yourself —
+The Slate does the latter, since its app replaces the whole document.
 
 For a JSON endpoint use `fm_require_api_user()` (401 instead of a redirect) or
 `fm_require_api_write()`, which also checks the `X-Slate-CSRF` header the
