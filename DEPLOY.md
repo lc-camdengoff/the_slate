@@ -169,6 +169,25 @@ That is the whole integration. Anyone signed in to The Slate is already signed
 in to it, and signing out of either signs out of both. `$user` gives you
 `display_name`, `username` and `is_admin`.
 
+### Putting the nav on a page of your own
+
+Any page under `/filmmaking/` can carry the bar, including the public landing
+page. It has to be PHP rather than plain HTML:
+
+```php
+<?php require __DIR__ . '/auth/auth.php'; require __DIR__ . '/auth/page.php'; ?>
+<!DOCTYPE html>
+<html><head>
+  <link rel="stylesheet" href="/filmmaking/auth/nav.css">
+</head>
+<body>
+<?php fm_nav('', 'dark'); ?>   <!-- drop the 'dark' on a light page -->
+```
+
+It adapts to who is looking: signed out it offers Sign in, signed in it shows
+the name with Account, Team Admin and Sign out. The page itself stays public —
+`fm_nav()` only reports a session, it does not require one.
+
 If the tool renders its own pages with `auth/page.php`, it gets the shared
 nav bar automatically. If it renders its own markup, call `fm_nav('cage/')`
 where the header should go, or read `fm_tool_links()` and lay it out yourself —

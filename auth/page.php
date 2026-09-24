@@ -20,13 +20,14 @@ function fm_page_head(string $title): void
     header('Cache-Control: no-store');
     header('X-Content-Type-Options: nosniff');
     header('X-Frame-Options: DENY');
-    header("Content-Security-Policy: default-src 'none'; style-src 'unsafe-inline'; form-action 'self'; base-uri 'none'");
+    header("Content-Security-Policy: default-src 'none'; style-src 'self' 'unsafe-inline'; form-action 'self'; base-uri 'none'");
     ?>
 <!DOCTYPE html>
 <html lang="en">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
+<link rel="stylesheet" href="<?= fm_h(fm_auth_url('nav.css')) ?>">
 <title><?= fm_h($title) ?> — The Slate</title>
 <style>
   :root {
@@ -38,8 +39,12 @@ function fm_page_head(string $title): void
   * { margin: 0; padding: 0; box-sizing: border-box; }
   body {
     background: var(--gray-5); color: var(--black); min-height: 100vh;
-    display: flex; align-items: center; justify-content: center; padding: 32px 20px;
+    display: flex; flex-direction: column;
     font: 15px/1.5 -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
+  }
+  .page-body {
+    flex: 1; display: flex; align-items: center; justify-content: center;
+    padding: 32px 20px;
   }
   .card {
     background: var(--white); border: 1px solid var(--gray-15);
@@ -101,43 +106,22 @@ function fm_page_head(string $title): void
     display: flex; justify-content: space-between; align-items: baseline;
     gap: 16px; flex-wrap: wrap; margin-bottom: 4px;
   }
-  /* Shared nav across every tool under /filmmaking/ */
-  .fmnav {
-    position: fixed; top: 0; left: 0; right: 0; z-index: 10;
-    display: flex; align-items: center; gap: 8px; flex-wrap: wrap;
-    padding: 10px 18px; background: var(--white); border-bottom: 1px solid var(--gray-15);
-    font: 12px/1 -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
-  }
-  .fmnav a, .fmnav button {
-    font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.04em;
-    text-decoration: none; color: var(--gray-50); padding: 7px 10px;
-    border: 1px solid transparent; background: transparent; cursor: pointer;
-  }
-  .fmnav a:hover, .fmnav button:hover { background: var(--gray-5); }
-  .fmnav a.home { color: var(--black); font-weight: 900; letter-spacing: -0.01em; text-transform: none; font-size: 14px; }
-  .fmnav a.here { border-color: var(--gray-15); color: var(--black); }
-  .fmnav .spacer { margin-left: auto; }
-  .fmnav .who {
-    font-family: var(--mono); font-size: 11px; letter-spacing: 0.06em;
-    text-transform: uppercase; color: var(--gray-30);
-  }
-  .fmnav form { display: inline; margin: 0; }
-  body { padding-top: 76px; }
 </style>
 </head>
 <body>
     <?php
     fm_nav();
+    echo '<div class="page-body">';
 }
 
 /**
  * The bar across the top of every page: home, the other tools, and who you
  * are. One definition, so a new tool appears everywhere at once.
  */
-function fm_nav(string $currentTool = ''): void
+function fm_nav(string $currentTool = '', string $theme = ''): void
 {
     $user = fm_current_user();
-    echo '<nav class="fmnav">';
+    echo '<nav class="fmnav' . ($theme === 'dark' ? ' dark' : '') . '">';
     echo '<a class="home" href="' . fm_h(fm_base_path()) . '">Filmmaking Team</a>';
 
     foreach (fm_tool_links($currentTool) as $tool) {
@@ -165,5 +149,5 @@ function fm_nav(string $currentTool = ''): void
 
 function fm_page_foot(): void
 {
-    echo "</body>\n</html>\n";
+    echo "</div>\n</body>\n</html>\n";
 }

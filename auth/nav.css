@@ -1,0 +1,58 @@
+/* Filmmaking tools — the shared nav bar.
+ *
+ * A standalone stylesheet so pages outside the account system can use the bar
+ * too: the public landing page at /filmmaking/ pulls this in and calls
+ * fm_nav(). Self-contained — it defines its own colours rather than relying on
+ * the host page's variables.
+ *
+ * Add class "dark" for pages on a dark background.
+ */
+
+.fmnav {
+  position: sticky; top: 0; z-index: 50;
+  display: flex; align-items: center; gap: 8px; flex-wrap: wrap;
+  padding: 10px 18px; margin: 0;
+  background: #FFFFFF; border-bottom: 1px solid #DDE0E3;
+  font: 12px/1 -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
+  box-sizing: border-box;
+}
+
+.fmnav a,
+.fmnav button {
+  font-family: inherit; font-size: 12px; font-weight: 700;
+  text-transform: uppercase; letter-spacing: 0.04em;
+  text-decoration: none; color: #5C666F;
+  padding: 7px 10px; border: 1px solid transparent;
+  background: transparent; cursor: pointer; line-height: 1;
+}
+
+.fmnav a:hover,
+.fmnav button:hover { background: #F4F5F6; color: #1D242B; }
+
+.fmnav a.home {
+  color: #1D242B; font-weight: 900; font-size: 14px;
+  letter-spacing: -0.01em; text-transform: none;
+}
+
+.fmnav a.here { border-color: #DDE0E3; color: #1D242B; }
+.fmnav .spacer { margin-left: auto; }
+
+.fmnav .who {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 11px; letter-spacing: 0.06em; text-transform: uppercase;
+  color: #9BA3AB;
+}
+
+.fmnav form { display: inline; margin: 0; }
+
+/* For dark pages, like the Filmmaking landing page. */
+.fmnav.dark {
+  background: #16181A; border-bottom-color: rgba(255, 255, 255, 0.10);
+}
+.fmnav.dark a,
+.fmnav.dark button { color: #9A9A9A; }
+.fmnav.dark a:hover,
+.fmnav.dark button:hover { background: rgba(255, 255, 255, 0.06); color: #F2EFE9; }
+.fmnav.dark a.home { color: #F2EFE9; }
+.fmnav.dark a.here { border-color: rgba(255, 255, 255, 0.18); color: #C9A961; }
+.fmnav.dark .who { color: #6B6B6B; }
