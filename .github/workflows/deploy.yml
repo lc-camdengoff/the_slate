@@ -11,7 +11,24 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Deploy via FTPS
+      # The shared sign-in used by every tool under /filmmaking/. It lives
+      # beside slate/, not inside it, so one copy serves them all. Deployed
+      # first: the tool below depends on it being there.
+      - name: Deploy shared accounts via FTPS
+        uses: SamKirkland/FTP-Deploy-Action@v4.3.5
+        with:
+          server: ftp.creativemedia.church
+          username: ${{ secrets.FTP_USERNAME }}
+          password: ${{ secrets.FTP_PASSWORD }}
+          protocol: ftps
+          local-dir: ./auth/
+          server-dir: ./auth/
+          exclude: |
+            **/.git*
+            **/.git*/**
+            config.php
+
+      - name: Deploy The Slate via FTPS
         uses: SamKirkland/FTP-Deploy-Action@v4.3.5
         with:
           server: ftp.creativemedia.church
@@ -24,6 +41,7 @@ jobs:
             **/.git*
             **/.git*/**
             **/saved/**
+            auth/**
             src/**
             tools/**
             server/**

@@ -12,8 +12,12 @@
 declare(strict_types=1);
 
 require __DIR__ . '/lib.php';
+require __DIR__ . '/../auth/auth.php';
+
+fm_error_handler('json');
 
 slate_require_write_request();
+$account = fm_require_api_write();
 
 $saved = slate_saved_dir();
 if ($saved === null) {
@@ -26,15 +30,12 @@ if ($declared > $maxBytes) {
     slate_fail(413, 'too_large', ['maxBytes' => $maxBytes, 'bytes' => $declared]);
 }
 
-$user = slate_user();
-$savedBy = $user['name'];
-if ($savedBy === null) {
-    // No server-authenticated name available — fall back to the name the
-    // client asked the user for.
-    $savedBy = slate_clean_text((string) ($_GET['as'] ?? ''), 64);
-    if ($savedBy === '') {
-        $savedBy = 'Unknown';
-    }
+// The signed-in account is the author: the client no longer gets a say in
+// who a save is attributed to.
+$savedBy = slate_clean_text((string) $account['display_name'], 64);
+$savedByUser = (string) $account['username'];
+if ($savedBy === '') {
+    $savedBy = $savedByUser;
 }
 
 $title = slate_clean_text((string) ($_GET['title'] ?? ''), 120);
@@ -180,8 +181,10 @@ $meta = [
     'title' => $title,
     'project' => $project,
     'savedBy' => $savedBy,
+    'savedByUser' => $savedByUser,
     'updatedAt' => $updatedAt,
     'createdAt' => (int) ($existing['createdAt'] ?? $updatedAt),
+    'createdByUser' => (string) ($existing['createdByUser'] ?? $savedByUser),
     'shotCount' => $shotCount,
     'bytes' => $bytes,
 ];
@@ -191,4 +194,4 @@ $meta = [
 flock($lock, LOCK_UN);
 fclose($lock);
 
-slate_json(200, ['ok' => true] + $meta + ['file' => '../saved/' . $id . '.json']);
+slate_json(200, ['ok' => true] + $meta + ['file' => 'load.php?id=' . $id]);
