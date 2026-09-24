@@ -14,15 +14,19 @@
  *
  * One config serves every tool under /filmmaking/. Create the database and
  * user in cPanel → PostgreSQL Databases; cPanel prefixes both names with the
- * account, so "filmmaking" becomes "creaueyu_filmmaking".
+ * account, so "filmmaking_login" becomes "creaueyu_filmmaking_login".
+ *
+ * The database and the user are named separately and need not match — copy
+ * both exactly as cPanel shows them. A user that does not match the database
+ * is the usual reason for "Cannot reach the database".
  */
 
 return [
     // ---- Database ---------------------------------------------------------
     'db_host' => 'localhost',   // try 127.0.0.1 if localhost will not connect
     'db_port' => 5432,
-    'db_name' => 'creaueyu_filmmaking',
-    'db_user' => 'creaueyu_filmmaking',
+    'db_name' => 'creaueyu_filmmaking_login',
+    'db_user' => 'creaueyu_filmmaking_login',
     'db_pass' => 'put-the-password-you-set-in-cpanel-here',
 
     // ---- First account ----------------------------------------------------

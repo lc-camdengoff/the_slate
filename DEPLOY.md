@@ -53,10 +53,16 @@ handing it over directly.
 
 cPanel → **PostgreSQL Databases** (or the wizard). Create a database and a user
 and grant ALL privileges. cPanel prefixes both names with the account, so
-`filmmaking` becomes `creaueyu_filmmaking`.
+`filmmaking_login` becomes `creaueyu_filmmaking_login`.
 
 Name it for the team, not for The Slate: every tool under `/filmmaking/`
-authenticates against this one database.
+authenticates against this one database. Nothing in the code refers to the name
+— it is only the `db_name` in the config — so use whatever cPanel let you
+have. The live one is `creaueyu_filmmaking_login`, because `creaueyu_filmmaking`
+was already taken.
+
+The database and the user are named separately and need not match. Copy both
+exactly as cPanel shows them.
 
 Check `pdo_pgsql` is ticked under **Software → Select PHP Version →
 Extensions**. A PostgreSQL server on the plan is no use if PHP cannot reach
