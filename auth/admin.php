@@ -21,8 +21,8 @@ if (!$me['is_admin']) {
     http_response_code(403);
     fm_page_head('Not allowed');
     echo '<div class="card"><h1>Not allowed</h1>'
-        . '<p class="note">This page is for admins.</p>'
-        . '<div class="note"><a href="<?= fm_h($next) ?>">Back to tools</a></div></div>';
+        . '<p class="note">This page is for admins. Use the bar above to get '
+        . 'back to the tools.</p></div>';
     fm_page_foot();
     exit;
 }
@@ -130,16 +130,8 @@ $csrf = fm_h(fm_csrf_token());
 fm_page_head('Admin');
 ?>
 <div class="card wide">
-  <div class="topbar">
-    <div>
-      <div class="eyebrow">The Slate</div>
-      <h1>Team admin</h1>
-    </div>
-    <div class="row">
-      <a class="btn ghost small" href="<?= fm_h($next) ?>">Back to tools</a>
-      <a class="btn ghost small" href="account.php">Your account</a>
-    </div>
-  </div>
+  <div class="eyebrow">Filmmaking tools</div>
+  <h1>Team admin</h1>
 
   <?php if ($error !== ''): ?><div class="msg bad"><?= fm_h($error) ?></div><?php endif; ?>
   <?php if ($notice !== ''): ?><div class="msg good"><?= fm_h($notice) ?></div><?php endif; ?>

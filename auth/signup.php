@@ -77,7 +77,7 @@ if (($_SERVER['REQUEST_METHOD'] ?? '') === 'POST') {
 fm_page_head($firstRun ? 'Set up' : 'Sign up');
 ?>
 <div class="card">
-  <div class="eyebrow">The Slate</div>
+  <div class="eyebrow">Filmmaking tools</div>
   <h1><?= $firstRun ? 'First account' : 'Sign up' ?></h1>
 
   <?php if ($error !== ''): ?>

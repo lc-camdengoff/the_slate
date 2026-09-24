@@ -101,10 +101,66 @@ function fm_page_head(string $title): void
     display: flex; justify-content: space-between; align-items: baseline;
     gap: 16px; flex-wrap: wrap; margin-bottom: 4px;
   }
+  /* Shared nav across every tool under /filmmaking/ */
+  .fmnav {
+    position: fixed; top: 0; left: 0; right: 0; z-index: 10;
+    display: flex; align-items: center; gap: 8px; flex-wrap: wrap;
+    padding: 10px 18px; background: var(--white); border-bottom: 1px solid var(--gray-15);
+    font: 12px/1 -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
+  }
+  .fmnav a, .fmnav button {
+    font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.04em;
+    text-decoration: none; color: var(--gray-50); padding: 7px 10px;
+    border: 1px solid transparent; background: transparent; cursor: pointer;
+  }
+  .fmnav a:hover, .fmnav button:hover { background: var(--gray-5); }
+  .fmnav a.home { color: var(--black); font-weight: 900; letter-spacing: -0.01em; text-transform: none; font-size: 14px; }
+  .fmnav a.here { border-color: var(--gray-15); color: var(--black); }
+  .fmnav .spacer { margin-left: auto; }
+  .fmnav .who {
+    font-family: var(--mono); font-size: 11px; letter-spacing: 0.06em;
+    text-transform: uppercase; color: var(--gray-30);
+  }
+  .fmnav form { display: inline; margin: 0; }
+  body { padding-top: 76px; }
 </style>
 </head>
 <body>
     <?php
+    fm_nav();
+}
+
+/**
+ * The bar across the top of every page: home, the other tools, and who you
+ * are. One definition, so a new tool appears everywhere at once.
+ */
+function fm_nav(string $currentTool = ''): void
+{
+    $user = fm_current_user();
+    echo '<nav class="fmnav">';
+    echo '<a class="home" href="' . fm_h(fm_base_path()) . '">Filmmaking Team</a>';
+
+    foreach (fm_tool_links($currentTool) as $tool) {
+        echo '<a class="' . ($tool['current'] ? 'here' : '') . '" href="'
+            . fm_h($tool['url']) . '">' . fm_h($tool['label']) . '</a>';
+    }
+
+    echo '<span class="spacer"></span>';
+    if ($user === null) {
+        echo '<a href="' . fm_h(fm_auth_url('login.php')) . '">Sign in</a>';
+        echo '</nav>';
+        return;
+    }
+
+    echo '<span class="who">' . fm_h($user['display_name']) . '</span>';
+    echo '<a href="' . fm_h(fm_auth_url('account.php')) . '">Account</a>';
+    if ($user['is_admin']) {
+        echo '<a href="' . fm_h(fm_auth_url('admin.php')) . '">Team Admin</a>';
+    }
+    echo '<form method="post" action="' . fm_h(fm_auth_url('logout.php')) . '">'
+        . '<input type="hidden" name="csrf" value="' . fm_h(fm_csrf_token()) . '">'
+        . '<button type="submit">Sign out</button></form>';
+    echo '</nav>';
 }
 
 function fm_page_foot(): void

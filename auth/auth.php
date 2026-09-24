@@ -15,6 +15,7 @@
 declare(strict_types=1);
 
 require_once __DIR__ . '/db.php';
+require_once __DIR__ . '/tools.php';
 
 const FM_COOKIE = 'fm_session';
 const FM_TOKEN_BYTES = 32;
