@@ -73,9 +73,13 @@ function slate_db_diagnosis(Throwable $e): array
          'fix' => 'That database name does not exist. Copy db_name exactly as cPanel shows it.',
          'match' => ['does not exist', '3d000']],
 
-        ['cause' => 'not_permitted_from_here',
-         'fix' => 'The server refused a connection for this user from this host (pg_hba). Grant the user ALL privileges on the database in cPanel.',
-         'match' => ['no pg_hba.conf entry', '28000']],
+        // A server that wants TLS and one that will not accept this host at
+        // all give the same "no pg_hba.conf entry ... no encryption" wording,
+        // so the message cannot tell them apart. The connection attempts below
+        // do that instead.
+        ['cause' => 'connection_refused_by_rule',
+         'fix' => 'The server is running but refused this connection. It is about how you connect, not about privileges — see "attempts" for which settings do work.',
+         'match' => ['no pg_hba.conf entry', 'no encryption', '28000']],
 
         ['cause' => 'server_unreachable',
          'fix' => 'Nothing is answering at that host and port. Try db_host 127.0.0.1 instead of localhost, and check the port on the PostgreSQL Databases page.',
@@ -98,6 +102,63 @@ function slate_db_diagnosis(Throwable $e): array
         'cause' => 'unknown',
         'fix' => 'The connection failed for a reason we do not recognise. The full message is in the PHP error log — look for an error_log file in this folder.',
     ];
+}
+
+/**
+ * Try the usual connection variants and report which ones work.
+ *
+ * PostgreSQL's refusal messages cannot distinguish "wants TLS" from "will not
+ * accept this host", so rather than guess, connect each way and say which
+ * succeeded. Only the variant labels and outcomes are reported — never the
+ * host, user or password.
+ */
+function slate_connection_attempts(): array
+{
+    if (!function_exists('fm_config')) {
+        return [];
+    }
+    try {
+        $c = fm_config();
+    } catch (Throwable $e) {
+        return [];
+    }
+
+    $configured = (string) ($c['db_host'] ?? 'localhost');
+    $variants = [
+        'as configured' => [],
+        'db_sslmode => require' => ['sslmode' => 'require'],
+        'db_host => 127.0.0.1' => ['host' => '127.0.0.1'],
+        'db_host => 127.0.0.1, sslmode require' => ['host' => '127.0.0.1', 'sslmode' => 'require'],
+    ];
+    // "localhost" is a hostname to libpq, not the Unix socket — it resolves to
+    // TCP on 127.0.0.1, so swapping the two barely differs. The socket is used
+    // only when the host is a directory, and on a shared host that is often
+    // the only connection the server permits.
+    foreach (['/var/run/postgresql', '/tmp', '/var/lib/postgresql'] as $dir) {
+        $variants['db_host => ' . $dir . ' (socket)'] = ['host' => $dir];
+    }
+
+    $results = [];
+    foreach ($variants as $label => $over) {
+        $dsn = sprintf(
+            'pgsql:host=%s;port=%d;dbname=%s;connect_timeout=5',
+            $over['host'] ?? $configured,
+            (int) ($c['db_port'] ?? 5432),
+            (string) ($c['db_name'] ?? '')
+        );
+        if (isset($over['sslmode'])) {
+            $dsn .= ';sslmode=' . $over['sslmode'];
+        }
+        try {
+            new PDO($dsn, (string) ($c['db_user'] ?? ''), (string) ($c['db_pass'] ?? ''), [
+                PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
+            ]);
+            $results[$label] = 'CONNECTED — use this';
+        } catch (Throwable $e) {
+            $results[$label] = slate_db_diagnosis($e)['cause'];
+        }
+    }
+    return $results;
 }
 
 $allowed = false;
@@ -132,6 +193,7 @@ if ($dbError !== null) {
     if ($dbDiagnosis !== null) {
         $body['cause'] = $dbDiagnosis['cause'];
         $body['fix'] = $dbDiagnosis['fix'];
+        $body['attempts'] = slate_connection_attempts();
     }
     echo json_encode($body + slate_public_diag(), JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES);
     exit;

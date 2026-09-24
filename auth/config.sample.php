@@ -23,11 +23,18 @@
 
 return [
     // ---- Database ---------------------------------------------------------
-    'db_host' => 'localhost',   // try 127.0.0.1 if localhost will not connect
+    // Note: "localhost" is a hostname to PostgreSQL, not the Unix socket — it
+    // means TCP on 127.0.0.1, so swapping the two changes little. To use the
+    // socket, set this to the directory holding it, e.g. /var/run/postgresql.
+    // slate/diag.php tries each variant and reports which one connects.
+    'db_host' => 'localhost',
     'db_port' => 5432,
     'db_name' => 'creaueyu_filmmaking_login',
     'db_user' => 'creaueyu_filmmaking_login',
     'db_pass' => 'put-the-password-you-set-in-cpanel-here',
+
+    // Only if the server requires TLS ("require"). Leave out otherwise.
+    // 'db_sslmode' => 'require',
 
     // ---- First account ----------------------------------------------------
     // Used only while the users table is empty: whoever signs up with this
