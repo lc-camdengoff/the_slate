@@ -57,6 +57,13 @@ function fm_db(): PDO
         (int) ($c['db_port'] ?? 5432),
         $c['db_name'] ?? ''
     );
+    // Some hosts only accept TLS connections (a hostssl line in pg_hba.conf).
+    // Without this, such a server refuses with "no pg_hba.conf entry ... no
+    // encryption", which reads like a permissions problem and is not one.
+    $sslmode = trim((string) ($c['db_sslmode'] ?? ''));
+    if ($sslmode !== '' && preg_match('/^[a-z-]{4,12}$/', $sslmode)) {
+        $dsn .= ';sslmode=' . $sslmode;
+    }
     $pdo = new PDO($dsn, $c['db_user'] ?? '', $c['db_pass'] ?? '', [
         PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
         PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
