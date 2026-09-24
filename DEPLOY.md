@@ -184,6 +184,20 @@ page. It has to be PHP rather than plain HTML:
 <?php fm_nav('', 'dark'); ?>   <!-- drop the 'dark' on a light page -->
 ```
 
+The bar takes its type and colour from custom properties, so it can be made to
+match the page rather than imposing on it:
+
+```css
+.fmnav {
+  --fm-display: 'Fraunces', serif;   /* the wordmark */
+  --fm-body: 'Inter', sans-serif;    /* everything else */
+  --fm-accent: #C98A3A;              /* hover and the current tool */
+}
+```
+
+`nav.css` cannot know which webfonts a page loads, so a page using its own
+type has to hand them over this way or the bar falls back to system fonts.
+
 It adapts to who is looking: signed out it offers Sign in, signed in it shows
 the name with Account, Team Admin and Sign out. The page itself stays public —
 `fm_nav()` only reports a session, it does not require one.
