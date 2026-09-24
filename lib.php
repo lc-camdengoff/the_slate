@@ -48,7 +48,7 @@ function slate_internal_dir(string $saved, string $name): ?string
  */
 function slate_user(): array
 {
-    $user = slate_current_user();
+    $user = fm_current_user();
     if ($user === null) {
         return ['name' => null, 'username' => null, 'is_admin' => false];
     }

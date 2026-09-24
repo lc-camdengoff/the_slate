@@ -4,35 +4,44 @@ Storyboarding tool for the Life.Church filmmaking team.
 Live at <https://creativemedia.church/filmmaking/slate/>.
 
 Shot lists live in the browser (IndexedDB) and can be shared with the rest of
-the team through a **team library** saved on the server. Everyone signs in with
-their own account; signup is self-service behind a shared invite code.
+the team through a **team library** saved on the server.
+
+Sign-in is shared across every tool under `/filmmaking/` — this repo deploys
+both The Slate and that shared `auth/` folder. Signup is self-service behind an
+invite code an admin creates.
 
 ## What's here
 
 | Path | |
 | --- | --- |
-| `index.php` | the front door: sign-in gate, then serves the app |
+| `index.php` | the front door: requires a session, then serves the app |
 | `app.html` | the whole app, one self-extracting file (never served directly) |
 | `src/template.html` | readable app source — edit this, not the bundle |
 | `tools/bundle.py` | unpack / pack / check the bundle |
-| `login.php` `signup.php` `logout.php` `reset.php` | accounts |
-| `account.php` `admin.php` | your own settings, and team admin |
 | `list.php` `save.php` `load.php` `delete.php` | team library endpoints |
-| `auth.php` `db.php` `lib.php` `page.php` `schema.sql` | includes |
-| `config.sample.php` | template for the config you upload by hand |
+| `lib.php` `diag.php` | storyboard helpers, and an install probe |
+| `auth/` | **shared sign-in for every tool under /filmmaking/** |
+| `auth/login.php` `signup.php` `logout.php` `reset.php` | accounts |
+| `auth/account.php` `admin.php` | your own settings, and team admin |
+| `auth/auth.php` `db.php` `page.php` `schema.sql` | includes |
+| `auth/config.sample.php` | template for the config you upload by hand |
 | `.htaccess` `.user.ini` | server config, deployed with the app |
 | `server/saved.htaccess` | for the shared folder — uploaded by hand, once |
 
 ## Accounts
 
-PostgreSQL holds users, sessions, invite codes and reset codes. The host has no
-outbound mail, so nothing depends on email:
+PostgreSQL holds users, sessions, invite codes and reset codes, shared by every
+tool under `/filmmaking/`. The host has no outbound mail, so nothing depends on
+email:
 
 - **Signing up** needs an invite code, created by an admin on `admin.php`.
 - **The first account** uses the `bootstrap_code` from the config file and
   becomes the admin. That code stops working once it exists.
 - **A forgotten password** is an admin generating a single-use reset code and
   handing it over directly.
+
+A new tool joins the same login with two lines — see
+[DEPLOY.md](DEPLOY.md#adding-another-tool).
 
 ## Working on it
 

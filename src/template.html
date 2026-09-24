@@ -355,11 +355,11 @@
       <sc-if value="{{ signedIn }}" hint-placeholder-val="{{ false }}">
         <div style="display:flex;align-items:center;justify-content:flex-end;gap:14px;flex-wrap:wrap;margin-bottom:22px;padding-bottom:16px;border-bottom:1px solid var(--gray-15)">
           <span style="font-family:var(--font-mono);font-size:11px;letter-spacing:0.06em;text-transform:uppercase;color:var(--gray-40)">Signed in as {{ signedInAs }}</span>
-          <a href="account.php" style="font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:0.04em;color:var(--gray-50);text-decoration:none;border:1px solid var(--gray-15);padding:7px 11px">Account</a>
+          <a href="{{ accountUrl }}" style="font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:0.04em;color:var(--gray-50);text-decoration:none;border:1px solid var(--gray-15);padding:7px 11px">Account</a>
           <sc-if value="{{ isLibraryAdmin }}" hint-placeholder-val="{{ false }}">
-            <a href="admin.php" style="font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:0.04em;color:var(--gray-50);text-decoration:none;border:1px solid var(--gray-15);padding:7px 11px">Team Admin</a>
+            <a href="{{ adminUrl }}" style="font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:0.04em;color:var(--gray-50);text-decoration:none;border:1px solid var(--gray-15);padding:7px 11px">Team Admin</a>
           </sc-if>
-          <form method="post" action="logout.php" style="margin:0">
+          <form method="post" action="{{ logoutUrl }}" style="margin:0">
             <input type="hidden" name="csrf" value="{{ libraryCsrf }}">
             <button type="submit" style="height:32px;padding:0 11px;background:transparent;border:1px solid var(--gray-15);color:var(--gray-50);font-size:12px;font-weight:700;cursor:pointer;text-transform:uppercase;letter-spacing:0.04em">Sign out</button>
           </form>
@@ -966,6 +966,7 @@ class Component extends DCLogic {
     libraryUsername: null,
     libraryIsAdmin: false,
     libraryCsrf: '',
+    libraryUrls: {},
     libraryMax: 0,
     libraryLoading: false,
     libraryError: '',
@@ -1575,6 +1576,11 @@ class Component extends DCLogic {
         libraryUsername: data.username || null,
         libraryIsAdmin: !!data.isAdmin,
         libraryCsrf: data.csrf || '',
+        libraryUrls: {
+          account: data.accountUrl || '',
+          admin: data.adminUrl || '',
+          logout: data.logoutUrl || '',
+        },
         libraryMax: data.maxBytes || 0,
         libraryLoading: false,
       });
@@ -1994,6 +2000,9 @@ class Component extends DCLogic {
       signedInAs: this.state.libraryUser || '',
       isLibraryAdmin: !!this.state.libraryIsAdmin,
       libraryCsrf: this.state.libraryCsrf || '',
+      accountUrl: (this.state.libraryUrls || {}).account || '',
+      adminUrl: (this.state.libraryUrls || {}).admin || '',
+      logoutUrl: (this.state.libraryUrls || {}).logout || '',
       hasLibraryStatus: !!this.state.libraryStatus,
       libraryStatus: this.state.libraryStatus,
       libSaveLabel: this.state.librarySaving

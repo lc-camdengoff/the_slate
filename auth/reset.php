@@ -12,7 +12,7 @@ declare(strict_types=1);
 require __DIR__ . '/auth.php';
 require __DIR__ . '/page.php';
 
-slate_install_error_handler('html');
+fm_error_handler('html');
 
 $error = '';
 $done = false;
@@ -24,18 +24,18 @@ if (($_SERVER['REQUEST_METHOD'] ?? '') === 'POST') {
     $password = (string) ($_POST['password'] ?? '');
     $confirm = (string) ($_POST['confirm'] ?? '');
 
-    if (slate_throttled('reset', $username)) {
+    if (fm_throttled('reset', $username)) {
         $error = 'Too many attempts. Wait a few minutes and try again.';
     } elseif ($password !== $confirm) {
         $error = 'The two passwords do not match.';
-    } elseif (strlen($password) < SLATE_MIN_PASSWORD) {
-        $error = 'Use at least ' . SLATE_MIN_PASSWORD . ' characters for your password.';
+    } elseif (strlen($password) < FM_MIN_PASSWORD) {
+        $error = 'Use at least ' . FM_MIN_PASSWORD . ' characters for your password.';
     } else {
-        $user = slate_find_user($username);
+        $user = fm_find_user($username);
         $matched = null;
 
         if ($user) {
-            $stmt = slate_db()->prepare(
+            $stmt = fm_db()->prepare(
                 'SELECT * FROM password_resets
                   WHERE user_id = ? AND used_at IS NULL AND expires_at > now()
                   ORDER BY created_at DESC'
@@ -50,21 +50,21 @@ if (($_SERVER['REQUEST_METHOD'] ?? '') === 'POST') {
         }
 
         if ($matched === null) {
-            slate_record_attempt('reset', $username, false);
+            fm_record_attempt('reset', $username, false);
             $error = 'That reset code is not valid for this account, or it has expired.';
         } else {
-            slate_set_password((int) $user['id'], $password);
-            slate_db()->prepare('UPDATE password_resets SET used_at = now() WHERE id = ?')
+            fm_set_password((int) $user['id'], $password);
+            fm_db()->prepare('UPDATE password_resets SET used_at = now() WHERE id = ?')
                 ->execute([$matched['id']]);
             // Anyone holding an old session for this account loses it.
-            slate_end_all_sessions((int) $user['id']);
-            slate_record_attempt('reset', $username, true);
+            fm_end_all_sessions((int) $user['id']);
+            fm_record_attempt('reset', $username, true);
             $done = true;
         }
     }
 }
 
-slate_page_head('Reset password');
+fm_page_head('Reset password');
 ?>
 <div class="card">
   <div class="eyebrow">The Slate</div>
@@ -78,7 +78,7 @@ slate_page_head('Reset password');
     <a class="btn" href="login.php">Sign in</a>
   <?php else: ?>
     <?php if ($error !== ''): ?>
-      <div class="msg bad"><?= slate_h($error) ?></div>
+      <div class="msg bad"><?= fm_h($error) ?></div>
     <?php endif; ?>
 
     <div class="msg">
@@ -89,7 +89,7 @@ slate_page_head('Reset password');
     <form method="post">
       <label>
         <span>Username</span>
-        <input type="text" name="username" value="<?= slate_h($username) ?>"
+        <input type="text" name="username" value="<?= fm_h($username) ?>"
                autocapitalize="none" autocorrect="off" required autofocus>
       </label>
       <label>
@@ -100,7 +100,7 @@ slate_page_head('Reset password');
         <span>New password</span>
         <input type="password" name="password" autocomplete="new-password" required>
       </label>
-      <div class="hint">At least <?= SLATE_MIN_PASSWORD ?> characters.</div>
+      <div class="hint">At least <?= FM_MIN_PASSWORD ?> characters.</div>
       <label>
         <span>Confirm new password</span>
         <input type="password" name="confirm" autocomplete="new-password" required>
@@ -112,4 +112,4 @@ slate_page_head('Reset password');
   <?php endif; ?>
 </div>
 <?php
-slate_page_foot();
+fm_page_foot();

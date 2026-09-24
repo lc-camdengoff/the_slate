@@ -9,12 +9,12 @@
 
 declare(strict_types=1);
 
-function slate_h(?string $value): string
+function fm_h(?string $value): string
 {
     return htmlspecialchars((string) $value, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
 }
 
-function slate_page_head(string $title): void
+function fm_page_head(string $title): void
 {
     header('Content-Type: text/html; charset=utf-8');
     header('Cache-Control: no-store');
@@ -27,7 +27,7 @@ function slate_page_head(string $title): void
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title><?= slate_h($title) ?> — The Slate</title>
+<title><?= fm_h($title) ?> — The Slate</title>
 <style>
   :root {
     --black: #1D242B; --accent: #56C4E5; --white: #FFFFFF;
@@ -107,7 +107,7 @@ function slate_page_head(string $title): void
     <?php
 }
 
-function slate_page_foot(): void
+function fm_page_foot(): void
 {
     echo "</body>\n</html>\n";
 }

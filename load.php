@@ -15,16 +15,16 @@
 declare(strict_types=1);
 
 require __DIR__ . '/lib.php';
-require __DIR__ . '/auth.php';
+require __DIR__ . '/../auth/auth.php';
 
-slate_install_error_handler('json');
+fm_error_handler('json');
 
 if (!in_array($_SERVER['REQUEST_METHOD'] ?? '', ['GET', 'HEAD'], true)) {
     header('Allow: GET, HEAD');
     slate_fail(405, 'method_not_allowed');
 }
 
-slate_require_api_user();
+fm_require_api_user();
 
 $saved = slate_saved_dir();
 if ($saved === null) {

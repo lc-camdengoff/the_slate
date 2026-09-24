@@ -14,24 +14,29 @@
 declare(strict_types=1);
 
 require __DIR__ . '/lib.php';
-require __DIR__ . '/auth.php';
+require __DIR__ . '/../auth/auth.php';
 
-slate_install_error_handler('json');
+fm_error_handler('json');
 
 if (!in_array($_SERVER['REQUEST_METHOD'] ?? '', ['GET', 'HEAD'], true)) {
     header('Allow: GET, HEAD');
     slate_fail(405, 'method_not_allowed');
 }
 
-$account = slate_require_api_user();
+$account = fm_require_api_user();
 $user = slate_user();
 $response = [
     'ok' => true,
     'user' => $user['name'],
     'username' => $user['username'],
     'isAdmin' => $user['is_admin'],
-    // The client echoes this back on writes; see slate_require_api_write().
-    'csrf' => slate_csrf_token(),
+    // The client echoes this back on writes; see fm_require_api_write().
+    'csrf' => fm_csrf_token(),
+    // The shared account pages live outside this tool, so the server hands
+    // over the URLs rather than the client guessing at the layout.
+    'accountUrl' => fm_auth_url_with_next('account.php', fm_base_path() . 'slate/'),
+    'adminUrl' => fm_auth_url_with_next('admin.php', fm_base_path() . 'slate/'),
+    'logoutUrl' => fm_auth_url('logout.php'),
     'maxBytes' => slate_max_bytes(),
     'versionsKept' => SLATE_VERSIONS_KEPT,
     'boards' => [],

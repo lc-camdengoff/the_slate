@@ -58,9 +58,9 @@ $dbError = null;
 
 try {
     require __DIR__ . '/lib.php';
-    require __DIR__ . '/auth.php';
-    $firstRun = slate_user_count() === 0;
-    $user = slate_current_user();
+    require __DIR__ . '/../auth/auth.php';
+    $firstRun = fm_user_count() === 0;
+    $user = fm_current_user();
     // Open during setup, admin-only once the team exists.
     $allowed = $firstRun || ($user !== null && $user['is_admin']);
 } catch (Throwable $e) {
@@ -90,7 +90,7 @@ $saved = slate_saved_dir();
 $report = slate_public_diag();
 $report['ok'] = true;
 $report['accounts'] = [
-    'users' => slate_user_count(),
+    'users' => fm_user_count(),
     'first_run' => $firstRun,
 ];
 $report['storage'] = [

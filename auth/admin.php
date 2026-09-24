@@ -8,31 +8,33 @@ declare(strict_types=1);
 require __DIR__ . '/auth.php';
 require __DIR__ . '/page.php';
 
-slate_install_error_handler('html');
+fm_error_handler('html');
 
-$me = slate_current_user();
+$next = fm_safe_next($_REQUEST['next'] ?? null);
+
+$me = fm_current_user();
 if ($me === null) {
-    header('Location: login.php');
+    header('Location: ' . fm_auth_url_with_next('login.php', $next));
     exit;
 }
 if (!$me['is_admin']) {
     http_response_code(403);
-    slate_page_head('Not allowed');
+    fm_page_head('Not allowed');
     echo '<div class="card"><h1>Not allowed</h1>'
         . '<p class="note">This page is for admins.</p>'
-        . '<div class="note"><a href="./">Back to storyboards</a></div></div>';
-    slate_page_foot();
+        . '<div class="note"><a href="<?= fm_h($next) ?>">Back to tools</a></div></div>';
+    fm_page_foot();
     exit;
 }
 
-$db = slate_db();
+$db = fm_db();
 $error = '';
 $notice = '';
 $freshCode = '';
 $freshReset = null;
 
 if (($_SERVER['REQUEST_METHOD'] ?? '') === 'POST') {
-    if (!slate_check_csrf($_POST['csrf'] ?? null)) {
+    if (!fm_check_csrf($_POST['csrf'] ?? null)) {
         $error = 'That form expired. Try again.';
     } else {
         $action = (string) ($_POST['action'] ?? '');
@@ -123,9 +125,9 @@ $users = $db->query(
        FROM users ORDER BY lower(username)'
 )->fetchAll();
 
-$csrf = slate_h(slate_csrf_token());
+$csrf = fm_h(fm_csrf_token());
 
-slate_page_head('Admin');
+fm_page_head('Admin');
 ?>
 <div class="card wide">
   <div class="topbar">
@@ -134,25 +136,25 @@ slate_page_head('Admin');
       <h1>Team admin</h1>
     </div>
     <div class="row">
-      <a class="btn ghost small" href="./">Storyboards</a>
+      <a class="btn ghost small" href="<?= fm_h($next) ?>">Back to tools</a>
       <a class="btn ghost small" href="account.php">Your account</a>
     </div>
   </div>
 
-  <?php if ($error !== ''): ?><div class="msg bad"><?= slate_h($error) ?></div><?php endif; ?>
-  <?php if ($notice !== ''): ?><div class="msg good"><?= slate_h($notice) ?></div><?php endif; ?>
+  <?php if ($error !== ''): ?><div class="msg bad"><?= fm_h($error) ?></div><?php endif; ?>
+  <?php if ($notice !== ''): ?><div class="msg good"><?= fm_h($notice) ?></div><?php endif; ?>
 
   <?php if ($freshCode !== ''): ?>
     <div class="msg good">
-      New invite code: <code><?= slate_h($freshCode) ?></code><br>
+      New invite code: <code><?= fm_h($freshCode) ?></code><br>
       <span class="hint">People enter this on the sign-up page. It is listed below if you need it again.</span>
     </div>
   <?php endif; ?>
 
   <?php if ($freshReset !== null): ?>
     <div class="msg good">
-      Reset code for <strong><?= slate_h($freshReset['username']) ?></strong>:
-      <code><?= slate_h($freshReset['code']) ?></code><br>
+      Reset code for <strong><?= fm_h($freshReset['username']) ?></strong>:
+      <code><?= fm_h($freshReset['code']) ?></code><br>
       <span class="hint">
         Single use, expires in 48 hours. Pass it to them directly — this host
         cannot send email. <strong>It is not shown again.</strong>
@@ -185,10 +187,10 @@ slate_page_head('Admin');
     <tr><th>Code</th><th>For</th><th>Used</th><th>Expires</th><th>Status</th><th></th></tr>
     <?php foreach ($invites as $i): ?>
       <tr>
-        <td><code><?= slate_h($i['code']) ?></code></td>
-        <td><?= slate_h($i['label']) ?></td>
+        <td><code><?= fm_h($i['code']) ?></code></td>
+        <td><?= fm_h($i['label']) ?></td>
         <td><?= (int) $i['uses'] ?><?= $i['max_uses'] === null ? '' : ' / ' . (int) $i['max_uses'] ?></td>
-        <td><?= $i['expires_at'] === null ? 'never' : slate_h(substr((string) $i['expires_at'], 0, 10)) ?></td>
+        <td><?= $i['expires_at'] === null ? 'never' : fm_h(substr((string) $i['expires_at'], 0, 10)) ?></td>
         <td><?= $i['is_active'] ? 'active' : 'off' ?></td>
         <td>
           <div class="row">
@@ -218,11 +220,11 @@ slate_page_head('Admin');
     <tr><th>Username</th><th>Name</th><th>Role</th><th>Status</th><th>Last signed in</th><th></th></tr>
     <?php foreach ($users as $u): ?>
       <tr>
-        <td><?= slate_h($u['username']) ?><?= (int) $u['id'] === (int) $me['id'] ? ' (you)' : '' ?></td>
-        <td><?= slate_h($u['display_name']) ?></td>
+        <td><?= fm_h($u['username']) ?><?= (int) $u['id'] === (int) $me['id'] ? ' (you)' : '' ?></td>
+        <td><?= fm_h($u['display_name']) ?></td>
         <td><?= $u['is_admin'] ? 'admin' : 'member' ?></td>
         <td><?= $u['is_active'] ? 'active' : 'off' ?></td>
-        <td><?= $u['last_login_at'] === null ? 'never' : slate_h(substr((string) $u['last_login_at'], 0, 16)) ?></td>
+        <td><?= $u['last_login_at'] === null ? 'never' : fm_h(substr((string) $u['last_login_at'], 0, 16)) ?></td>
         <td>
           <div class="row">
             <form method="post">
@@ -256,4 +258,4 @@ slate_page_head('Admin');
   </p>
 </div>
 <?php
-slate_page_foot();
+fm_page_foot();

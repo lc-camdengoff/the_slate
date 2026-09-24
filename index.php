@@ -15,42 +15,40 @@ const SLATE_BUNDLE = __DIR__ . '/app.html';
 function slate_setup_error(string $detail): void
 {
     http_response_code(503);
-    require __DIR__ . '/page.php';
-    slate_page_head('Setup needed');
+    require __DIR__ . '/../auth/page.php';
+    fm_page_head('Setup needed');
     echo '<div class="card"><div class="eyebrow">The Slate</div>'
         . '<h1>Not set up yet</h1>'
-        . '<div class="msg bad">' . slate_h($detail) . '</div>'
+        . '<div class="msg bad">' . fm_h($detail) . '</div>'
         . '<p class="note">See DEPLOY.md for the database and config steps.</p>'
         . '</div>';
-    slate_page_foot();
+    fm_page_foot();
     exit;
 }
 
 try {
-    require __DIR__ . '/auth.php';
+    require __DIR__ . '/../auth/auth.php';
     // Touch the database before deciding anything. Without this, a missing
     // config or an unreachable server would just bounce to the sign-in page,
     // which fails with a generic error instead of saying what is wrong.
-    slate_db();
-    $user = slate_current_user();
+    fm_db();
 // PDOException extends RuntimeException, so it has to be caught first or the
 // branch below would swallow it and print the driver message.
 } catch (PDOException $e) {
     error_log('slate: ' . $e->getMessage());
-    slate_setup_error('Cannot reach the database. Check the details in .slate-config.php '
-        . 'and that the PostgreSQL user has access to the database.');
+    slate_setup_error('Cannot reach the database. Check the details in '
+        . '.filmmaking-config.php and that the PostgreSQL user has access to the database.');
 } catch (RuntimeException $e) {
     error_log('slate: ' . $e->getMessage());
     slate_setup_error($e->getMessage() === 'no_config'
-        ? 'The configuration file is missing. Copy config.sample.php to '
-          . '.slate-config.php above the web root and fill in the database details.'
+        ? 'The configuration file is missing. Copy auth/config.sample.php to '
+          . '.filmmaking-config.php above the web root and fill in the database details.'
         : 'The server is not configured correctly yet.');
 }
 
-if ($user === null) {
-    header('Location: login.php');
-    exit;
-}
+// Shared sign-in: sends people to /filmmaking/auth/login.php and back here.
+// This is all a new tool needs to join the same login.
+fm_require_login();
 
 if (!is_readable(SLATE_BUNDLE)) {
     slate_setup_error('app.html is missing from this folder — the deploy may not have finished.');

@@ -5,29 +5,41 @@ shared cPanel hosting (LiteSpeed, cPanel user `creaueyu`).
 
 ```
 /home/creaueyu/
-├── .slate-config.php       database details — uploaded by hand, never in git
+├── .filmmaking-config.php  database details — uploaded by hand, never in git
 └── public_html/filmmaking/
     ├── .htaccess           cPanel Directory Privacy (see "Cutover" below)
     ├── index.html          public "Filmmaking Team" page
-    ├── slate/              ← deployed from this repo
-    │   ├── index.php       the front door: sign-in gate, then serves the app
+    ├── auth/               ← shared sign-in for EVERY tool here
+    │   ├── login.php  signup.php  logout.php  reset.php
+    │   ├── account.php  admin.php  index.php
+    │   ├── auth.php  db.php  page.php  schema.sql   (includes, not reachable)
+    │   └── .htaccess  config.sample.php
+    ├── slate/              ← The Slate, deployed from this repo
+    │   ├── index.php       the front door: requires a session, serves the app
     │   ├── app.html        the app itself — blocked from direct requests
-    │   ├── login.php  signup.php  logout.php  reset.php  account.php  admin.php
-    │   ├── list.php  save.php  load.php  delete.php
-    │   ├── lib.php  auth.php  db.php  page.php  schema.sql
+    │   ├── list.php  save.php  load.php  delete.php  diag.php
+    │   ├── lib.php
     │   └── .htaccess  .user.ini
     └── saved/              ← the team's storyboards, NEVER deployed
 ```
 
-`saved/` is deliberately a sibling of `slate/`, outside the deploy target, and
-`**/saved/**` is excluded from the workflow, so a deploy can never delete the
-team's work.
+Accounts are shared across everything under `/filmmaking/`. `auth/` is the only
+copy; the session cookie is scoped to the parent folder, so one sign-in covers
+every tool. Both `auth/` and `slate/` are deployed by this repo's workflow, in
+separate steps to separate folders.
+
+`saved/` is deliberately a sibling of `slate/`, outside both deploy targets,
+and `**/saved/**` is excluded from the workflow, so a deploy can never delete
+the team's work.
 
 ## Automatic deploys
 
-Pushing to `main` runs `.github/workflows/deploy.yml`, which mirrors the repo
-root into `slate/` over FTPS. `src/`, `tools/`, `server/` and the markdown files
-are excluded — they are development-side only.
+Pushing to `main` runs `.github/workflows/deploy.yml`, which does two FTPS
+syncs: `auth/` in this repo to `filmmaking/auth/`, then the repo root to
+`filmmaking/slate/`. `auth/**`, `src/**`, `tools/**`, `server/**` and the
+markdown files are excluded from the second step — `auth/` because it has
+already been deployed to its own folder, the rest because they are
+development-side only.
 
 ## Accounts
 
@@ -39,28 +51,38 @@ handing it over directly.
 
 ### 1. Create the database
 
-cPanel → **PostgreSQL Databases**. Create a database and a user, and grant the
-user access to the database. cPanel prefixes both names with the account, so
-`slate` becomes `creaueyu_slate`.
+cPanel → **PostgreSQL Databases** (or the wizard). Create a database and a user
+and grant ALL privileges. cPanel prefixes both names with the account, so
+`filmmaking` becomes `creaueyu_filmmaking`.
+
+Name it for the team, not for The Slate: every tool under `/filmmaking/`
+authenticates against this one database.
+
+Check `pdo_pgsql` is ticked under **Software → Select PHP Version →
+Extensions**. A PostgreSQL server on the plan is no use if PHP cannot reach
+it.
 
 ### 2. Upload the config
 
-Copy `config.sample.php` to `/home/creaueyu/.slate-config.php` — **above**
-`public_html`, so the file holding the database password is never web-served.
-Fill in the database details and change `bootstrap_code` to something only you
-know.
+Copy `auth/config.sample.php` to `/home/creaueyu/.filmmaking-config.php` —
+**above** `public_html`, so the file holding the database password is never
+web-served. Fill in the database details and change `bootstrap_code` to
+something only you know.
 
-`db.php` also accepts `slate/config.php` if you must keep it inside the folder;
+If `localhost` will not connect, try `127.0.0.1`, and check the port on the
+PostgreSQL Databases page in case it is not 5432.
+
+`db.php` also accepts `auth/config.php` if you must keep it inside the folder;
 `.htaccess` blocks direct requests for it, and `.gitignore` keeps both names
 out of git. Above the web root is better.
 
 ### 3. Create the first account
 
-Visit `slate/signup.php`. While no accounts exist, the page asks for the
+Visit `auth/signup.php`. While no accounts exist, the page asks for the
 **setup code** — that is `bootstrap_code` — and the account it creates is the
 admin. The code stops working the moment that account exists.
 
-Then, as that admin, open `slate/admin.php` and create an invite code to share
+Then, as that admin, open `auth/admin.php` and create an invite code to share
 with the team. From the admin page you can also:
 
 - turn invite codes on and off, cap their uses, or give them an expiry
@@ -121,6 +143,36 @@ is routinely several megabytes — that limit matters. The app reads the ceiling
 from `list.php` before every save and refuses oversized boards with a clear
 message, because a body over `post_max_size` is discarded by PHP before the
 script runs and would otherwise fail silently.
+
+## Adding another tool
+
+Put it in its own folder under `filmmaking/` and start its front door with:
+
+```php
+require __DIR__ . '/../auth/auth.php';
+$user = fm_require_login();   // bounces to the shared sign-in, comes back here
+```
+
+That is the whole integration. Anyone signed in to The Slate is already signed
+in to it, and signing out of either signs out of both. `$user` gives you
+`display_name`, `username` and `is_admin`.
+
+For a JSON endpoint use `fm_require_api_user()` (401 instead of a redirect) or
+`fm_require_api_write()`, which also checks the `X-Slate-CSRF` header the
+client echoes back from its first request.
+
+Two things to keep right:
+
+- **Never copy `auth/` into the new tool.** One copy is the point — a security
+  fix should only need applying once.
+- **Deploy it to its own folder**, not inside `auth/` or `slate/`. If it lives
+  in this repo, add a third step to the workflow; if it has its own repo, give
+  it an FTP deploy with `server-dir: ./<tool>/` (the FTP account is rooted at
+  `filmmaking`).
+
+Every account can use every tool. If one ever needs restricting — say gear
+checkout for leads only — that is an `app_access` table and one check in that
+tool's front door, with nothing else changing.
 
 ## Housekeeping
 

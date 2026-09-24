@@ -11,23 +11,28 @@
 declare(strict_types=1);
 
 /** Candidate config paths, most preferred first. */
-function slate_config_paths(): array
+function fm_config_paths(): array
 {
-    return [
-        // Above the web root: /home/<user>/.slate-config.php
-        dirname(__DIR__, 3) . '/.slate-config.php',
-        dirname(__DIR__, 2) . '/.slate-config.php',
-        __DIR__ . '/config.php',
-    ];
+    $paths = [];
+    // Above the web root: /home/<user>/.filmmaking-config.php
+    foreach ([3, 2, 4] as $up) {
+        $paths[] = dirname(__DIR__, $up) . '/.filmmaking-config.php';
+    }
+    // The name this used before accounts were shared between tools.
+    foreach ([3, 2, 4] as $up) {
+        $paths[] = dirname(__DIR__, $up) . '/.slate-config.php';
+    }
+    $paths[] = __DIR__ . '/config.php';
+    return $paths;
 }
 
-function slate_config(): array
+function fm_config(): array
 {
     static $config = null;
     if ($config !== null) {
         return $config;
     }
-    foreach (slate_config_paths() as $path) {
+    foreach (fm_config_paths() as $path) {
         if (is_readable($path)) {
             $loaded = require $path;
             if (is_array($loaded)) {
@@ -39,13 +44,13 @@ function slate_config(): array
     throw new RuntimeException('no_config');
 }
 
-function slate_db(): PDO
+function fm_db(): PDO
 {
     static $pdo = null;
     if ($pdo !== null) {
         return $pdo;
     }
-    $c = slate_config();
+    $c = fm_config();
     $dsn = sprintf(
         'pgsql:host=%s;port=%d;dbname=%s',
         $c['db_host'] ?? 'localhost',
@@ -57,7 +62,7 @@ function slate_db(): PDO
         PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
         PDO::ATTR_EMULATE_PREPARES => false,
     ]);
-    slate_migrate($pdo);
+    fm_migrate($pdo);
     return $pdo;
 }
 
@@ -65,7 +70,7 @@ function slate_db(): PDO
  * Apply schema.sql once per process, guarded by a Postgres advisory lock so
  * two simultaneous first requests cannot race each other.
  */
-function slate_migrate(PDO $pdo): void
+function fm_migrate(PDO $pdo): void
 {
     static $done = false;
     if ($done) {
