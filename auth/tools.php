@@ -16,7 +16,7 @@ function fm_tools(): array
 {
     return [
         ['label' => 'The Slate', 'path' => 'slate/', 'blurb' => 'Storyboards'],
-        // ['label' => 'The Cage', 'path' => 'cage/', 'blurb' => 'Gear checkout'],
+        ['label' => 'The Cage', 'path' => 'cage/', 'blurb' => 'Gear checkout'],
     ];
 }
 
