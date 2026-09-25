@@ -17,7 +17,7 @@ require __DIR__ . '/../auth/auth.php';
 fm_error_handler('json');
 
 slate_require_write_request();
-fm_require_api_write();
+$account = fm_require_api_write();
 
 $saved = slate_saved_dir();
 if ($saved === null) {
@@ -32,6 +32,14 @@ if (!slate_is_id($id)) {
 $path = slate_board_path($saved, $id);
 if (!file_exists($path)) {
     slate_fail(404, 'not_found');
+}
+
+$meta = slate_read_meta($saved, $id);
+if (!slate_can_read($meta, (string) $account['username'])) {
+    slate_fail(404, 'not_found');
+}
+if (!slate_can_write($meta, (string) $account['username'])) {
+    slate_fail(403, 'not_yours');
 }
 
 $trash = slate_internal_dir($saved, '.trash');

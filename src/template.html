@@ -508,6 +508,9 @@
         </sc-if>
 
         <sc-if value="{{ libraryEnabled }}" hint-placeholder-val="{{ true }}">
+          <sc-if value="{{ hasSyncStatus }}" hint-placeholder-val="{{ false }}">
+            <span style="font-family:var(--font-mono);font-size:11px;letter-spacing:0.06em;text-transform:uppercase;color:var(--gray-30)">{{ syncStatus }}</span>
+          </sc-if>
           <sc-if value="{{ hasLibraryStatus }}" hint-placeholder-val="{{ false }}">
             <span style="font-family:var(--font-mono);font-size:11px;letter-spacing:0.06em;text-transform:uppercase;color:var(--gray-40)">{{ libraryStatus }}</span>
           </sc-if>
@@ -896,6 +899,11 @@ function libWhen(ms) {
   return 'on ' + new Date(ms).toLocaleDateString();
 }
 
+// How long to wait after the last edit before pushing a board up. Boards run
+// to tens of megabytes, so this cannot fire per keystroke — it waits for a
+// pause, and a flush on leaving the board covers the rest.
+const SYNC_IDLE_MS = 8000;
+
 function libSize(bytes) {
   if (!bytes) return '';
   return bytes >= 1048576
@@ -973,6 +981,8 @@ class Component extends DCLogic {
     libraryCsrf: '',
     libraryUrls: {},
     libraryTools: [],
+    syncing: false,
+    syncStatus: '',
     libraryMax: 0,
     libraryLoading: false,
     libraryError: '',
@@ -1021,6 +1031,158 @@ class Component extends DCLogic {
     this.setState({ boards: index });
   };
 
+  /**
+   * Bring the local index and the server's list of my boards into line.
+   *
+   * Boards live in IndexedDB so editing stays instant, but the server is the
+   * durable copy — this is what makes them follow you to another machine.
+   * Anything the server has that this browser does not is added as a stub and
+   * fetched when it is opened; downloading every board up front would mean
+   * tens of megabytes before the menu could render.
+   */
+  reconcileBoards = async (remote) => {
+    let index = [];
+    try { index = JSON.parse(localStorage.getItem(INDEX_KEY)) || []; } catch (e) {}
+
+    const byLibraryId = new Map();
+    index.forEach(b => { if (b.libraryId) byLibraryId.set(b.libraryId, b); });
+
+    (remote || []).forEach(r => {
+      const local = byLibraryId.get(r.id);
+      if (!local) {
+        // On this machine for the first time.
+        index.push({
+          id: 'b' + Math.random().toString(36).slice(2, 10),
+          title: r.title, shotCount: r.shotCount, updatedAt: r.updatedAt,
+          libraryId: r.id, needsFetch: true,
+        });
+        return;
+      }
+      local.title = r.title;
+      local.shotCount = r.shotCount;
+      // Edited elsewhere since this browser last saw it: fetch on open rather
+      // than show a stale copy.
+      if ((r.updatedAt || 0) > (local.syncedAt || 0)) {
+        local.needsFetch = true;
+        local.updatedAt = r.updatedAt;
+      }
+    });
+
+    // A board the server no longer has, which this browser thought was synced,
+    // was deleted from another machine.
+    const liveIds = new Set((remote || []).map(r => r.id));
+    index = index.filter(b => !(b.libraryId && b.syncedAt && !liveIds.has(b.libraryId)));
+
+    try { localStorage.setItem(INDEX_KEY, JSON.stringify(index)); } catch (e) {}
+    this.setState({ boards: index });
+
+    // Anything never pushed up gets pushed up now, so a board made before
+    // accounts existed stops being trapped in one browser.
+    for (const b of index) {
+      if (!b.libraryId && !b.needsFetch) await this.syncBoard(b.id, { quiet: true });
+    }
+  };
+
+  /** Pull a board's contents down from the server. */
+  fetchBoard = async (libraryId) => {
+    try {
+      const res = await fetch('load.php?id=' + encodeURIComponent(libraryId),
+        { credentials: 'same-origin', cache: 'no-store' });
+      if (res.status === 401) { libSignedOutNotice(); return null; }
+      if (!res.ok) return null;
+      const data = await res.json();
+      if (!data || !Array.isArray(data.frames)) return null;
+      return {
+        meta: Object.assign({ title: '', project: '', director: '', date: '' }, data.meta || {}),
+        layout: data.layout || 'grid',
+        aspect: data.aspect || '16 / 9',
+        frames: data.frames,
+        tagNames: data.tagNames || {},
+        libraryId: libraryId,
+        libraryRev: 0,
+      };
+    } catch (err) { return null; }
+  };
+
+  /** Push one board to the server. Skipped when nothing actually changed. */
+  syncBoard = async (boardId, opts) => {
+    if (!LIB_ENABLED || !boardId) return;
+    const options = opts || {};
+    let data = null;
+    try { data = await idbGet(boardId); } catch (err) {}
+    if (!data || !Array.isArray(data.frames)) return;
+
+    const payload = JSON.stringify({
+      version: 1, meta: data.meta, layout: data.layout,
+      aspect: data.aspect, frames: data.frames, tagNames: data.tagNames,
+    });
+    // Cheap change check: re-uploading 20 MB because a menu opened is waste.
+    const stamp = payload.length + ':' + (data.meta && data.meta.title);
+    if (this.syncedStamp && this.syncedStamp[boardId] === stamp) return;
+
+    if (!this.state.libraryCsrf) await this.loadLibrary();
+    const csrf = this.state.libraryCsrf;
+    if (!csrf) return;
+
+    const body = new Blob([payload], { type: 'application/json' });
+    if (this.state.libraryMax && body.size > this.state.libraryMax) {
+      this.setState({ syncStatus: 'Too large to sync' });
+      return;
+    }
+
+    const params = new URLSearchParams({
+      title: (data.meta && data.meta.title) || '',
+      project: (data.meta && data.meta.project) || '',
+      shots: String(data.frames.length),
+    });
+    if (data.libraryId) { params.set('id', data.libraryId); params.set('rev', String(data.libraryRev || 0)); }
+
+    if (!options.quiet) this.setState({ syncing: true, syncStatus: 'Saving\u2026' });
+    try {
+      const res = await libRequest('save.php?' + params.toString(), {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'X-Slate-CSRF': csrf },
+        body,
+      });
+      data.libraryId = res.id;
+      data.libraryRev = res.updatedAt;
+      await idbSet(boardId, data);
+      (this.syncedStamp = this.syncedStamp || {})[boardId] = stamp;
+
+      this.setState(s => {
+        const idx = s.boards.slice();
+        const i = idx.findIndex(b => b.id === boardId);
+        if (i >= 0) {
+          idx[i] = Object.assign({}, idx[i], {
+            libraryId: res.id, syncedAt: res.updatedAt, needsFetch: false,
+            visibility: res.visibility,
+          });
+          try { localStorage.setItem(INDEX_KEY, JSON.stringify(idx)); } catch (e) {}
+        }
+        const patch = { boards: idx, syncing: false, syncStatus: options.quiet ? '' : 'Saved' };
+        if (s.boardId === boardId) { patch.libraryId = res.id; patch.libraryRev = res.updatedAt; }
+        return patch;
+      });
+      if (!options.quiet) {
+        setTimeout(() => { if (this.state.syncStatus === 'Saved') this.setState({ syncStatus: '' }); }, 3000);
+      }
+    } catch (err) {
+      this.setState({ syncing: false, syncStatus: err.status === 409 ? 'Edited elsewhere' : 'Not saved to server' });
+    }
+  };
+
+  /** Wait for a pause in editing, then sync. */
+  scheduleSync = (boardId) => {
+    if (!LIB_ENABLED) return;
+    clearTimeout(this.syncTimer);
+    this.syncTimer = setTimeout(() => this.syncBoard(boardId), SYNC_IDLE_MS);
+  };
+
+  flushSync = async () => {
+    clearTimeout(this.syncTimer);
+    if (this.state.boardId) await this.syncBoard(this.state.boardId);
+  };
+
   refreshIndex = () => {
     let index = [];
     try { index = JSON.parse(localStorage.getItem(INDEX_KEY)) || []; } catch (e) {}
@@ -1045,8 +1207,29 @@ class Component extends DCLogic {
   };
   openBoard = async (e) => {
     const id = e.currentTarget.dataset.id;
+    const entry = (this.state.boards || []).find(b => b.id === id);
     let data = null;
     try { data = await idbGet(id); } catch (err) {}
+
+    // Not on this machine, or changed on another one: fetch the server's copy.
+    if (entry && entry.libraryId && (entry.needsFetch || !data)) {
+      this.setState({ libraryLoading: true });
+      const fetched = await this.fetchBoard(entry.libraryId);
+      this.setState({ libraryLoading: false });
+      if (fetched) {
+        data = fetched;
+        try { await idbSet(id, data); } catch (err) {}
+        this.setState(s => {
+          const idx = s.boards.map(b => b.id === id
+            ? Object.assign({}, b, { needsFetch: false, syncedAt: data.libraryRev }) : b);
+          try { localStorage.setItem(INDEX_KEY, JSON.stringify(idx)); } catch (e) {}
+          return { boards: idx };
+        });
+      } else if (!data) {
+        window.alert('Could not download that storyboard from the server.');
+        return;
+      }
+    }
     if (!data) {
       try { data = JSON.parse(localStorage.getItem(boardKey(id))); } catch (err) {}
       if (!data) { try { data = JSON.parse(localStorage.getItem(KEY)); } catch (err) {} }
@@ -1071,17 +1254,32 @@ class Component extends DCLogic {
     this.save();
     this.refreshIndex();
     this.setState({ view: 'menu' });
-    if (LIB_ENABLED) this.loadLibrary();
+    // Don't make someone wait out the idle timer to have their work safe.
+    this.flushSync().then(() => { if (LIB_ENABLED) this.loadLibrary(); });
   };
-  deleteBoard = (e) => {
+  deleteBoard = async (e) => {
     e.stopPropagation();
     const id = e.currentTarget.dataset.id;
-    if (!window.confirm('Delete this storyboard? This cannot be undone.')) return;
+    const entry = (this.state.boards || []).find(b => b.id === id);
+    if (!window.confirm('Delete this storyboard? This removes it from every computer you use.')) return;
+
     idbDel(id).catch(() => {});
     try { localStorage.removeItem(boardKey(id)); } catch (err) {}
     this.setState(s => ({ boards: s.boards.filter(b => b.id !== id) }), () => {
       try { localStorage.setItem(INDEX_KEY, JSON.stringify(this.state.boards)); } catch (err) {}
     });
+
+    // Otherwise the next reconcile would pull it straight back down.
+    if (entry && entry.libraryId) {
+      try {
+        await libRequest('delete.php?id=' + encodeURIComponent(entry.libraryId), {
+          method: 'POST', headers: { 'X-Slate-CSRF': this.state.libraryCsrf || '' },
+        });
+      } catch (err) {
+        window.alert('Removed here, but the copy on the server could not be deleted: ' + libMessage(err));
+      }
+    }
+    if (LIB_ENABLED) this.loadLibrary();
   };
 
   save = () => {
@@ -1095,11 +1293,17 @@ class Component extends DCLogic {
     this.setState(s => {
       const idx = s.boards.slice();
       const i = idx.findIndex(b => b.id === boardId);
-      const entry = { id: boardId, title: meta.title || '', shotCount: frames.length, updatedAt: now, libraryId: libraryId || null };
+      const entry = Object.assign({}, i >= 0 ? idx[i] : null, {
+        id: boardId, title: meta.title || '', shotCount: frames.length,
+        updatedAt: now, libraryId: libraryId || null,
+      });
       if (i >= 0) idx[i] = entry; else idx.push(entry);
       try { localStorage.setItem(INDEX_KEY, JSON.stringify(idx)); } catch (e) {}
       return { boards: idx };
     });
+    // IndexedDB above keeps editing instant; the server copy follows once the
+    // typing stops.
+    this.scheduleSync(boardId);
   };
 
   newFrame = () => ({
@@ -1592,6 +1796,9 @@ class Component extends DCLogic {
         libraryMax: data.maxBytes || 0,
         libraryLoading: false,
       });
+      // The server is the durable copy of my own boards; bring this browser
+      // into line with it.
+      await this.reconcileBoards(data.mine || []);
     } catch (err) {
       this.setState({ libraryLoading: false, libraryError: libMessage(err) });
     }
@@ -1617,6 +1824,8 @@ class Component extends DCLogic {
       const params = new URLSearchParams({
         title: meta.title || '', project: meta.project || '',
         shots: String(frames.length),
+        // The board is already on the server and private; this shares it.
+        visibility: 'team',
       });
       if (opts.id) { params.set('id', opts.id); params.set('rev', String(opts.rev || 0)); }
       if (opts.force) params.set('force', '1');
@@ -2016,9 +2225,11 @@ class Component extends DCLogic {
       hasOtherTools: (this.state.libraryTools || []).length > 0,
       hasLibraryStatus: !!this.state.libraryStatus,
       libraryStatus: this.state.libraryStatus,
-      libSaveLabel: this.state.librarySaving
-        ? 'Saving…'
-        : (this.state.libraryId ? 'Update Library' : 'Save to Library'),
+      // Every board is already on the server; this button is about who else
+      // can see it, not about saving.
+      libSaveLabel: this.state.librarySaving ? 'Sharing…' : 'Share with Team',
+      syncStatus: this.state.syncStatus || '',
+      hasSyncStatus: !!this.state.syncStatus,
       libSaveBtnStyle: {
         display: 'flex', alignItems: 'center', gap: '6px', height: '36px', padding: '0 12px',
         background: 'transparent', border: '1px solid var(--gray-15)',
