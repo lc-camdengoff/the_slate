@@ -12,8 +12,9 @@
 declare(strict_types=1);
 
 // Hard ceiling on a single storyboard. Boards inline their reference images as
-// base64 JPEG data URLs (1600px, q0.82 — roughly 200-600 KB per shot), so a
-// 30-shot board lands in the high single-digit megabytes.
+// base64 data URLs. New pictures are 1280px WebP at q0.72 (roughly 70-210 KB
+// per shot); boards from before that carry 1600px JPEGs at q0.82 (200-600 KB),
+// so an older 30-shot board can reach the high single-digit megabytes.
 const SLATE_MAX_BYTES = 33554432; // 32 MB
 
 // Previous copies kept per board when a save overwrites an existing one.
