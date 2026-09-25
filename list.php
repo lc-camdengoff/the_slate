@@ -43,6 +43,7 @@ $response = [
     'tools' => fm_tool_links('slate/'),
     'maxBytes' => slate_max_bytes(),
     'versionsKept' => SLATE_VERSIONS_KEPT,
+    'mine' => [],
     'boards' => [],
 ];
 
@@ -52,6 +53,7 @@ if ($saved === null) {
 }
 
 $boards = [];
+$mine = [];
 foreach (glob($saved . '/*.json') ?: [] as $path) {
     $name = basename($path, '.json');
     if (substr($name, -5) === '.meta') {
@@ -63,8 +65,12 @@ foreach (glob($saved . '/*.json') ?: [] as $path) {
     }
 
     $meta = slate_read_meta($saved, $name);
+    $me = (string) $user['username'];
+    if (!slate_can_read($meta, $me)) {
+        continue;
+    }
     $size = filesize($path);
-    $boards[] = [
+    $entry = [
         'id' => $name,
         'title' => (string) ($meta['title'] ?? $name),
         'project' => (string) ($meta['project'] ?? ''),
@@ -73,12 +79,27 @@ foreach (glob($saved . '/*.json') ?: [] as $path) {
         'updatedAt' => (int) ($meta['updatedAt'] ?? ((int) filemtime($path) * 1000)),
         'shotCount' => (int) ($meta['shotCount'] ?? 0),
         'bytes' => (int) ($meta['bytes'] ?? ($size === false ? 0 : $size)),
+        'owner' => slate_owner($meta),
+        'visibility' => slate_visibility($meta),
+        'isMine' => slate_owns($meta, $me),
         // Reads go through load.php now: ../saved/ is closed to the web.
         'file' => 'load.php?id=' . $name,
     ];
+
+    // A board you own and have shared belongs in both lists, the same way a
+    // local copy and its library entry both showed before boards had owners.
+    if ($entry['isMine']) {
+        $mine[] = $entry;
+    }
+    if ($entry['visibility'] === SLATE_TEAM) {
+        $boards[] = $entry;
+    }
 }
 
-usort($boards, static fn(array $a, array $b): int => $b['updatedAt'] <=> $a['updatedAt']);
+$newest = static fn(array $a, array $b): int => $b['updatedAt'] <=> $a['updatedAt'];
+usort($boards, $newest);
+usort($mine, $newest);
 $response['boards'] = $boards;
+$response['mine'] = $mine;
 
 slate_json(200, $response);

@@ -250,6 +250,24 @@ Every account can use every tool. If one ever needs restricting — say gear
 checkout for leads only — that is an `app_access` table and one check in that
 tool's front door, with nothing else changing.
 
+## How storyboards are stored
+
+Every board is a file in `saved/`, owned by the account that made it, with an
+`owner` and `visibility` in its `.meta.json` sidecar. Private is the default;
+"Share with Team" flips `visibility` to `team`. Nothing moves on disk when a
+board is shared, so versions and trash are unaffected.
+
+Boards saved before ownership existed have neither field. Those are treated as
+team-visible with no owner, which is what they effectively were — everything in
+`saved/` used to be visible to everyone, and hiding the team's existing work
+behind an owner they never had would be worse than leaving it shared.
+
+The browser keeps a copy in IndexedDB so editing stays instant. It syncs up
+after a pause in typing and when you leave a board — not on every keystroke,
+because boards run to tens of megabytes. A board opened on a machine that has
+never seen it is downloaded on demand rather than at menu load, for the same
+reason.
+
 ## Housekeeping
 
 Two folders grow quietly and are never served:

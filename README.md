@@ -3,8 +3,10 @@
 Storyboarding tool for the Life.Church filmmaking team.
 Live at <https://creativemedia.church/filmmaking/slate/>.
 
-Shot lists live in the browser (IndexedDB) and can be shared with the rest of
-the team through a **team library** saved on the server.
+Storyboards are saved to the server against your account, so they follow you
+to any computer you sign in on. They are private until you **Share with Team**,
+which puts them in the shared library. The browser keeps a local copy so
+editing stays instant; the server copy is the durable one.
 
 Sign-in is shared across every tool under `/filmmaking/` — this repo deploys
 both The Slate and that shared `auth/` folder. Signup is self-service behind an

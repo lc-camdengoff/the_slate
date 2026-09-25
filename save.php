@@ -45,6 +45,11 @@ if ($title === '') {
 $project = slate_clean_text((string) ($_GET['project'] ?? ''), 120);
 $shotCount = max(0, min(100000, (int) ($_GET['shots'] ?? 0)));
 $force = ($_GET['force'] ?? '') === '1';
+// Absent means "leave as it is" on an update, and private on a new board.
+$wanted = strtolower(trim((string) ($_GET['visibility'] ?? '')));
+if ($wanted !== SLATE_PRIVATE && $wanted !== SLATE_TEAM) {
+    $wanted = '';
+}
 
 $id = trim((string) ($_GET['id'] ?? ''));
 if ($id !== '' && !slate_is_id($id)) {
@@ -131,6 +136,14 @@ $lock = slate_lock($saved, $id);
 $path = slate_board_path($saved, $id);
 $existing = slate_read_meta($saved, $id);
 
+// Someone else's private board is not yours to overwrite.
+if (!$isNew && $existing !== null && !slate_can_write($existing, $savedByUser)) {
+    @unlink($tmpPath);
+    flock($lock, LOCK_UN);
+    fclose($lock);
+    slate_fail(403, 'not_yours');
+}
+
 // Last-writer-wins is fine as long as the writer knows they are last: if the
 // board moved on since this client loaded it, stop and let them choose.
 if (!$isNew && !$force && $existing !== null) {
@@ -182,6 +195,9 @@ $meta = [
     'project' => $project,
     'savedBy' => $savedBy,
     'savedByUser' => $savedByUser,
+    // The creator keeps ownership even when a team-mate edits a shared board.
+    'owner' => $isNew ? $savedByUser : slate_owner($existing),
+    'visibility' => $wanted !== '' ? $wanted : ($isNew ? SLATE_PRIVATE : slate_visibility($existing)),
     'updatedAt' => $updatedAt,
     'createdAt' => (int) ($existing['createdAt'] ?? $updatedAt),
     'createdByUser' => (string) ($existing['createdByUser'] ?? $savedByUser),

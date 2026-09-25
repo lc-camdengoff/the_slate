@@ -24,7 +24,7 @@ if (!in_array($_SERVER['REQUEST_METHOD'] ?? '', ['GET', 'HEAD'], true)) {
     slate_fail(405, 'method_not_allowed');
 }
 
-fm_require_api_user();
+$account = fm_require_api_user();
 
 $saved = slate_saved_dir();
 if ($saved === null) {
@@ -41,6 +41,12 @@ $path = slate_board_path($saved, $id);
 // file being served has to be provably inside the shared folder.
 $real = realpath($path);
 if ($real === false || strpos($real, $saved . '/') !== 0 || !is_file($real)) {
+    slate_fail(404, 'not_found');
+}
+
+// Someone else's private board reads as missing rather than forbidden, so the
+// listing cannot be used to discover what other people are working on.
+if (!slate_can_read(slate_read_meta($saved, $id), (string) $account['username'])) {
     slate_fail(404, 'not_found');
 }
 

@@ -239,3 +239,64 @@ function slate_lock(string $saved, string $id)
     }
     return $handle;
 }
+
+// ---------------------------------------------------------------------------
+// Ownership and visibility
+//
+// A board is owned by the account that created it and is private by default.
+// "Save to Library" promotes it to team-visible: same file, same id, the
+// sidecar's visibility flips. Nothing moves on disk, so versions and trash
+// keep working untouched.
+//
+// Boards that predate this are treated as team-visible with no owner, which
+// is what they effectively were — everything in saved/ was visible to
+// everyone. Being permissive about the old ones is deliberate: the alternative
+// hides the team's existing work behind an owner they never had.
+// ---------------------------------------------------------------------------
+
+const SLATE_PRIVATE = 'private';
+const SLATE_TEAM = 'team';
+
+function slate_visibility(?array $meta): string
+{
+    $value = strtolower(trim((string) ($meta['visibility'] ?? '')));
+    if ($value === SLATE_PRIVATE) {
+        return SLATE_PRIVATE;
+    }
+    // Missing means it was saved before boards had owners.
+    return SLATE_TEAM;
+}
+
+function slate_owner(?array $meta): string
+{
+    $owner = trim((string) ($meta['owner'] ?? ''));
+    if ($owner !== '') {
+        return $owner;
+    }
+    // Fall back to whoever last wrote it, which is the best we know.
+    return trim((string) ($meta['savedByUser'] ?? ''));
+}
+
+function slate_owns(?array $meta, string $username): bool
+{
+    $owner = slate_owner($meta);
+    return $owner !== '' && strcasecmp($owner, $username) === 0;
+}
+
+/** May this account read the board? */
+function slate_can_read(?array $meta, string $username): bool
+{
+    return slate_visibility($meta) === SLATE_TEAM || slate_owns($meta, $username);
+}
+
+/**
+ * May this account write to the board?
+ *
+ * Team boards stay editable by anyone, as they were before ownership existed
+ * — the conflict check is what stops two people clobbering each other, not a
+ * permission. A private board is only its owner's.
+ */
+function slate_can_write(?array $meta, string $username): bool
+{
+    return slate_visibility($meta) === SLATE_TEAM || slate_owns($meta, $username);
+}
