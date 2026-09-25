@@ -573,6 +573,43 @@
               </div>
             </sc-for>
           </div>
+
+          <!-- Trash: deleted boards stay here for {{ trashDays }} days (slate_housekeeping()). -->
+          <div style="margin-top:56px;border-top:1px solid var(--gray-15);padding-top:32px">
+            <div style="display:flex;align-items:flex-end;justify-content:space-between;flex-wrap:wrap;gap:16px;margin-bottom:20px">
+              <div>
+                <div style="font-family:var(--font-mono);font-size:11px;letter-spacing:0.14em;text-transform:uppercase;color:var(--gray-30);margin-bottom:8px">Deleted</div>
+                <div class="sl-h1" style="font-family:var(--font-display);font-weight:900;font-size:30px;line-height:0.9;letter-spacing:-0.02em;text-transform:uppercase;color:var(--black)">Trash</div>
+                <div style="font-size:13px;color:var(--gray-30);margin-top:8px">{{ trashHint }}</div>
+              </div>
+              <button sc-camel-on-click="{{ toggleTrash }}" aria-expanded="{{ trashExpanded }}" style="display:flex;align-items:center;gap:6px;height:36px;padding:0 12px;background:transparent;border:1px solid var(--gray-15);color:var(--gray-50);font-size:12px;font-weight:700;cursor:pointer;text-transform:uppercase;letter-spacing:0.04em" style-hover="border-color:var(--black);color:var(--black)">
+                <svg width="15" height="15"><use href="#ui-trash"></use></svg>{{ trashToggleLabel }}
+              </button>
+            </div>
+
+            <sc-if value="{{ trashOpen }}" hint-placeholder-val="{{ false }}">
+              <sc-if value="{{ hasTrashError }}" hint-placeholder-val="{{ false }}">
+                <div style="border:1px solid var(--gray-15);background:var(--white);padding:20px;font-size:13px;color:var(--gray-50)">{{ trashError }}</div>
+              </sc-if>
+              <sc-if value="{{ trashEmpty }}" hint-placeholder-val="{{ false }}">
+                <div style="border:2px dashed var(--gray-20);background:var(--white);padding:36px 32px;text-align:center;font-size:14px;color:var(--gray-30)">The trash is empty.</div>
+              </sc-if>
+              <div style="display:grid;grid-template-columns:repeat(auto-fill, minmax(300px, 1fr));gap:18px">
+                <sc-for list="{{ trashItems }}" as="t" hint-placeholder-count="0">
+                  <div style="background:var(--white);border:1px solid var(--gray-15);padding:20px;display:flex;flex-direction:column;gap:6px;position:relative">
+                    <div style="font-family:var(--font-display);font-weight:900;font-size:19px;letter-spacing:-0.01em;text-transform:uppercase;color:var(--gray-50)">{{ t.title }}</div>
+                    <div style="font-family:var(--font-mono);font-size:11px;letter-spacing:0.04em;text-transform:uppercase;color:var(--gray-30);margin-top:4px">{{ t.line }}</div>
+                    <div style="font-family:var(--font-mono);font-size:11px;letter-spacing:0.04em;text-transform:uppercase;color:var(--gray-30)">{{ t.left }}</div>
+                    <div style="margin-top:10px">
+                      <button data-id="{{ t.id }}" data-stamp="{{ t.stamp }}" sc-camel-on-click="{{ restoreTrash }}" style="display:flex;align-items:center;gap:6px;height:34px;padding:0 12px;background:transparent;border:1px solid var(--gray-15);color:var(--black);font-size:12px;font-weight:700;cursor:pointer;text-transform:uppercase;letter-spacing:0.04em" style-hover="border-color:var(--black)">
+                        <svg width="15" height="15"><use href="#ui-refresh"></use></svg>{{ t.restoreLabel }}
+                      </button>
+                    </div>
+                  </div>
+                </sc-for>
+              </div>
+            </sc-if>
+          </div>
         </div>
       </sc-if>
     </div>
@@ -1041,6 +1078,7 @@ const LIB_ERRORS = {
   not_signed_in: 'You are no longer signed in. Reload the page to sign in again.',
   busy: 'Someone else is saving this storyboard right now. Try again in a moment.',
   not_found: 'That storyboard is no longer in the team library.',
+  exists: 'That storyboard is already back — refresh to see it.',
 };
 function libMessage(err) {
   return LIB_ERRORS[err && err.message] || 'Could not reach the team library. Check your connection and try again.';
@@ -1121,6 +1159,12 @@ class Component extends DCLogic {
   state = {
     theme: slateInitialTheme(),
     navOpen: false,
+    trashOpen: false,
+    trash: [],
+    trashDays: 30,
+    trashLoading: false,
+    trashError: '',
+    restoring: null,
     view: 'menu',
     boards: [],
     boardId: null,
@@ -1435,7 +1479,8 @@ class Component extends DCLogic {
     e.stopPropagation();
     const id = e.currentTarget.dataset.id;
     const entry = (this.state.boards || []).find(b => b.id === id);
-    if (!window.confirm('Delete this storyboard? This removes it from every computer you use.')) return;
+    if (!window.confirm('Delete this storyboard? This removes it from every computer you use.\n\n'
+      + 'If it was saved to the server, it stays in the Trash at the bottom of this page for 30 days.')) return;
 
     idbDel(id).catch(() => {});
     try { localStorage.removeItem(boardKey(id)); } catch (err) {}
@@ -1454,6 +1499,7 @@ class Component extends DCLogic {
       }
     }
     if (LIB_ENABLED) this.loadLibrary();
+    if (this.state.trashOpen) this.loadTrash();
   };
 
   save = () => {
@@ -2149,13 +2195,46 @@ class Component extends DCLogic {
     const entry = (this.state.library || []).find(b => b.id === libId);
     const title = (entry && entry.title) || 'this storyboard';
     if (!window.confirm('Remove “' + title + '” from the team library?\n\n'
-      + 'It moves to a trash folder on the server, and your own copy stays on this computer.')) return;
+      + 'It moves to the Trash at the bottom of this page for 30 days, and your own copy stays on this computer.')) return;
     try {
       await libRequest('delete.php?id=' + encodeURIComponent(libId), {
         method: 'POST', headers: { 'X-Slate-CSRF': this.state.libraryCsrf || '' },
       });
       this.setState(s => ({ library: s.library.filter(b => b.id !== libId) }));
+      if (this.state.trashOpen) this.loadTrash();
     } catch (err) {
+      window.alert(libMessage(err));
+    }
+  };
+
+  // Trash: loaded when opened, since most visits never look at it.
+  toggleTrash = () => {
+    const open = !this.state.trashOpen;
+    this.setState({ trashOpen: open });
+    if (open) this.loadTrash();
+  };
+  loadTrash = async () => {
+    this.setState({ trashLoading: true, trashError: '' });
+    try {
+      const data = await libRequest('trash.php');
+      this.setState({ trash: data.items || [], trashDays: data.days || 30, trashLoading: false });
+    } catch (err) {
+      this.setState({ trashLoading: false, trashError: libMessage(err) });
+    }
+  };
+  restoreTrash = async (e) => {
+    e.stopPropagation();
+    const id = e.currentTarget.dataset.id, stamp = e.currentTarget.dataset.stamp;
+    this.setState({ restoring: id + '.' + stamp });
+    try {
+      await libRequest('trash.php?action=restore&id=' + encodeURIComponent(id) + '&stamp=' + encodeURIComponent(stamp), {
+        method: 'POST', headers: { 'X-Slate-CSRF': this.state.libraryCsrf || '' },
+      });
+      this.setState(s => ({ restoring: null, trash: s.trash.filter(t => !(t.id === id && t.stamp === stamp)) }));
+      // Back in the library, or in the owner's own storyboards via reconcile.
+      if (LIB_ENABLED) this.loadLibrary();
+    } catch (err) {
+      this.setState({ restoring: null });
       window.alert(libMessage(err));
     }
   };
@@ -2470,6 +2549,27 @@ class Component extends DCLogic {
       }),
       isMenuView, isBoardView, noBoards: uiBoards.length === 0, boards: uiBoards,
       toggleTheme: this.toggleTheme,
+      toggleTrash: this.toggleTrash, restoreTrash: this.restoreTrash,
+      trashOpen: !!this.state.trashOpen,
+      trashExpanded: this.state.trashOpen ? 'true' : 'false',
+      trashDays: this.state.trashDays,
+      trashToggleLabel: this.state.trashOpen ? 'Hide trash' : 'Show trash',
+      trashHint: 'Deleted storyboards are kept for ' + this.state.trashDays + ' days, then removed for good.',
+      hasTrashError: !!this.state.trashError,
+      trashError: this.state.trashError,
+      trashEmpty: !this.state.trashLoading && !this.state.trashError && (this.state.trash || []).length === 0,
+      trashItems: (this.state.trash || []).map(t => {
+        const days = Math.max(0, Math.ceil(((t.purgeAt || 0) - Date.now()) / 86400000));
+        const busy = this.state.restoring === t.id + '.' + t.stamp;
+        return {
+          id: t.id, stamp: t.stamp, title: t.title || 'Untitled Storyboard',
+          line: 'Deleted ' + libWhen(t.deletedAt) + (t.deletedBy ? ' by ' + t.deletedBy : ''),
+          left: (t.visibility === 'private' ? 'Private' + (t.owner && t.owner !== this.state.libraryUsername ? ' to ' + t.owner : '') : 'Team')
+            + ' · ' + (t.shotCount === 1 ? '1 shot' : (t.shotCount || 0) + ' shots')
+            + ' · ' + (days <= 1 ? 'removed within a day' : days + ' days left'),
+          restoreLabel: busy ? 'Restoring…' : 'Restore',
+        };
+      }),
       toggleNav: this.toggleNav,
       navState: this.state.navOpen ? 'open' : 'closed',
       navExpanded: this.state.navOpen ? 'true' : 'false',

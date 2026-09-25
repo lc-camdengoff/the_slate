@@ -324,18 +324,30 @@ function slate_can_write(?array $meta, string $username): bool
  * Nothing is destroyed: a board in the trash can be put back by moving its
  * files out again. The caller holds the board's lock.
  */
-function slate_trash_board(string $saved, string $id): bool
+function slate_trash_board(string $saved, string $id, string $byUser = '', string $byName = ''): bool
 {
     $trash = slate_internal_dir($saved, '.trash');
     if ($trash === null) {
         return false;
     }
-    $prefix = $trash . '/' . $id . '.' . slate_now_ms();
+    $stamp = slate_now_ms();
+    $prefix = $trash . '/' . $id . '.' . $stamp;
+    $meta = slate_read_meta($saved, $id);
     if (!@rename(slate_board_path($saved, $id), $prefix . '.json')) {
         return false;
     }
     @touch($prefix . '.json'); // the 30-day clock starts now, not at last save
-    if (@rename(slate_meta_path($saved, $id), $prefix . '.meta.json')) {
+    // Who deleted it and when, for the Trash list. Written fresh rather than
+    // moved, so a board with no sidecar still gets one there.
+    $meta = is_array($meta) ? $meta : ['id' => $id];
+    $meta['deletedAt'] = $stamp;
+    if ($byUser !== '') {
+        $meta['deletedByUser'] = $byUser;
+        $meta['deletedBy'] = $byName !== '' ? $byName : $byUser;
+    }
+    if (@file_put_contents($prefix . '.meta.json', json_encode($meta, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE)) !== false) {
+        @unlink(slate_meta_path($saved, $id));
+    } elseif (@rename(slate_meta_path($saved, $id), $prefix . '.meta.json')) {
         @touch($prefix . '.meta.json');
     }
 
@@ -349,6 +361,136 @@ function slate_trash_board(string $saved, string $id): bool
         }
     }
     return true;
+}
+
+// ---------------------------------------------------------------------------
+// Trash: listing and restoring
+//
+// A deleted board is <id>.<deleted-ms>.json with <id>.<deleted-ms>.meta.json
+// beside it; its previous copy moved in as <id>.<saved-ms>.json with no
+// sidecar. Who may see an entry is the library's rule — team boards, and
+// your own private ones — plus admins, who see all so they can rescue any.
+// ---------------------------------------------------------------------------
+
+/** When a trash file was deleted, in seconds: the later of its time and name. */
+function slate_trash_time(string $file): int
+{
+    $when = (int) @filemtime($file);
+    if (preg_match('/\.(\d{13})(\.meta)?\.json$/', basename($file), $m)) {
+        $when = max($when, intdiv((int) $m[1], 1000));
+    }
+    return $when;
+}
+
+/**
+ * Deleted boards this person may see, newest first.
+ *
+ * @return list<array{id: string, stamp: string, title: string, owner: string, visibility: string,
+ *   shotCount: int, deletedAt: int, deletedBy: string, purgeAt: int}>
+ */
+function slate_trash_list(string $username, bool $isAdmin): array
+{
+    $saved = slate_saved_dir();
+    $trash = $saved === null ? '' : $saved . '/.trash';
+    if ($trash === '' || !is_dir($trash)) {
+        return [];
+    }
+    $out = [];
+    foreach (glob($trash . '/*.meta.json') ?: [] as $metaFile) {
+        if (!preg_match('/^(.+)\.(\d{13})\.meta\.json$/', basename($metaFile), $m) || !slate_is_id($m[1])) {
+            continue;
+        }
+        [$all, $id, $stamp] = $m;
+        if (!is_file($trash . '/' . $id . '.' . $stamp . '.json')) {
+            continue;
+        }
+        $meta = json_decode((string) @file_get_contents($metaFile), true);
+        $meta = is_array($meta) ? $meta : [];
+        if (!$isAdmin && !slate_can_read($meta, $username)) {
+            continue;
+        }
+        $deleted = isset($meta['deletedAt']) ? intdiv((int) $meta['deletedAt'], 1000) : slate_trash_time($metaFile);
+        $out[] = [
+            'id' => $id,
+            'stamp' => $stamp,
+            'title' => (string) ($meta['title'] ?? '') !== '' ? (string) $meta['title'] : 'Untitled Storyboard',
+            'owner' => slate_owner($meta),
+            'visibility' => slate_visibility($meta),
+            'shotCount' => (int) ($meta['shotCount'] ?? 0),
+            'deletedAt' => $deleted * 1000,
+            'deletedBy' => (string) ($meta['deletedBy'] ?? ''),
+            'purgeAt' => ($deleted + SLATE_TRASH_DAYS * 86400) * 1000,
+        ];
+    }
+    usort($out, static fn($a, $b) => $b['deletedAt'] <=> $a['deletedAt']);
+    return $out;
+}
+
+/**
+ * Put a deleted board back where it was, with its previous copy.
+ *
+ * @return string '' on success, otherwise an error key: not_found,
+ *   not_yours, exists, storage_unavailable, restore_failed
+ */
+function slate_restore_board(string $id, string $stamp, string $username, bool $isAdmin): string
+{
+    $saved = slate_saved_dir();
+    if ($saved === null) {
+        return 'storage_unavailable';
+    }
+    if (!slate_is_id($id) || !preg_match('/^\d{13}$/', $stamp)) {
+        return 'not_found';
+    }
+    $trash = $saved . '/.trash';
+    $board = $trash . '/' . $id . '.' . $stamp . '.json';
+    $metaFile = $trash . '/' . $id . '.' . $stamp . '.meta.json';
+    if (!is_file($board)) {
+        return 'not_found';
+    }
+    $meta = json_decode((string) @file_get_contents($metaFile), true);
+    $meta = is_array($meta) ? $meta : ['id' => $id];
+    if (!$isAdmin && !slate_can_read($meta, $username)) {
+        return 'not_found'; // someone else's private board: not even acknowledged
+    }
+
+    $lockDir = slate_internal_dir($saved, '.tmp');
+    $lock = $lockDir === null ? false : @fopen($lockDir . '/' . $id . '.lock', 'c');
+    if ($lock === false || !flock($lock, LOCK_EX)) {
+        return 'restore_failed';
+    }
+    try {
+        if (file_exists(slate_board_path($saved, $id))) {
+            return 'exists'; // restored already, from another tab
+        }
+        if (!@rename($board, slate_board_path($saved, $id))) {
+            return 'restore_failed';
+        }
+        unset($meta['deletedAt'], $meta['deletedBy'], $meta['deletedByUser']);
+        // Moved on, so every browser treats it as new and fetches it.
+        $meta['updatedAt'] = max(slate_now_ms(), (int) ($meta['updatedAt'] ?? 0) + 1);
+        @file_put_contents(slate_meta_path($saved, $id), json_encode($meta, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE));
+        @unlink($metaFile);
+
+        // Its previous copy: the newest trashed <id>.<ms>.json with no sidecar.
+        $versions = slate_internal_dir($saved, '.versions');
+        $copies = [];
+        foreach (glob($trash . '/' . $id . '.*.json') ?: [] as $file) {
+            if (preg_match('/^' . preg_quote($id, '/') . '\.(\d{13})\.json$/', basename($file), $v)
+                && !is_file($trash . '/' . $id . '.' . $v[1] . '.meta.json')) {
+                $copies[(int) $v[1]] = $file;
+            }
+        }
+        krsort($copies, SORT_NUMERIC);
+        foreach (array_slice($copies, 0, SLATE_VERSIONS_KEPT, true) as $file) {
+            if ($versions !== null) {
+                @rename($file, $versions . '/' . basename($file));
+            }
+        }
+        return '';
+    } finally {
+        flock($lock, LOCK_UN);
+        fclose($lock);
+    }
 }
 
 // ---------------------------------------------------------------------------
@@ -408,10 +550,7 @@ function slate_housekeeping(bool $force = false): array
     if (is_dir($trash)) {
         $cutoff = time() - SLATE_TRASH_DAYS * 86400;
         foreach (glob($trash . '/*.json') ?: [] as $file) {
-            $when = (int) @filemtime($file);
-            if (preg_match('/\.(\d{13})(\.meta)?\.json$/', basename($file), $m)) {
-                $when = max($when, intdiv((int) $m[1], 1000));
-            }
+            $when = slate_trash_time($file);
             if ($when > 0 && $when < $cutoff) {
                 $size = (int) @filesize($file);
                 if (@unlink($file)) {
@@ -716,7 +855,7 @@ function slate_each_board_of(string $username, callable $change): array
 /** Rename a person on every board that names them. */
 function slate_account_renamed(string $old, string $new): array
 {
-    return slate_each_board_of($old, static function (string $saved, string $id, array $meta) use ($old, $new) {
+    $result = slate_each_board_of($old, static function (string $saved, string $id, array $meta) use ($old, $new) {
         foreach (SLATE_PERSON_FIELDS as $field) {
             if (strcasecmp(trim((string) ($meta[$field] ?? '')), $old) === 0) {
                 $meta[$field] = $new;
@@ -724,6 +863,54 @@ function slate_account_renamed(string $old, string $new): array
         }
         return $meta;
     });
+    $result[1] += slate_rename_in_trash($old, $new);
+    return $result;
+}
+
+/**
+ * The same rename, for boards already in the trash: otherwise whoever is
+ * next given the old username would see its owner's deleted private boards
+ * in their Trash, and could restore them.
+ *
+ * @return int sidecars that could not be rewritten
+ */
+function slate_rename_in_trash(string $from, string $to): int
+{
+    $saved = slate_saved_dir();
+    if ($saved === null || !is_dir($saved . '/.trash')) {
+        return 0;
+    }
+    $failed = 0;
+    foreach (glob($saved . '/.trash/*.meta.json') ?: [] as $file) {
+        $meta = json_decode((string) @file_get_contents($file), true);
+        if (!is_array($meta)) {
+            continue;
+        }
+        $changed = false;
+        foreach (array_merge(SLATE_PERSON_FIELDS, ['deletedByUser']) as $field) {
+            if (strcasecmp(trim((string) ($meta[$field] ?? '')), $from) === 0) {
+                $meta[$field] = $to;
+                $changed = true;
+            }
+        }
+        if ($changed) {
+            // Rewriting must not restart the 30-day clock: keep when it was
+            // deleted, both in the sidecar and as the file's own time.
+            $when = slate_trash_time($file);
+            if (!isset($meta['deletedAt']) && $when > 0) {
+                $meta['deletedAt'] = $when * 1000;
+            }
+            $tmp = $file . '.tmp';
+            $json = json_encode($meta, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE);
+            if ($json === false || @file_put_contents($tmp, $json) === false || !@rename($tmp, $file)) {
+                @unlink($tmp);
+                $failed++;
+            } elseif ($when > 0) {
+                @touch($file, $when);
+            }
+        }
+    }
+    return $failed;
 }
 
 /**
@@ -737,9 +924,9 @@ function slate_account_renamed(string $old, string $new): array
 function slate_account_deleted(string $username): array
 {
     $gone = '(deleted) ' . $username;
-    return slate_each_board_of($username, static function (string $saved, string $id, array $meta) use ($username, $gone) {
+    $result = slate_each_board_of($username, static function (string $saved, string $id, array $meta) use ($username, $gone) {
         if (slate_visibility($meta) === SLATE_PRIVATE && slate_owns($meta, $username)) {
-            return slate_trash_board($saved, $id);
+            return slate_trash_board($saved, $id, $username, 'Account removal');
         }
         foreach (SLATE_PERSON_FIELDS as $field) {
             if (strcasecmp(trim((string) ($meta[$field] ?? '')), $username) === 0) {
@@ -748,6 +935,10 @@ function slate_account_deleted(string $username): array
         }
         return $meta;
     });
+    // Including what was just trashed above, so its owner is a username no
+    // account can have and only an admin can see or restore it.
+    $result[1] += slate_rename_in_trash($username, $gone);
+    return $result;
 }
 
 /** 12.3 MB, for people. */
