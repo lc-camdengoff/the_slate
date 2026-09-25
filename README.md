@@ -25,7 +25,9 @@ invite code an admin creates.
 | `auth/` | **shared sign-in for every tool under /filmmaking/** |
 | `auth/login.php` `signup.php` `logout.php` `reset.php` | accounts |
 | `auth/account.php` `admin.php` | your own settings, and team admin |
-| `auth/auth.php` `db.php` `page.php` `schema.sql` | includes |
+| `auth/person.php` `import.php` | edit one person and their access; import a CSV |
+| `auth/verify.php` | lets The Cage ask who a session belongs to |
+| `auth/auth.php` `db.php` `page.php` `people.php` `tools.php` `email.php` `schema.sql` | includes |
 | `auth/config.sample.php` | template for the config you upload by hand |
 | `.htaccess` `.user.ini` | server config, deployed with the app |
 | `server/saved.htaccess` | for the shared folder — uploaded by hand, once |
@@ -41,6 +43,11 @@ email:
   becomes the admin. That code stops working once it exists.
 - **A forgotten password** is an admin generating a single-use reset code and
   handing it over directly.
+- **Bringing people over** from Cheqroom or a spreadsheet is a CSV import on
+  the admin page. Each new person gets a one-time setup code and chooses their
+  own password.
+- **Access** is set per person and per tool (the Slate, The Cage and whatever
+  comes next), with each tool's own roles, e.g. Cage Gear manager.
 
 A new tool joins the same login with two lines — see
 [DEPLOY.md](DEPLOY.md#adding-another-tool).

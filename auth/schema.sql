@@ -19,14 +19,33 @@ CREATE TABLE IF NOT EXISTS users (
     -- code is what keeps an unverified address reasonable. The Cage refuses a
     -- sign-in from an account without one, since a username cannot receive an
     -- overdue notice. See auth/email.php.
-    email         text
+    email         text,
+    -- Contact details an admin keeps, mostly brought over from Cheqroom.
+    -- The Cage reads phone and department through verify.php.
+    phone         text,
+    department    text,
+    notes         text
 );
+-- An account made by an admin or an import has no password until its owner
+-- redeems the setup code they were given: password_hash is '' until then,
+-- which no password_verify() call can match.
 
 -- Addresses are matched lowercased, so Jordan.West@ and jordan.west@ are one
 -- mailbox. This index is also what fm_set_email() relies on to catch a
 -- duplicate as 23505 rather than silently writing it.
 CREATE UNIQUE INDEX IF NOT EXISTS users_email_lower_idx
     ON users (lower(email)) WHERE email IS NOT NULL;
+
+-- What each person may do in each tool. A missing row means the tool's
+-- default role from tools.php, so a new tool or a new signup just works;
+-- 'none' is an explicit "no access". Roles are the tool's own vocabulary,
+-- listed in tools.php — the database does not second-guess them.
+CREATE TABLE IF NOT EXISTS user_tool_roles (
+    user_id bigint NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    tool    text   NOT NULL,
+    role    text   NOT NULL,
+    PRIMARY KEY (user_id, tool)
+);
 
 -- Shared signup codes. Stored in the clear on purpose: an admin has to be able
 -- to read one back to pass it to the team, and a code only grants the ability

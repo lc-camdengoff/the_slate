@@ -48,7 +48,7 @@ try {
 
 // Shared sign-in: sends people to /filmmaking/auth/login.php and back here.
 // This is all a new tool needs to join the same login.
-fm_require_login();
+fm_require_login('slate');
 
 if (!is_readable(SLATE_BUNDLE)) {
     slate_setup_error('app.html is missing from this folder — the deploy may not have finished.');

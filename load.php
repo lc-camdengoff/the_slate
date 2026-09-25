@@ -24,7 +24,7 @@ if (!in_array($_SERVER['REQUEST_METHOD'] ?? '', ['GET', 'HEAD'], true)) {
     slate_fail(405, 'method_not_allowed');
 }
 
-$account = fm_require_api_user();
+$account = fm_require_api_user('slate');
 
 $saved = slate_saved_dir();
 if ($saved === null) {

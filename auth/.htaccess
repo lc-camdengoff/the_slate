@@ -9,14 +9,14 @@ Options -Indexes
 
 <IfModule mod_rewrite.c>
   RewriteEngine On
-  RewriteRule ^(auth|db|page)\.php$ - [F,L]
+  RewriteRule ^(auth|db|page|people|tools|email)\.php$ - [F,L]
   RewriteRule ^schema\.sql$ - [F,L]
   RewriteRule ^config(\.sample)?\.php$ - [F,L]
   RewriteRule (^|/)\. - [F,L]
 </IfModule>
 
 # Belt to that braces, in case mod_rewrite is unavailable.
-<FilesMatch "^(auth|db|page|config|config\.sample)\.php$|^schema\.sql$">
+<FilesMatch "^(auth|db|page|people|tools|email|config|config\.sample)\.php$|^schema\.sql$">
   <IfModule mod_authz_core.c>
     Require all denied
   </IfModule>

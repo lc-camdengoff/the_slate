@@ -1,37 +1,25 @@
 <?php
 /**
- * The Slate — admin: invite codes, team members, password resets.
+ * Filmmaking tools — admin: invite codes and the team list.
+ *
+ * Editing one person, their access and their codes is person.php; bringing
+ * a team over from a CSV is import.php.
  */
 
 declare(strict_types=1);
 
 require __DIR__ . '/auth.php';
+require __DIR__ . '/people.php';
 require __DIR__ . '/page.php';
 
 fm_error_handler('html');
 
-$next = fm_safe_next($_REQUEST['next'] ?? null);
-
-$me = fm_current_user();
-if ($me === null) {
-    header('Location: ' . fm_auth_url_with_next('login.php', $next));
-    exit;
-}
-if (!$me['is_admin']) {
-    http_response_code(403);
-    fm_page_head('Not allowed');
-    echo '<div class="card"><h1>Not allowed</h1>'
-        . '<p class="note">This page is for admins. Use the bar above to get '
-        . 'back to the tools.</p></div>';
-    fm_page_foot();
-    exit;
-}
+$me = fm_require_admin();
 
 $db = fm_db();
 $error = '';
 $notice = '';
 $freshCode = '';
-$freshReset = null;
 
 if (($_SERVER['REQUEST_METHOD'] ?? '') === 'POST') {
     if (!fm_check_csrf($_POST['csrf'] ?? null)) {
@@ -74,42 +62,6 @@ if (($_SERVER['REQUEST_METHOD'] ?? '') === 'POST') {
                 ->execute([(int) ($_POST['id'] ?? 0)]);
             $notice = 'Invite code deleted.';
 
-        } elseif ($action === 'toggle_user') {
-            $id = (int) ($_POST['id'] ?? 0);
-            if ($id === (int) $me['id']) {
-                $error = 'You cannot turn off your own account.';
-            } else {
-                $db->prepare('UPDATE users SET is_active = NOT is_active WHERE id = ?')->execute([$id]);
-                // A disabled account should lose access immediately.
-                $db->prepare('DELETE FROM sessions WHERE user_id = ? AND (SELECT NOT is_active FROM users WHERE id = ?)')
-                    ->execute([$id, $id]);
-                $notice = 'Account updated.';
-            }
-
-        } elseif ($action === 'toggle_admin') {
-            $id = (int) ($_POST['id'] ?? 0);
-            if ($id === (int) $me['id']) {
-                $error = 'You cannot remove your own admin rights.';
-            } else {
-                $db->prepare('UPDATE users SET is_admin = NOT is_admin WHERE id = ?')->execute([$id]);
-                $notice = 'Account updated.';
-            }
-
-        } elseif ($action === 'reset_user') {
-            $id = (int) ($_POST['id'] ?? 0);
-            $stmt = $db->prepare('SELECT username FROM users WHERE id = ?');
-            $stmt->execute([$id]);
-            $target = $stmt->fetch();
-            if (!$target) {
-                $error = 'No such account.';
-            } else {
-                $code = strtolower(bin2hex(random_bytes(4)) . '-' . bin2hex(random_bytes(4)));
-                $db->prepare(
-                    'INSERT INTO password_resets (user_id, code_hash, expires_at, created_by)
-                     VALUES (?, ?, now() + interval \'48 hours\', ?)'
-                )->execute([$id, hash('sha256', $code), $me['id']]);
-                $freshReset = ['username' => $target['username'], 'code' => $code];
-            }
         }
     }
 }
@@ -121,15 +73,16 @@ $invites = $db->query(
 )->fetchAll();
 
 $users = $db->query(
-    'SELECT id, username, display_name, is_admin, is_active, created_at, last_login_at
-       FROM users ORDER BY lower(username)'
+    "SELECT id, username, display_name, email, department, is_admin, is_active,
+            password_hash = '' AS pending, created_at, last_login_at
+       FROM users ORDER BY lower(display_name), lower(username)"
 )->fetchAll();
 
 $csrf = fm_h(fm_csrf_token());
 
 fm_page_head('Admin');
 ?>
-<div class="card wide">
+<div class="card wider">
   <div class="eyebrow">Filmmaking tools</div>
   <h1>Team admin</h1>
 
@@ -140,17 +93,6 @@ fm_page_head('Admin');
     <div class="msg good">
       New invite code: <code><?= fm_h($freshCode) ?></code><br>
       <span class="hint">People enter this on the sign-up page. It is listed below if you need it again.</span>
-    </div>
-  <?php endif; ?>
-
-  <?php if ($freshReset !== null): ?>
-    <div class="msg good">
-      Reset code for <strong><?= fm_h($freshReset['username']) ?></strong>:
-      <code><?= fm_h($freshReset['code']) ?></code><br>
-      <span class="hint">
-        Single use, expires in 48 hours. Pass it to them directly — this host
-        cannot send email. <strong>It is not shown again.</strong>
-      </span>
     </div>
   <?php endif; ?>
 
@@ -207,46 +149,44 @@ fm_page_head('Admin');
     <?php endif; ?>
   </table>
 
-  <h2>Team</h2>
+  <div class="topbar" style="margin-top:30px">
+    <h2 style="margin:0">Team</h2>
+    <div class="row">
+      <a class="btn small ghost" href="person.php">Add person</a>
+      <a class="btn small" href="import.php">Import from CSV</a>
+    </div>
+  </div>
+  <div class="scroll" style="margin-top:12px">
   <table>
-    <tr><th>Username</th><th>Name</th><th>Role</th><th>Status</th><th>Last signed in</th><th></th></tr>
+    <tr><th>Name</th><th>Username</th><th>Email</th>
+      <?php foreach (fm_tools() as $tool): ?><th><?= fm_h($tool['label']) ?></th><?php endforeach; ?>
+      <th>Status</th><th>Last signed in</th></tr>
     <?php foreach ($users as $u): ?>
+      <?php $toolRoles = fm_tool_roles((int) $u['id']); ?>
       <tr>
-        <td><?= fm_h($u['username']) ?><?= (int) $u['id'] === (int) $me['id'] ? ' (you)' : '' ?></td>
-        <td><?= fm_h($u['display_name']) ?></td>
-        <td><?= $u['is_admin'] ? 'admin' : 'member' ?></td>
-        <td><?= $u['is_active'] ? 'active' : 'off' ?></td>
-        <td><?= $u['last_login_at'] === null ? 'never' : fm_h(substr((string) $u['last_login_at'], 0, 16)) ?></td>
-        <td>
-          <div class="row">
-            <form method="post">
-              <input type="hidden" name="csrf" value="<?= $csrf ?>">
-              <input type="hidden" name="action" value="reset_user">
-              <input type="hidden" name="id" value="<?= (int) $u['id'] ?>">
-              <button class="ghost small" type="submit">Reset code</button>
-            </form>
-            <?php if ((int) $u['id'] !== (int) $me['id']): ?>
-              <form method="post">
-                <input type="hidden" name="csrf" value="<?= $csrf ?>">
-                <input type="hidden" name="action" value="toggle_admin">
-                <input type="hidden" name="id" value="<?= (int) $u['id'] ?>">
-                <button class="ghost small" type="submit"><?= $u['is_admin'] ? 'Make member' : 'Make admin' ?></button>
-              </form>
-              <form method="post">
-                <input type="hidden" name="csrf" value="<?= $csrf ?>">
-                <input type="hidden" name="action" value="toggle_user">
-                <input type="hidden" name="id" value="<?= (int) $u['id'] ?>">
-                <button class="ghost small" type="submit"><?= $u['is_active'] ? 'Turn off' : 'Turn on' ?></button>
-              </form>
-            <?php endif; ?>
-          </div>
-        </td>
+        <td><a href="person.php?id=<?= (int) $u['id'] ?>" style="color:inherit;font-weight:700"><?= fm_h($u['display_name']) ?></a><?php
+          if ((int) $u['id'] === (int) $me['id']) { echo ' <span class="hint">(you)</span>'; } ?>
+          <?php if ($u['department']): ?><div class="hint" style="margin:0"><?= fm_h($u['department']) ?></div><?php endif; ?></td>
+        <td class="small"><?= fm_h($u['username']) ?></td>
+        <td class="small"><?= $u['email'] ? fm_h($u['email']) : '<span class="tag bad">none</span>' ?></td>
+        <?php foreach (fm_tools() as $tool): ?>
+          <td class="small"><?= fm_h(fm_role_label($tool['key'], $toolRoles[$tool['key']] ?? FM_NO_ACCESS)) ?></td>
+        <?php endforeach; ?>
+        <td><?php
+          if (!$u['is_active']) { echo '<span class="tag bad">Off</span>'; }
+          elseif ($u['pending']) { echo '<span class="tag">Not set up</span>'; }
+          else { echo '<span class="tag good">Active</span>'; }
+          if ($u['is_admin']) { echo ' <span class="tag">Admin</span>'; }
+        ?></td>
+        <td class="small"><?= $u['last_login_at'] === null ? 'never' : fm_h(substr((string) $u['last_login_at'], 0, 16)) ?></td>
       </tr>
     <?php endforeach; ?>
   </table>
+  </div>
   <p class="hint" style="margin-top:12px">
-    Turning an account off signs it out immediately and blocks sign-in, but
-    leaves the storyboards it saved in the library.
+    Click a name to edit their details and access, issue a setup or reset
+    code, or turn the account off. Turning an account off signs it out
+    everywhere and blocks sign-in, but leaves the storyboards it saved.
   </p>
 </div>
 <?php

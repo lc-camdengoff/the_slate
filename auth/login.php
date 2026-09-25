@@ -69,7 +69,8 @@ fm_page_head('Sign in');
   <div class="note">
     Need an account? <a href="signup.php?next=<?= rawurlencode($next) ?>">Sign up with an invite code</a>.<br>
     Forgotten your password? Ask an admin for a reset code, then
-    <a href="reset.php">use it here</a>.
+    <a href="reset.php">use it here</a>.<br>
+    Given a setup code for a new account? <a href="reset.php?setup=1">Set up your account</a>.
   </div>
 </div>
 <?php
