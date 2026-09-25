@@ -25,6 +25,27 @@ if (!empty($_GET['deleted'])) {
     $notice = 'Account deleted.';
 }
 
+/* Invite changes redirect back here after saving (POST, then redirect, then
+   GET), so refreshing the page shows the result instead of sending the
+   change again. A resent toggle used to flip the setting straight back. */
+$done = [
+    'created' => 'Invite code created. Share it with whoever needs an account.',
+    'updated' => 'Invite code updated.',
+    'deleted' => 'Invite code deleted.',
+];
+if (isset($done[(string) ($_GET['invite'] ?? '')])) {
+    $notice = $done[(string) $_GET['invite']];
+}
+if (!empty($_GET['code'])) {
+    $stmt = $db->prepare('SELECT code FROM invite_codes WHERE id = ?');
+    $stmt->execute([(int) $_GET['code']]);
+    $freshCode = (string) ($stmt->fetch()['code'] ?? '');
+}
+$back = static function (string $what, int $codeId = 0): void {
+    header('Location: admin.php?invite=' . $what . ($codeId ? '&code=' . $codeId : ''), true, 303);
+    exit;
+};
+
 if (($_SERVER['REQUEST_METHOD'] ?? '') === 'POST') {
     if (!fm_check_csrf($_POST['csrf'] ?? null)) {
         $error = 'That form expired. Try again.';
@@ -72,7 +93,8 @@ if (($_SERVER['REQUEST_METHOD'] ?? '') === 'POST') {
             $stmt = $db->prepare(
                 'INSERT INTO invite_codes (code, label, max_uses, expires_at, created_by, claims_pending)
                  VALUES (?, ?, ?, CASE WHEN ?::text = \'\' THEN NULL
-                                       ELSE now() + (?::text || \' days\')::interval END, ?, ?)'
+                                       ELSE now() + (?::text || \' days\')::interval END, ?, ?)
+                 RETURNING id'
             );
             $stmt->bindValue(1, $code);
             $stmt->bindValue(2, substr($label, 0, 80));
@@ -82,23 +104,30 @@ if (($_SERVER['REQUEST_METHOD'] ?? '') === 'POST') {
             $stmt->bindValue(6, $me['id']);
             fm_bind_bool($stmt, 7, !empty($_POST['claims_pending']));
             $stmt->execute();
-            $freshCode = $code;
-            $notice = 'Invite code created. Share it with whoever needs an account.';
+            $back('created', (int) $stmt->fetch()['id']);
 
-        } elseif ($action === 'toggle_claims') {
-            $db->prepare('UPDATE invite_codes SET claims_pending = NOT claims_pending WHERE id = ?')
-                ->execute([(int) ($_POST['id'] ?? 0)]);
-            $notice = 'Invite code updated.';
+        } elseif ($action === 'set_claims' || $action === 'set_active') {
+            // The form says which way to set it, rather than "flip it", so
+            // sending the same click twice cannot undo it.
+            $column = $action === 'set_claims' ? 'claims_pending' : 'is_active';
+            $stmt = $db->prepare("UPDATE invite_codes SET $column = ? WHERE id = ?");
+            fm_bind_bool($stmt, 1, ($_POST['value'] ?? '') === '1');
+            $stmt->bindValue(2, (int) ($_POST['id'] ?? 0));
+            $stmt->execute();
+            $back('updated');
 
-        } elseif ($action === 'toggle_invite') {
-            $db->prepare('UPDATE invite_codes SET is_active = NOT is_active WHERE id = ?')
+        } elseif ($action === 'toggle_claims' || $action === 'toggle_invite') {
+            // From a page loaded before the change above. Flip once, then
+            // redirect, so at least a refresh cannot flip it back.
+            $column = $action === 'toggle_claims' ? 'claims_pending' : 'is_active';
+            $db->prepare("UPDATE invite_codes SET $column = NOT $column WHERE id = ?")
                 ->execute([(int) ($_POST['id'] ?? 0)]);
-            $notice = 'Invite code updated.';
+            $back('updated');
 
         } elseif ($action === 'delete_invite') {
             $db->prepare('DELETE FROM invite_codes WHERE id = ?')
                 ->execute([(int) ($_POST['id'] ?? 0)]);
-            $notice = 'Invite code deleted.';
+            $back('deleted');
 
         }
     }
@@ -178,21 +207,22 @@ fm_page_head('Admin');
         <td><?= $i['expires_at'] === null ? 'never' : fm_h(substr((string) $i['expires_at'], 0, 10)) ?></td>
         <td><?= $i['is_active'] ? 'active' : 'off' ?></td>
         <td>
-          <form method="post">
+          <form method="post" class="row" style="flex-wrap:nowrap">
             <input type="hidden" name="csrf" value="<?= $csrf ?>">
-            <input type="hidden" name="action" value="toggle_claims">
+            <input type="hidden" name="action" value="set_claims">
             <input type="hidden" name="id" value="<?= (int) $i['id'] ?>">
-            <button class="ghost small" type="submit"
-                    title="<?= $i['claims_pending'] ? 'People already added can use this code to set up. Click to stop that.' : 'Only new accounts. Click to let people already added use it too.' ?>">
-              <?= $i['claims_pending'] ? 'Can set up · turn off' : 'New only · allow' ?></button>
+            <input type="hidden" name="value" value="<?= $i['claims_pending'] ? '0' : '1' ?>">
+            <?= $i['claims_pending'] ? '<span class="tag good">Yes</span>' : '<span class="tag">No</span>' ?>
+            <button class="ghost small" type="submit"><?= $i['claims_pending'] ? 'Stop' : 'Allow' ?></button>
           </form>
         </td>
         <td>
           <div class="row">
             <form method="post">
               <input type="hidden" name="csrf" value="<?= $csrf ?>">
-              <input type="hidden" name="action" value="toggle_invite">
+              <input type="hidden" name="action" value="set_active">
               <input type="hidden" name="id" value="<?= (int) $i['id'] ?>">
+              <input type="hidden" name="value" value="<?= $i['is_active'] ? '0' : '1' ?>">
               <button class="ghost small" type="submit"><?= $i['is_active'] ? 'Turn off' : 'Turn on' ?></button>
             </form>
             <form method="post" onsubmit="return confirm('Delete this invite code?')">
