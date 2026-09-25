@@ -166,6 +166,24 @@ fm_page_head('Admin');
     </div>
   <?php endif; ?>
 
+  <?php
+    $toolPages = [];
+    foreach (fm_tools() as $tool) {
+        foreach ((array) ($tool['admin'] ?? []) as $page) {
+            $toolPages[] = ['tool' => $tool['label'], 'label' => (string) $page['label'],
+                'blurb' => (string) ($page['blurb'] ?? ''), 'url' => fm_base_path() . ltrim((string) $page['path'], '/')];
+        }
+    }
+  ?>
+  <?php if ($toolPages): ?>
+    <h2>Tools</h2>
+    <div class="row" style="gap:10px">
+      <?php foreach ($toolPages as $tp): ?>
+        <a class="btn ghost small" href="<?= fm_h($tp['url']) ?>" title="<?= fm_h($tp['blurb']) ?>"><?= fm_h($tp['tool'] . ' · ' . $tp['label']) ?></a>
+      <?php endforeach; ?>
+    </div>
+  <?php endif; ?>
+
   <h2>Invite codes</h2>
   <form method="post">
     <input type="hidden" name="csrf" value="<?= $csrf ?>">
