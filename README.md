@@ -19,7 +19,7 @@ invite code an admin creates.
 | `index.php` | the front door: requires a session, then serves the app |
 | `app.html` | the whole app, one self-extracting file (never served directly) |
 | `src/template.html` | readable app source — edit this, not the bundle |
-| `tools/bundle.py` | unpack / pack / check the bundle |
+| `tools/bundle.py` | unpack / pack / check / build the bundle |
 | `list.php` `save.php` `load.php` `delete.php` | team library endpoints |
 | `lib.php` `diag.php` | storyboard helpers, and an install probe |
 | `auth/` | **shared sign-in for every tool under /filmmaking/** |
@@ -61,12 +61,14 @@ A new tool joins the same login with two lines — see
 ```sh
 python3 tools/bundle.py unpack   # if src/template.html is missing
 # edit src/template.html
-python3 tools/bundle.py pack     # rebuild app.html
+python3 tools/bundle.py pack     # rebuild app.html (and page.html + assets/)
 python3 tools/bundle.py check    # confirm the two are in sync
 ```
 
 Commit both `src/template.html` and `app.html`. Pushing to `main` deploys to
-`slate/` over FTPS.
+`slate/` over FTPS; the workflow first runs `bundle.py build`, which unpacks
+the app into `page.html` and `assets/` so browsers load ordinary cached files
+instead of decoding the bundle on every visit. Those two are not committed.
 
 See [DEPLOY.md](DEPLOY.md) for the hosting layout, the database setup, the
 cutover from cPanel Directory Privacy, and how to recover a deleted storyboard.

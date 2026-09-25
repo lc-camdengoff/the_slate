@@ -7,17 +7,18 @@ DirectoryIndex index.php
 
 Options -Indexes
 
-# app.html is the tool itself, served by index.php only after a session check.
+# app.html and page.html are the tool itself (page.html is app.html unpacked
+# by tools/bundle.py build), served by index.php only after a session check.
 # Without this, anyone could skip the sign-in page by asking for it directly.
 <IfModule mod_rewrite.c>
   RewriteEngine On
-  RewriteRule ^app\.html$ - [F,L]
+  RewriteRule ^(app|page)\.html$ - [F,L]
   RewriteRule ^lib\.php$ - [F,L]
   RewriteRule (^|/)\. - [F,L]
 </IfModule>
 
 # Belt to that braces, in case mod_rewrite is unavailable.
-<FilesMatch "^(app\.html|lib\.php)$">
+<FilesMatch "^(app\.html|page\.html|lib\.php)$">
   <IfModule mod_authz_core.c>
     Require all denied
   </IfModule>

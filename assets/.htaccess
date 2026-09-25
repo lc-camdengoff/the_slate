@@ -1,0 +1,27 @@
+# The Slate's fonts and scripts — /filmmaking/slate/assets/
+#
+# Written by tools/bundle.py build. Every name is a hash of the file's
+# contents, so a changed file gets a new name and these can be cached for a
+# year without anyone ever seeing a stale one. They are the same libraries and
+# fonts for everyone, so they need no sign-in; the app itself (page.html) does.
+
+Options -Indexes
+
+<IfModule mod_mime.c>
+  AddType application/javascript .js
+  AddType text/css .css
+  AddType font/woff2 .woff2
+  AddType font/woff .woff
+  AddType font/otf .otf
+  AddType font/ttf .ttf
+</IfModule>
+
+<IfModule mod_headers.c>
+  Header set Cache-Control "public, max-age=31536000, immutable"
+  Header set X-Content-Type-Options "nosniff"
+</IfModule>
+
+# The desktop fonts (otf/ttf) shrink by about half compressed.
+<IfModule mod_deflate.c>
+  AddOutputFilterByType DEFLATE application/javascript text/css font/otf font/ttf
+</IfModule>

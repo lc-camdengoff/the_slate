@@ -3,6 +3,17 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>The Slate — Filmmaking</title>
+<script>
+  // Dark or light before the first paint, so dark mode never flashes white.
+  // The same rule as slateInitialTheme() below, which takes over from here.
+  try {
+    var t = localStorage.getItem('cg_storyboard_theme');
+    if (t !== 'dark' && t !== 'light') {
+      t = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+    }
+    document.documentElement.setAttribute('data-theme', t);
+  } catch (e) { /* storage blocked: stay light */ }
+</script>
 <script src="8c1bf615-7c7d-4333-a658-1609fb97b2ec"></script>
 </head>
 <body>
@@ -1000,11 +1011,13 @@ const ASPECTS = [
   { key: '9 / 16', label: '9:16' },
 ];
 const TAGS = [
-  { key: 'purple', color: 'oklch(0.55 0.18 300)', label: 'Purple' },
+  // Hex rather than oklch(): html2canvas, which draws the PDF export, cannot
+  // read oklch() and gives up, leaving only the print dialog. Same colours.
+  { key: 'purple', color: '#8451C9', label: 'Purple' },
   { key: 'orange', color: 'var(--orange-500)', label: 'Orange' },
   { key: 'yellow', color: 'var(--campaign-yellow)', label: 'Yellow' },
   { key: 'blue', color: 'var(--cglp-blue)', label: 'Blue' },
-  { key: 'green', color: 'oklch(0.62 0.13 152)', label: 'Green' },
+  { key: 'green', color: '#3D9C5E', label: 'Green' },
 ];
 
 class Component extends DCLogic {

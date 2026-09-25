@@ -18,7 +18,9 @@ shared cPanel hosting (LiteSpeed, cPanel user `creaueyu`).
     │   └── .htaccess  config.sample.php
     ├── slate/              ← The Slate, deployed from this repo
     │   ├── index.php       the front door: requires a session, serves the app
-    │   ├── app.html        the app itself — blocked from direct requests
+    │   ├── app.html        the app as one self-unpacking bundle (the source)
+    │   ├── page.html       the same, unpacked at deploy — what index.php serves
+    │   ├── assets/         its fonts and scripts, cached by browsers for a year
     │   ├── list.php  save.php  load.php  delete.php  diag.php
     │   ├── lib.php
     │   └── .htaccess  .user.ini
@@ -450,6 +452,20 @@ python3 tools/bundle.py check    # verify the two are in sync before committing
 
 Commit both files. `pack` reproduces the bundler's exact encoding, so an
 unpack/pack round-trip with no edits leaves `app.html` byte-identical.
+
+**What the server serves is not `app.html` itself.** Opened as-is, the bundle
+decodes about 9 MB of fonts and scripts in the browser on every visit, behind a
+placeholder picture and an "Unpacking..." badge. The deploy workflow first runs
+`python3 tools/bundle.py build`, which does that decoding once: every resource
+becomes a file in `slate/assets/`, named by a hash of its contents so browsers
+cache it for a year (`assets/.htaccess`), and `page.html` is the app with those
+files linked in. `index.php` serves `page.html` after the sign-in check, and
+falls back to `app.html` if it is missing. Neither output is committed. `pack`
+also runs `build`, so a local copy stays in step.
+
+The asset files are public libraries and fonts, the same for everyone, so they
+need no sign-in; `page.html` and `app.html`, which hold the app, are blocked
+from direct requests by `.htaccess`.
 
 ## Requirements
 

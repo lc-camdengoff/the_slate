@@ -1,2 +1,6 @@
 config.php
+# Made by tools/bundle.py build, in the deploy workflow.
+/page.html
+/assets/*
+!/assets/.htaccess
 .slate-config.php
