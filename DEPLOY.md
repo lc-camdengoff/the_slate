@@ -11,9 +11,9 @@ shared cPanel hosting (LiteSpeed, cPanel user `creaueyu`).
     ├── index.html          public "Filmmaking Team" page
     ├── auth/               ← shared sign-in for EVERY tool here
     │   ├── login.php  signup.php  logout.php  reset.php
-    │   ├── account.php  admin.php  person.php  import.php  index.php
+    │   ├── account.php  admin.php  person.php  import.php  index.php  mail-test.php
     │   ├── verify.php      The Cage asks who a session belongs to
-    │   ├── auth.php  db.php  page.php  people.php  tools.php  email.php
+    │   ├── auth.php  db.php  page.php  people.php  tools.php  email.php  mailer.php
     │   │   schema.sql      (includes, not reachable)
     │   └── .htaccess  config.sample.php
     ├── slate/              ← The Slate, deployed from this repo
@@ -48,10 +48,17 @@ development-side only.
 ## Accounts
 
 The team signs in with their own accounts, stored in PostgreSQL. Signup is
-self-service, gated by a shared invite code an admin creates. **This host has
-no outbound mail**, so nothing depends on email: there are no verification
-links, and a forgotten password is an admin generating a one-time code and
-handing it over directly.
+self-service, gated by a shared invite code an admin creates. Nothing about
+accounts depends on email: there are no verification links, and a forgotten
+password is an admin generating a one-time code and handing it over directly.
+
+**Email (optional).** With a cPanel email account set up in the config file
+(`mail_from`, `smtp_host`, `smtp_port`, `smtp_pass`; see
+`auth/config.sample.php`), the Slate emails people when a storyboard is
+shared with them or someone asks for access to one of theirs. Team admin →
+**Email** shows the settings and sends a test. Each person can turn these
+off on their Account page. Without `mail_from` nothing is sent and
+everything else works the same.
 
 ### 1. Create the database
 

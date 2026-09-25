@@ -7,6 +7,7 @@ declare(strict_types=1);
 
 require __DIR__ . '/auth.php';
 require __DIR__ . '/page.php';
+require __DIR__ . '/mailer.php';
 
 fm_error_handler('html');
 
@@ -40,6 +41,12 @@ if (($_SERVER['REQUEST_METHOD'] ?? '') === 'POST') {
             fm_end_all_sessions((int) $user['id'], true);
             $notice = 'Password changed. Other devices have been signed out.';
         }
+    } elseif (($_POST['action'] ?? '') === 'notices') {
+        $on = !empty($_POST['email_notices']);
+        fm_db()->prepare('UPDATE users SET email_notices = ? WHERE id = ?')
+            ->execute([$on ? 'true' : 'false', $user['id']]);
+        $user['email_notices'] = $on;
+        $notice = $on ? 'You’ll get emails from the tools again.' : 'No more emails from the tools.';
     } elseif (($_POST['action'] ?? '') === 'name') {
         $name = trim((string) ($_POST['display_name'] ?? ''));
         if ($name === '') {
@@ -84,6 +91,26 @@ fm_page_head('Your account');
       <input type="text" name="display_name" value="<?= fm_h($user['display_name']) ?>" required>
     </label>
     <button type="submit">Save name</button>
+  </form>
+
+  <h2>Emails</h2>
+  <form method="post">
+    <input type="hidden" name="csrf" value="<?= fm_h(fm_csrf_token()) ?>">
+    <input type="hidden" name="action" value="notices">
+    <label class="check">
+      <input type="checkbox" name="email_notices" value="1"<?= !empty($user['email_notices']) ? ' checked' : '' ?>>
+      <span>Email me when a storyboard is shared with me, or someone asks for access to one of mine</span>
+    </label>
+    <p class="hint" style="margin-top:-6px">
+      <?php if (trim((string) ($user['email'] ?? '')) === ''): ?>
+        There’s no email address on your account, so nothing can be sent. An admin can add one.
+      <?php elseif (!fm_mail_enabled()): ?>
+        Sent to <?= fm_h((string) $user['email']) ?> once an admin has set up email.
+      <?php else: ?>
+        Sent to <?= fm_h((string) $user['email']) ?>.
+      <?php endif; ?>
+    </p>
+    <button type="submit">Save</button>
   </form>
 
   <h2>Change password</h2>

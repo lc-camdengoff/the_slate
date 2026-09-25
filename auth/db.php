@@ -121,13 +121,13 @@ function fm_migrate_columns(PDO $pdo): void
         "SELECT
            (SELECT count(*) FROM information_schema.columns
              WHERE table_schema = 'public' AND table_name = 'users'
-               AND column_name IN ('email', 'phone', 'department', 'notes')) AS cols,
+               AND column_name IN ('email', 'phone', 'department', 'notes', 'email_notices')) AS cols,
            (SELECT count(*) FROM information_schema.columns
              WHERE table_schema = 'public' AND table_name = 'invite_codes'
                AND column_name = 'claims_pending') AS claims,
            to_regclass('public.user_tool_roles') IS NOT NULL AS roles"
     )->fetch();
-    if ((int) ($have['cols'] ?? 0) === 4 && (int) ($have['claims'] ?? 0) === 1 && !empty($have['roles'])) {
+    if ((int) ($have['cols'] ?? 0) === 5 && (int) ($have['claims'] ?? 0) === 1 && !empty($have['roles'])) {
         return;
     }
 
@@ -139,6 +139,9 @@ function fm_migrate_columns(PDO $pdo): void
         $pdo->exec('ALTER TABLE users ADD COLUMN IF NOT EXISTS phone text');
         $pdo->exec('ALTER TABLE users ADD COLUMN IF NOT EXISTS department text');
         $pdo->exec('ALTER TABLE users ADD COLUMN IF NOT EXISTS notes text');
+        // Emails from the tools (a storyboard shared with you, say). On
+        // unless the person turns them off on their Account page.
+        $pdo->exec('ALTER TABLE users ADD COLUMN IF NOT EXISTS email_notices boolean NOT NULL DEFAULT true');
         $pdo->exec('CREATE TABLE IF NOT EXISTS user_tool_roles (
                         user_id bigint NOT NULL REFERENCES users(id) ON DELETE CASCADE,
                         tool    text   NOT NULL,

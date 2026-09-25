@@ -24,7 +24,10 @@ CREATE TABLE IF NOT EXISTS users (
     -- The Cage reads phone and department through verify.php.
     phone         text,
     department    text,
-    notes         text
+    notes         text,
+    -- Emails from the tools, such as a storyboard shared with you. The
+    -- person can turn them off on their Account page.
+    email_notices boolean     NOT NULL DEFAULT true
 );
 -- An account made by an admin or an import has no password until its owner
 -- redeems the setup code they were given: password_hash is '' until then,

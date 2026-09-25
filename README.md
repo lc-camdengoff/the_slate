@@ -27,7 +27,7 @@ invite code an admin creates.
 | `auth/account.php` `admin.php` | your own settings, and team admin |
 | `auth/person.php` `import.php` | edit one person and their access; import a CSV |
 | `auth/verify.php` | lets The Cage ask who a session belongs to |
-| `auth/auth.php` `db.php` `page.php` `people.php` `tools.php` `email.php` `schema.sql` | includes |
+| `auth/auth.php` `db.php` `page.php` `people.php` `tools.php` `email.php` `mailer.php` `schema.sql` | includes |
 | `auth/config.sample.php` | template for the config you upload by hand |
 | `.htaccess` `.user.ini` | server config, deployed with the app |
 | `server/saved.htaccess` | for the shared folder — uploaded by hand, once |
@@ -35,8 +35,8 @@ invite code an admin creates.
 ## Accounts
 
 PostgreSQL holds users, sessions, invite codes and reset codes, shared by every
-tool under `/filmmaking/`. The host has no outbound mail, so nothing depends on
-email:
+tool under `/filmmaking/`. Nothing about accounts depends on email (the
+Slate's sharing emails are optional; see `auth/mailer.php`):
 
 - **Signing up** needs an invite code, created by an admin on `admin.php`.
 - **The first account** uses the `bootstrap_code` from the config file and

@@ -387,6 +387,87 @@ function slate_with_requests(array $meta, array $requests): array
 const SLATE_MAX_REQUESTS = 50;
 
 /**
+ * Run $work once the response has gone to the browser, so sending email
+ * never makes anyone wait. Where the server cannot let go of the request
+ * early it still runs, just before the connection closes.
+ */
+function slate_after_response(callable $work): void
+{
+    register_shutdown_function(static function () use ($work) {
+        if (function_exists('fastcgi_finish_request')) {
+            fastcgi_finish_request();
+        } elseif (function_exists('litespeed_finish_request')) {
+            litespeed_finish_request();
+        }
+        try {
+            $work();
+        } catch (Throwable $e) {
+            error_log('slate: after-response work failed: ' . $e->getMessage());
+        }
+    });
+}
+
+/** Account id for a username, or 0. */
+function slate_account_id(string $username): int
+{
+    if ($username === '') {
+        return 0;
+    }
+    $stmt = fm_db()->prepare('SELECT id FROM users WHERE username_ci = ?');
+    $stmt->execute([strtolower($username)]);
+    return (int) ($stmt->fetch()['id'] ?? 0);
+}
+
+/** The Slate's own address for a board, from an email. */
+function slate_board_link(string $id, bool $openShare = false): string
+{
+    return fm_absolute_url(fm_base_path() . 'slate/#board=' . $id . ($openShare ? '&share=1' : ''));
+}
+
+/** Tell the people just given access. Needs auth/mailer.php. */
+function slate_mail_shared(array $meta, array $added, string $byName): void
+{
+    if (!$added || !fm_mail_enabled()) {
+        return;
+    }
+    $title = trim((string) ($meta['title'] ?? '')) ?: 'Untitled Storyboard';
+    $link = slate_board_link((string) $meta['id']);
+    foreach (fm_mail_recipients(array_keys($added)) as $personId => $to) {
+        $can = $added[$personId] === SLATE_EDIT ? 'edit' : 'view';
+        $lines = [
+            $byName . ' shared the storyboard “' . $title . '” with you. You can ' . $can . ' it.',
+            'It’s in Your Storyboards in the Slate.',
+        ];
+        fm_send_mail($to['email'], $byName . ' shared “' . $title . '” with you',
+            implode("\n\n", $lines) . "\n\nOpen it: " . $link . "\n",
+            fm_mail_html('Shared with you', $lines, 'Open storyboard', $link));
+    }
+}
+
+/** Tell a board's owner someone is asking for access. Needs auth/mailer.php. */
+function slate_mail_request(array $meta, string $level, string $byName, string $byUsername): void
+{
+    if (!fm_mail_enabled()) {
+        return;
+    }
+    $owner = slate_account_id(slate_owner($meta));
+    $to = fm_mail_recipients([$owner])[$owner] ?? null;
+    if ($to === null) {
+        return;
+    }
+    $title = trim((string) ($meta['title'] ?? '')) ?: 'Untitled Storyboard';
+    $link = slate_board_link((string) $meta['id'], true);
+    $what = $level === SLATE_EDIT ? 'edit' : 'view';
+    $lines = [
+        $byName . ' (' . $byUsername . ') opened a link to your storyboard “' . $title . '” and is asking to ' . $what . ' it.',
+        'Open the Share panel to allow or decline.',
+    ];
+    fm_send_mail($to['email'], $byName . ' is asking to ' . $what . ' “' . $title . '”',
+        implode("\n\n", $lines) . "\n\nAnswer the request: " . $link . "\n",
+        fm_mail_html('Access request', $lines, 'Answer the request', $link));
+}
+
+/**
  * Display names for usernames, keyed by lower-case username. One query.
  *
  * @param list<string> $usernames
