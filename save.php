@@ -211,10 +211,13 @@ $meta = [
 ];
 // Rebuilt fresh above, so carry over who it is shared with.
 $meta = slate_with_shares($meta, slate_shares($existing));
+$meta = slate_with_requests($meta, slate_requests($existing));
 @file_put_contents(slate_meta_path($saved, $id), json_encode($meta, JSON_UNESCAPED_SLASHES));
 @chmod(slate_meta_path($saved, $id), 0644);
 
 flock($lock, LOCK_UN);
 fclose($lock);
 
-slate_json(200, ['ok' => true] + $meta + ['file' => 'load.php?id=' . $id]);
+// Who it is shared with and who asked is the owner's business (share.php).
+slate_json(200, ['ok' => true] + array_diff_key($meta, ['shares' => 1, 'requests' => 1])
+    + ['file' => 'load.php?id=' . $id]);

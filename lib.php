@@ -348,6 +348,45 @@ function slate_with_shares(array $meta, array $shares): array
 }
 
 /**
+ * People who opened a link to the board without access and asked for it:
+ * account id => ['level' => SLATE_VIEW|SLATE_EDIT, 'at' => ms]. The owner
+ * answers them in the Share panel; being given access clears the request.
+ *
+ * @return array<int, array{level: string, at: int}>
+ */
+function slate_requests(?array $meta): array
+{
+    $out = [];
+    foreach ((array) ($meta['requests'] ?? []) as $id => $request) {
+        $request = (array) $request;
+        $level = (string) ($request['level'] ?? '');
+        if ((int) $id > 0 && ($level === SLATE_VIEW || $level === SLATE_EDIT)) {
+            $out[(int) $id] = ['level' => $level, 'at' => (int) ($request['at'] ?? 0)];
+        }
+    }
+    return $out;
+}
+
+/** $meta with its requests replaced; none at all leaves the key out. */
+function slate_with_requests(array $meta, array $requests): array
+{
+    unset($meta['requests']);
+    $clean = [];
+    foreach ($requests as $id => $request) {
+        if ((int) $id > 0) {
+            $clean[(string) (int) $id] = ['level' => (string) $request['level'], 'at' => (int) $request['at']];
+        }
+    }
+    if ($clean) {
+        $meta['requests'] = (object) $clean;
+    }
+    return $meta;
+}
+
+// More waiting than this on one board and the oldest make way.
+const SLATE_MAX_REQUESTS = 50;
+
+/**
  * Display names for usernames, keyed by lower-case username. One query.
  *
  * @param list<string> $usernames
@@ -948,7 +987,7 @@ function slate_each_board_of(string $username, callable $change, int $userId = 0
         }
         $meta = slate_read_meta($saved, $id);
         // Shared with them counts as naming them, when their id is given.
-        $names = $userId > 0 && isset(slate_shares($meta)[$userId]);
+        $names = $userId > 0 && (isset(slate_shares($meta)[$userId]) || isset(slate_requests($meta)[$userId]));
         foreach (SLATE_PERSON_FIELDS as $field) {
             if ($username !== '' && strcasecmp(trim((string) ($meta[$field] ?? '')), $username) === 0) {
                 $names = true;
@@ -1073,6 +1112,9 @@ function slate_account_deleted(string $username, int $userId = 0): array
         }
         if ($userId > 0 && isset($meta['shares'])) {
             $meta = slate_with_shares($meta, array_diff_key(slate_shares($meta), [$userId => true]));
+        }
+        if ($userId > 0 && isset($meta['requests'])) {
+            $meta = slate_with_requests($meta, array_diff_key(slate_requests($meta), [$userId => true]));
         }
         return $meta;
     }, $userId);
