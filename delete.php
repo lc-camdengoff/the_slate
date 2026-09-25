@@ -37,10 +37,13 @@ if (!file_exists($path)) {
 }
 
 $meta = slate_read_meta($saved, $id);
-if (!slate_can_read($meta, (string) $account['username'])) {
+if (!slate_can_read($meta, (string) $account['username'], (int) $account['id'])) {
     slate_fail(404, 'not_found');
 }
-if (!slate_can_write($meta, (string) $account['username'])) {
+// Team boards stay deletable by anyone, as before. A private board is its
+// owner's to delete, even when others were given edit; they can leave it.
+if (!slate_can_write($meta, (string) $account['username'], (int) $account['id'])
+    || (slate_visibility($meta) === SLATE_PRIVATE && !slate_can_manage($meta, $account))) {
     slate_fail(403, 'not_yours');
 }
 

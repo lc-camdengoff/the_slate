@@ -172,7 +172,7 @@ function fm_delete_user(int $userId): array
         return [];
     }
     error_log("slate: account $username deleted");
-    return fm_run_account_hooks('deleted', [$username]);
+    return fm_run_account_hooks('deleted', [$username, $userId]);
 }
 
 /**

@@ -63,9 +63,10 @@ function slate_user(): array
 {
     $user = fm_current_user();
     if ($user === null) {
-        return ['name' => null, 'username' => null, 'is_admin' => false];
+        return ['id' => 0, 'name' => null, 'username' => null, 'is_admin' => false];
     }
     return [
+        'id' => (int) $user['id'],
         'name' => slate_clean_text((string) $user['display_name'], 64),
         'username' => (string) $user['username'],
         'is_admin' => (bool) $user['is_admin'],
@@ -143,6 +144,20 @@ function slate_read_meta(string $saved, string $id): ?array
     }
     $meta = json_decode($raw, true);
     return is_array($meta) ? $meta : null;
+}
+
+/** Replace a board's sidecar in one step, so a reader never sees half of it. */
+function slate_write_meta(string $saved, string $id, array $meta): bool
+{
+    $path = slate_meta_path($saved, $id);
+    $tmp = $path . '.tmp';
+    $json = json_encode($meta, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE);
+    if ($json === false || @file_put_contents($tmp, $json) === false || !@rename($tmp, $path)) {
+        @unlink($tmp);
+        return false;
+    }
+    @chmod($path, 0644);
+    return true;
 }
 
 function slate_now_ms(): int
@@ -296,10 +311,119 @@ function slate_owns(?array $meta, string $username): bool
     return $owner !== '' && strcasecmp($owner, $username) === 0;
 }
 
-/** May this account read the board? */
-function slate_can_read(?array $meta, string $username): bool
+// A private board can also be shared with particular people, like a document:
+// the sidecar's 'shares' maps account ids to SLATE_VIEW or SLATE_EDIT. Ids
+// rather than usernames, so a rename changes nothing and a username given to
+// someone new later never inherits another person's access.
+const SLATE_VIEW = 'view';
+const SLATE_EDIT = 'edit';
+
+/** @return array<int, string> account id => SLATE_VIEW|SLATE_EDIT */
+function slate_shares(?array $meta): array
 {
-    return slate_visibility($meta) === SLATE_TEAM || slate_owns($meta, $username);
+    $out = [];
+    foreach ((array) ($meta['shares'] ?? []) as $id => $level) {
+        if ((int) $id > 0 && ($level === SLATE_VIEW || $level === SLATE_EDIT)) {
+            $out[(int) $id] = $level;
+        }
+    }
+    return $out;
+}
+
+/** $meta with its shares replaced; none at all leaves the key out. */
+function slate_with_shares(array $meta, array $shares): array
+{
+    unset($meta['shares']);
+    $clean = [];
+    foreach ($shares as $id => $level) {
+        if ((int) $id > 0 && ($level === SLATE_VIEW || $level === SLATE_EDIT)) {
+            $clean[(string) (int) $id] = $level;
+        }
+    }
+    if ($clean) {
+        // An object in the JSON even for one id, never a list.
+        $meta['shares'] = (object) $clean;
+    }
+    return $meta;
+}
+
+/**
+ * Display names for usernames, keyed by lower-case username. One query.
+ *
+ * @param list<string> $usernames
+ * @return array<string, string>
+ */
+function slate_display_names(array $usernames): array
+{
+    $keys = array_values(array_unique(array_map('strtolower', $usernames)));
+    if (!$keys) {
+        return [];
+    }
+    $stmt = fm_db()->prepare('SELECT username_ci, display_name FROM users WHERE username_ci IN ('
+        . implode(',', array_fill(0, count($keys), '?')) . ')');
+    $stmt->execute($keys);
+    $out = [];
+    foreach ($stmt->fetchAll() as $row) {
+        $out[(string) $row['username_ci']] = (string) $row['display_name'];
+    }
+    return $out;
+}
+
+/**
+ * Everyone a board can be shared with: active accounts that may use the
+ * Slate, by name. Accounts an admin added that nobody has signed in to yet
+ * are included, marked pending; sharing waits for them.
+ *
+ * @return array<int, array{id: int, name: string, username: string, pending: bool}>
+ */
+function slate_team_people(): array
+{
+    $tool = fm_tool('slate');
+    $stmt = fm_db()->prepare(
+        "SELECT u.id, u.username, u.display_name, (u.password_hash = '') AS pending, r.role
+           FROM users u
+           LEFT JOIN user_tool_roles r ON r.user_id = u.id AND r.tool = 'slate'
+          WHERE u.is_active
+          ORDER BY lower(u.display_name), u.id"
+    );
+    $stmt->execute();
+    $out = [];
+    foreach ($stmt->fetchAll() as $row) {
+        // The same rule as fm_tool_roles(), for everyone at once.
+        $role = $row['role'] === null ? (string) ($tool['default_role'] ?? FM_NO_ACCESS) : (string) $row['role'];
+        if ($role === FM_NO_ACCESS || !isset($tool['roles'][$role])) {
+            continue;
+        }
+        $out[(int) $row['id']] = [
+            'id' => (int) $row['id'],
+            'name' => (string) $row['display_name'],
+            'username' => (string) $row['username'],
+            'pending' => (bool) $row['pending'],
+        ];
+    }
+    return $out;
+}
+
+/**
+ * What this account may do with the board: 'owner', SLATE_EDIT, SLATE_VIEW,
+ * or '' for nothing. $userId 0 leaves shares out of it.
+ */
+function slate_access(?array $meta, string $username, int $userId = 0): string
+{
+    if (slate_owns($meta, $username)) {
+        return 'owner';
+    }
+    $shared = $userId > 0 ? (slate_shares($meta)[$userId] ?? '') : '';
+    if (slate_visibility($meta) === SLATE_TEAM || $shared === SLATE_EDIT) {
+        return SLATE_EDIT;
+    }
+    return $shared;
+}
+
+/** May this account read the board? */
+function slate_can_read(?array $meta, string $username, int $userId = 0): bool
+{
+    return slate_access($meta, $username, $userId) !== '';
 }
 
 /**
@@ -307,11 +431,23 @@ function slate_can_read(?array $meta, string $username): bool
  *
  * Team boards stay editable by anyone, as they were before ownership existed
  * — the conflict check is what stops two people clobbering each other, not a
- * permission. A private board is only its owner's.
+ * permission. A private board is its owner's, and whoever they gave edit to.
  */
-function slate_can_write(?array $meta, string $username): bool
+function slate_can_write(?array $meta, string $username, int $userId = 0): bool
 {
-    return slate_visibility($meta) === SLATE_TEAM || slate_owns($meta, $username);
+    return in_array(slate_access($meta, $username, $userId), ['owner', SLATE_EDIT], true);
+}
+
+/**
+ * May this account change who the board is shared with, or delete it while
+ * it is private? Its owner, and admins. A board from before owners existed
+ * has nobody to ask, so on those anyone who can write may.
+ */
+function slate_can_manage(?array $meta, array $user): bool
+{
+    return !empty($user['is_admin'])
+        || slate_owns($meta, (string) $user['username'])
+        || (slate_owner($meta) === '' && slate_visibility($meta) === SLATE_TEAM);
 }
 
 // ---------------------------------------------------------------------------
@@ -795,10 +931,10 @@ const SLATE_PERSON_FIELDS = ['owner', 'savedByUser', 'createdByUser'];
  *
  * @return array{0: int, 1: int} [boards changed, boards that failed]
  */
-function slate_each_board_of(string $username, callable $change): array
+function slate_each_board_of(string $username, callable $change, int $userId = 0): array
 {
     $saved = slate_saved_dir();
-    if ($saved === null || $username === '') {
+    if ($saved === null || ($username === '' && $userId <= 0)) {
         return [0, 0];
     }
     $lockDir = slate_internal_dir($saved, '.tmp');
@@ -811,9 +947,10 @@ function slate_each_board_of(string $username, callable $change): array
             continue;
         }
         $meta = slate_read_meta($saved, $id);
-        $names = false;
+        // Shared with them counts as naming them, when their id is given.
+        $names = $userId > 0 && isset(slate_shares($meta)[$userId]);
         foreach (SLATE_PERSON_FIELDS as $field) {
-            if (strcasecmp(trim((string) ($meta[$field] ?? '')), $username) === 0) {
+            if ($username !== '' && strcasecmp(trim((string) ($meta[$field] ?? '')), $username) === 0) {
                 $names = true;
             }
         }
@@ -920,11 +1057,12 @@ function slate_rename_in_trash(string $from, string $to): int
  * and leaving them would hand them to whoever is next given that username.
  * Team boards stay in the library, still credited to them by name, but the
  * username on them becomes one no account can have, for the same reason.
+ * Boards shared with them just stop being.
  */
-function slate_account_deleted(string $username): array
+function slate_account_deleted(string $username, int $userId = 0): array
 {
     $gone = '(deleted) ' . $username;
-    $result = slate_each_board_of($username, static function (string $saved, string $id, array $meta) use ($username, $gone) {
+    $result = slate_each_board_of($username, static function (string $saved, string $id, array $meta) use ($username, $userId, $gone) {
         if (slate_visibility($meta) === SLATE_PRIVATE && slate_owns($meta, $username)) {
             return slate_trash_board($saved, $id, $username, 'Account removal');
         }
@@ -933,8 +1071,11 @@ function slate_account_deleted(string $username): array
                 $meta[$field] = $gone;
             }
         }
+        if ($userId > 0 && isset($meta['shares'])) {
+            $meta = slate_with_shares($meta, array_diff_key(slate_shares($meta), [$userId => true]));
+        }
         return $meta;
-    });
+    }, $userId);
     // Including what was just trashed above, so its owner is a username no
     // account can have and only an admin can see or restore it.
     $result[1] += slate_rename_in_trash($username, $gone);

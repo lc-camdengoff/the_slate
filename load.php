@@ -46,9 +46,14 @@ if ($real === false || strpos($real, $saved . '/') !== 0 || !is_file($real)) {
 
 // Someone else's private board reads as missing rather than forbidden, so the
 // listing cannot be used to discover what other people are working on.
-if (!slate_can_read(slate_read_meta($saved, $id), (string) $account['username'])) {
+$meta = slate_read_meta($saved, $id);
+if (!slate_can_read($meta, (string) $account['username'], (int) $account['id'])) {
     slate_fail(404, 'not_found');
 }
+// The revision this copy is, for the client's next save to say it started
+// from; and what this person may do with it.
+header('X-Slate-Rev: ' . (int) ($meta['updatedAt'] ?? 0));
+header('X-Slate-Access: ' . slate_access($meta, (string) $account['username'], (int) $account['id']));
 
 $stamp = (int) filemtime($real);
 $size = (int) filesize($real);

@@ -137,11 +137,16 @@ $path = slate_board_path($saved, $id);
 $existing = slate_read_meta($saved, $id);
 
 // Someone else's private board is not yours to overwrite.
-if (!$isNew && $existing !== null && !slate_can_write($existing, $savedByUser)) {
+if (!$isNew && $existing !== null && !slate_can_write($existing, $savedByUser, (int) $account['id'])) {
     @unlink($tmpPath);
     flock($lock, LOCK_UN);
     fclose($lock);
     slate_fail(403, 'not_yours');
+}
+// Someone the board is shared with can edit it, but whether the whole team
+// sees it is its owner's call.
+if (!$isNew && $existing !== null && !slate_can_manage($existing, $account)) {
+    $wanted = '';
 }
 
 // Last-writer-wins is fine as long as the writer knows they are last: if the
@@ -204,6 +209,8 @@ $meta = [
     'shotCount' => $shotCount,
     'bytes' => $bytes,
 ];
+// Rebuilt fresh above, so carry over who it is shared with.
+$meta = slate_with_shares($meta, slate_shares($existing));
 @file_put_contents(slate_meta_path($saved, $id), json_encode($meta, JSON_UNESCAPED_SLASHES));
 @chmod(slate_meta_path($saved, $id), 0644);
 

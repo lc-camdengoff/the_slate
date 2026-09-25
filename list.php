@@ -70,9 +70,11 @@ foreach (glob($saved . '/*.json') ?: [] as $path) {
 
     $meta = slate_read_meta($saved, $name);
     $me = (string) $user['username'];
-    if (!slate_can_read($meta, $me)) {
+    $access = slate_access($meta, $me, (int) $user['id']);
+    if ($access === '') {
         continue;
     }
+    $shares = slate_shares($meta);
     $size = filesize($path);
     $entry = [
         'id' => $name,
@@ -86,17 +88,40 @@ foreach (glob($saved . '/*.json') ?: [] as $path) {
         'owner' => slate_owner($meta),
         'visibility' => slate_visibility($meta),
         'isMine' => slate_owns($meta, $me),
+        // 'owner', 'edit' or 'view': what this person may do with it.
+        'access' => $access,
+        // Shared with this person by name, rather than theirs or the team's.
+        'sharedWithMe' => isset($shares[(int) $user['id']]) && !slate_owns($meta, $me),
+        'shareCount' => count($shares),
+        'canManage' => slate_can_manage($meta, $user),
         // Reads go through load.php now: ../saved/ is closed to the web.
         'file' => 'load.php?id=' . $name,
     ];
 
     // A board you own and have shared belongs in both lists, the same way a
     // local copy and its library entry both showed before boards had owners.
-    if ($entry['isMine']) {
+    // One shared with you by name sits with yours too, like a document would.
+    if ($entry['isMine'] || $entry['sharedWithMe']) {
         $mine[] = $entry;
     }
     if ($entry['visibility'] === SLATE_TEAM) {
         $boards[] = $entry;
+    }
+}
+
+// Who shared each one, by name: one lookup for them all.
+$owners = [];
+foreach ($mine as $entry) {
+    if ($entry['sharedWithMe'] && $entry['owner'] !== '') {
+        $owners[strtolower($entry['owner'])] = true;
+    }
+}
+if ($owners) {
+    $names = slate_display_names(array_keys($owners));
+    foreach ($mine as $i => $entry) {
+        if ($entry['sharedWithMe']) {
+            $mine[$i]['ownerName'] = $names[strtolower($entry['owner'])] ?? $entry['owner'];
+        }
     }
 }
 

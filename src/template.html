@@ -338,6 +338,19 @@
   @media (hover:none){
     .sl-imgtools{opacity:1!important;pointer-events:auto!important}
   }
+  /* View only (shared to look at, not change): the board can be read,
+     printed and exported, and nothing on it reacts. The fields are also
+     made read-only in componentDidUpdate, so Tab can't reach them either. */
+  .cg-board-wrap[data-access="view"] .sl-edit-only,
+  .cg-board-wrap[data-access="view"] .sl-cardfoot,
+  .cg-board-wrap[data-access="view"] .sl-imgtools{display:none!important}
+  .cg-board-wrap[data-access="view"] .cg-board,
+  .cg-board-wrap[data-access="view"] .sl-board-head input{pointer-events:none}
+  /* Share panel: full screen on a phone. */
+  @media screen and (max-width:640px){
+    .sl-share-card{width:100%!important;max-width:none!important;min-height:100vh;border:none!important}
+    .sl-share-wrap{padding:0!important;align-items:stretch!important}
+  }
   /* Reorder buttons: for touch screens (no drag and drop) and narrow
      windows. Everywhere else, drag the handle. */
   .sl-move{display:none!important}
@@ -458,7 +471,9 @@
       <symbol id="ui-print" sc-camel-view-box="0 0 24 24"><path d="M7 9V4h10v5M7 18H5v-6a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v6h-2M7 15h10v5H7z"></path></symbol>
       <symbol id="ui-caret" sc-camel-view-box="0 0 24 24"><path d="M7 10l5 5 5-5"></path></symbol>
       <symbol id="ui-cloud" sc-camel-view-box="0 0 24 24"><path d="M7.5 19h9.2a3.8 3.8 0 0 0 .6-7.55A5.6 5.6 0 0 0 6.7 10.3 4.4 4.4 0 0 0 7.5 19z"></path><path d="M12 16.5V9.6M9.4 12.2L12 9.5l2.6 2.7"></path></symbol>
-      <symbol id="ui-refresh" sc-camel-view-box="0 0 24 24"><path d="M20 12a8 8 0 1 1-2.4-5.7"></path><path d="M20 4v4.5h-4.5"></path></symbol>
+      <symbol id="ui-user" sc-camel-view-box="0 0 24 24"><circle cx="9" cy="8" r="3.2"></circle><path d="M3.5 19a5.5 5.5 0 0 1 11 0"></path><path d="M18 8v6M15 11h6"></path></symbol>
+      <symbol id="ui-link" sc-camel-view-box="0 0 24 24"><path d="M10 14a4 4 0 0 0 5.7 0l3-3a4 4 0 0 0-5.7-5.7l-1 1"></path><path d="M14 10a4 4 0 0 0-5.7 0l-3 3a4 4 0 0 0 5.7 5.7l1-1"></path></symbol>
+      <symbol id="ui-refresh"sc-camel-view-box="0 0 24 24"><path d="M20 12a8 8 0 1 1-2.4-5.7"></path><path d="M20 4v4.5h-4.5"></path></symbol>
       <symbol id="ui-sun" sc-camel-view-box="0 0 24 24"><circle cx="12" cy="12" r="4"></circle><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"></path></symbol>
       <symbol id="ui-moon" sc-camel-view-box="0 0 24 24"><path d="M20 14.5A8 8 0 0 1 9.5 4a8 8 0 1 0 10.5 10.5z"></path></symbol>
       <symbol id="ui-pdf" sc-camel-view-box="0 0 24 24"><path d="M6 2h9l5 5v15H6z"></path><path d="M15 2v5h5"></path><path d="M8.5 17.5v-4h1.2a1.2 1.2 0 0 1 0 2.4H8.5M12.3 17.5v-4h1a1.6 1.6 0 0 1 0 4h-1zM17.5 13.5h-2v4M15.5 15.3h1.7" stroke-width="1.6"></path></symbol>
@@ -525,11 +540,16 @@
       <div style="display:grid;grid-template-columns:repeat(auto-fill, minmax(300px, 1fr));gap:18px">
         <sc-for list="{{ boards }}" as="b" hint-placeholder-count="0">
           <div sc-camel-on-click="{{ openBoard }}" data-id="{{ b.id }}" style="background:var(--white);border:1px solid var(--gray-15);padding:20px;cursor:pointer;display:flex;flex-direction:column;gap:6px;position:relative" style-hover="border-color:var(--black)">
-            <button data-id="{{ b.id }}" sc-camel-on-click="{{ deleteBoard }}" title="Delete" data-noprint="" style="position:absolute;top:12px;right:12px;width:28px;height:28px;background:transparent;border:1px solid var(--gray-15);color:var(--gray-40);cursor:pointer;display:flex;align-items:center;justify-content:center" style-hover="color:var(--red-500);border-color:var(--red-500)">
+            <button data-id="{{ b.id }}" sc-camel-on-click="{{ deleteBoard }}" title="{{ b.deleteTitle }}" aria-label="{{ b.deleteTitle }}" data-noprint="" style="position:absolute;top:12px;right:12px;width:28px;height:28px;background:transparent;border:1px solid var(--gray-15);color:var(--gray-40);cursor:pointer;display:flex;align-items:center;justify-content:center" style-hover="color:var(--red-500);border-color:var(--red-500)">
               <svg width="15" height="15"><use href="#ui-trash"></use></svg>
             </button>
             <div style="font-family:var(--font-display);font-weight:900;font-size:19px;letter-spacing:-0.01em;text-transform:uppercase;color:var(--black);padding-right:30px">{{ b.title }}</div>
             <div style="font-family:var(--font-mono);font-size:11px;letter-spacing:0.04em;text-transform:uppercase;color:var(--gray-30);margin-top:4px">{{ b.shotCount }} shots · Updated {{ b.updatedLabel }}</div>
+            <sc-if value="{{ b.hasShareLine }}" hint-placeholder-val="{{ false }}">
+              <div style="display:flex;align-items:center;gap:6px;font-family:var(--font-mono);font-size:11px;letter-spacing:0.04em;text-transform:uppercase;color:var(--cglp-blue)">
+                <svg width="13" height="13"><use href="#ui-user"></use></svg>{{ b.shareLine }}
+              </div>
+            </sc-if>
           </div>
         </sc-for>
       </div>
@@ -555,7 +575,7 @@
             <div style="border:2px dashed var(--gray-20);background:var(--white);padding:44px 32px;text-align:center;display:flex;flex-direction:column;align-items:center;gap:12px">
               <svg width="34" height="34" style="color:var(--gray-20)"><use href="#ui-cloud"></use></svg>
               <div style="font-family:var(--font-display);font-weight:900;font-size:19px;letter-spacing:-0.01em;text-transform:uppercase;color:var(--black)">Nothing shared yet</div>
-              <div style="font-size:14px;color:var(--gray-30)">Open a storyboard and choose Save to Library to share it with the team.</div>
+              <div style="font-size:14px;color:var(--gray-30)">Open a storyboard, choose Share, and pick “Everyone on the team”.</div>
             </div>
           </sc-if>
 
@@ -617,7 +637,7 @@
 </sc-if>
 
 <sc-if value="{{ isBoardView }}" hint-placeholder-val="{{ false }}">
-<div class="cg-board-wrap" style="min-height:100vh;display:flex;flex-direction:column">
+<div class="cg-board-wrap" data-access="{{ boardAccess }}" style="min-height:100vh;display:flex;flex-direction:column">
 
   <header class="sl-board-head" style="background:var(--white);border-bottom:1px solid var(--gray-15);padding:26px 32px 22px">
     <div style="max-width:1440px;margin:0 auto;display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap">
@@ -680,7 +700,7 @@
         </div>
 
         <sc-if value="{{ showDayBreakBtn }}" hint-placeholder-val="{{ false }}">
-          <button sc-camel-on-click="{{ insertDayBreak }}" title="Insert a shooting-day break above the selected shot" style="display:flex;align-items:center;gap:6px;height:36px;padding:0 12px;background:transparent;border:1px solid var(--gray-15);color:var(--gray-50);font-size:12px;font-weight:700;cursor:pointer;text-transform:uppercase;letter-spacing:0.04em" style-hover="background:var(--gray-5)">Day Break</button>
+          <button class="sl-edit-only" sc-camel-on-click="{{ insertDayBreak }}" title="Insert a shooting-day break above the selected shot" style="display:flex;align-items:center;gap:6px;height:36px;padding:0 12px;background:transparent;border:1px solid var(--gray-15);color:var(--gray-50);font-size:12px;font-weight:700;cursor:pointer;text-transform:uppercase;letter-spacing:0.04em" style-hover="background:var(--gray-5)">Day Break</button>
         </sc-if>
 
         <sc-if value="{{ libraryEnabled }}" hint-placeholder-val="{{ true }}">
@@ -690,9 +710,14 @@
           <sc-if value="{{ hasLibraryStatus }}" hint-placeholder-val="{{ false }}">
             <span style="font-family:var(--font-mono);font-size:11px;letter-spacing:0.06em;text-transform:uppercase;color:var(--gray-40)">{{ libraryStatus }}</span>
           </sc-if>
-          <button sc-camel-on-click="{{ saveToLibrary }}" title="Save this storyboard to the shared team library" style="{{ libSaveBtnStyle }}" style-hover="background:var(--gray-5)">
-            <svg width="16" height="16"><use href="#ui-cloud"></use></svg>{{ libSaveLabel }}
-          </button>
+          <sc-if value="{{ canShare }}" hint-placeholder-val="{{ true }}">
+            <button class="sl-share-btn" sc-camel-on-click="{{ openShare }}" title="Choose who can view or edit this storyboard" style="{{ shareBtnStyle }}" style-hover="opacity:0.88">
+              <svg width="16" height="16"><use href="#ui-user"></use></svg>{{ shareBtnLabel }}
+            </button>
+          </sc-if>
+          <sc-if value="{{ hasSharedByLine }}" hint-placeholder-val="{{ false }}">
+            <span style="font-family:var(--font-mono);font-size:11px;letter-spacing:0.06em;text-transform:uppercase;color:var(--gray-40);border:1px solid var(--gray-15);padding:9px 10px">{{ sharedByLine }}</span>
+          </sc-if>
         </sc-if>
 
         <button sc-camel-on-click="{{ printBoard }}" style="display:flex;align-items:center;gap:6px;height:36px;padding:0 12px;background:transparent;border:1px solid var(--gray-15);color:var(--gray-50);font-size:12px;font-weight:700;cursor:pointer;text-transform:uppercase;letter-spacing:0.04em" style-hover="background:var(--gray-5)">
@@ -715,11 +740,11 @@
             </div>
           </sc-if>
         </div>
-        <label style="display:flex;align-items:center;gap:6px;height:36px;padding:0 12px;background:transparent;border:1px solid var(--gray-15);color:var(--gray-50);font-size:12px;font-weight:700;cursor:pointer;text-transform:uppercase;letter-spacing:0.04em">
+        <label class="sl-edit-only" style="display:flex;align-items:center;gap:6px;height:36px;padding:0 12px;background:transparent;border:1px solid var(--gray-15);color:var(--gray-50);font-size:12px;font-weight:700;cursor:pointer;text-transform:uppercase;letter-spacing:0.04em">
           <svg width="16" height="16"><use href="#ui-image"></use></svg>Import
           <input type="file" accept="application/json" sc-camel-on-change="{{ importBoard }}" style="display:none">
         </label>
-        <div style="position:relative">
+        <div class="sl-edit-only" style="position:relative">
           <button sc-camel-on-click="{{ toggleOrganizeMenu }}" title="Group shots by a field" style="{{ organizeBtnStyle }}">
             <svg width="16" height="16"><use href="#ui-grid"></use></svg>{{ organizeLabel }}
             <svg width="14" height="14"><use href="#ui-caret"></use></svg>
@@ -739,8 +764,8 @@
             </div>
           </sc-if>
         </div>
-        <button sc-camel-on-click="{{ clearAll }}" style="height:36px;padding:0 12px;background:transparent;border:1px solid var(--gray-15);color:var(--gray-30);font-size:12px;font-weight:700;cursor:pointer;text-transform:uppercase;letter-spacing:0.04em" style-hover="color:var(--red-500);border-color:var(--red-500)">Clear</button>
-        <button sc-camel-on-click="{{ addFrame }}" style="{{ addBtnStyle }}" style-hover="opacity:0.88">
+        <button class="sl-edit-only" sc-camel-on-click="{{ clearAll }}" style="height:36px;padding:0 12px;background:transparent;border:1px solid var(--gray-15);color:var(--gray-30);font-size:12px;font-weight:700;cursor:pointer;text-transform:uppercase;letter-spacing:0.04em" style-hover="color:var(--red-500);border-color:var(--red-500)">Clear</button>
+        <button class="sl-edit-only" sc-camel-on-click="{{ addFrame }}" style="{{ addBtnStyle }}" style-hover="opacity:0.88">
           <svg width="18" height="18" style="stroke: #FFFFFF; fill: #FFFFFF; stroke-width: 4px"><use href="#ui-plus"></use></svg>Add Shot
         </button>
       </div>
@@ -750,6 +775,13 @@
   <main class="sl-main" style="flex:1;padding:28px 32px 64px">
     <div style="max-width:1440px;margin:0 auto">
 
+      <sc-if value="{{ isViewOnly }}" hint-placeholder-val="{{ false }}">
+        <div data-noprint="" style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;border:1px solid var(--gray-15);border-left:4px solid var(--cglp-blue);background:var(--white);padding:12px 16px;margin-bottom:20px;font-size:14px;color:var(--gray-50)">
+          <strong style="font-family:var(--font-mono);font-size:11px;letter-spacing:0.08em;text-transform:uppercase;color:var(--black)">View only</strong>
+          <span>{{ viewOnlyNote }}</span>
+        </div>
+      </sc-if>
+
       <sc-if value="{{ isEmpty }}" hint-placeholder-val="{{ true }}">
         <div style="border:2px dashed var(--gray-20);background:var(--white);padding:64px 32px;text-align:center;display:flex;flex-direction:column;align-items:center;gap:18px">
           <svg width="46" height="46" style="color:var(--gray-20)"><use href="#ui-image"></use></svg>
@@ -757,7 +789,7 @@
             <div style="font-family:var(--font-display);font-weight:900;font-size:26px;letter-spacing:-0.01em;text-transform:uppercase;color:var(--black)">Start your board</div>
             <div style="font-size:14px;color:var(--gray-30);margin-top:6px;max-width:420px">Add a shot, then drag in a reference image, set the lens and camera move, and write the action and dialogue.</div>
           </div>
-          <div style="display:flex;gap:10px">
+          <div class="sl-edit-only" style="display:flex;gap:10px">
             <button sc-camel-on-click="{{ addFrame }}" style="{{ addBtnStyle }}" style-hover="opacity:0.88"><svg width="18" height="18"><use href="#ui-plus"></use></svg>Add First Shot</button>
             <button sc-camel-on-click="{{ addThree }}" style="height:44px;padding:0 18px;background:transparent;border:1px solid var(--gray-20);color:var(--gray-50);font-size:13px;font-weight:700;cursor:pointer;text-transform:uppercase;letter-spacing:0.04em" style-hover="background:var(--gray-5)">Add 3 Shots</button>
           </div>
@@ -946,7 +978,7 @@
       </div>
 
       <sc-if value="{{ hasFrames }}" hint-placeholder-val="{{ false }}">
-        <button data-noprint="" sc-camel-on-click="{{ addFrame }}" style="margin-top:22px;display:flex;align-items:center;justify-content:center;gap:8px;width:100%;max-width:280px;height:48px;background:transparent;border:2px dashed var(--gray-20);color:var(--gray-40);font-size:13px;font-weight:700;cursor:pointer;text-transform:uppercase;letter-spacing:0.05em" style-hover="border-color:var(--black);color:var(--black)">
+        <button class="sl-edit-only" data-noprint="" sc-camel-on-click="{{ addFrame }}" style="margin-top:22px;display:flex;align-items:center;justify-content:center;gap:8px;width:100%;max-width:280px;height:48px;background:transparent;border:2px dashed var(--gray-20);color:var(--gray-40);font-size:13px;font-weight:700;cursor:pointer;text-transform:uppercase;letter-spacing:0.05em" style-hover="border-color:var(--black);color:var(--black)">
           <svg width="18" height="18"><use href="#ui-plus"></use></svg>Add Shot
         </button>
       </sc-if>
@@ -979,6 +1011,101 @@
           <span style="font-family:var(--font-mono);font-size:9px;letter-spacing:0.02em;text-transform:uppercase;color:var(--gray-40);text-align:center;line-height:1.1">{{ m.label }}</span>
         </button>
       </sc-for>
+    </div>
+  </div>
+</sc-if>
+
+<!-- Share: who can view or edit this storyboard, like a shared document. -->
+<sc-if value="{{ shareOpen }}" hint-placeholder-val="{{ false }}">
+  <div class="sl-share-wrap" data-noprint="" sc-camel-on-click="{{ closeShare }}" style="position:fixed;inset:0;z-index:60;background:rgba(0,0,0,0.45);display:flex;align-items:flex-start;justify-content:center;padding:8vh 16px;overflow:auto">
+    <div class="sl-share-card" role="dialog" aria-label="Share" sc-camel-on-click="{{ stopShareClick }}" style="width:520px;max-width:100%;background:var(--white);border:1px solid var(--gray-15);box-shadow:var(--shadow-2);padding:24px;display:flex;flex-direction:column;gap:18px;color:var(--black)">
+      <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:12px">
+        <div style="min-width:0">
+          <div style="font-family:var(--font-mono);font-size:11px;letter-spacing:0.14em;text-transform:uppercase;color:var(--gray-30);margin-bottom:6px">Share</div>
+          <div style="font-family:var(--font-display);font-weight:900;font-size:24px;line-height:1;letter-spacing:-0.01em;text-transform:uppercase;overflow-wrap:anywhere">{{ shareTitle }}</div>
+        </div>
+        <button sc-camel-on-click="{{ closeShare }}" title="Close" aria-label="Close" style="width:32px;height:32px;flex:0 0 32px;background:transparent;border:1px solid var(--gray-15);color:var(--gray-40);cursor:pointer;display:flex;align-items:center;justify-content:center;padding:0" style-hover="border-color:var(--black);color:var(--black)">
+          <svg width="15" height="15"><use href="#ui-close"></use></svg>
+        </button>
+      </div>
+
+      <sc-if value="{{ shareLoading }}" hint-placeholder-val="{{ false }}">
+        <div style="font-size:14px;color:var(--gray-40)">Loading…</div>
+      </sc-if>
+
+      <sc-if value="{{ shareReady }}" hint-placeholder-val="{{ false }}">
+        <div style="display:flex;flex-direction:column;gap:8px">
+          <input class="sl-share-search" value="{{ shareQuery }}" sc-camel-on-input="{{ onShareQuery }}" placeholder="Add people by name" autocomplete="off" style="font-size:15px;font-weight:600;border:1px solid var(--gray-20);background:var(--white);padding:10px 12px;width:100%">
+          <sc-if value="{{ hasShareMatches }}" hint-placeholder-val="{{ false }}">
+            <div style="border:1px solid var(--gray-15);display:flex;flex-direction:column">
+              <sc-for list="{{ shareMatches }}" as="p" hint-placeholder-count="0">
+                <button data-id="{{ p.id }}" sc-camel-on-click="{{ shareAdd }}" style="display:flex;align-items:center;gap:10px;padding:10px 12px;border:none;border-bottom:1px solid var(--gray-10);background:var(--white);cursor:pointer;text-align:left" style-hover="background:var(--gray-5)">
+                  <span style="flex:1;min-width:0">
+                    <span style="display:block;font-size:14px;font-weight:700">{{ p.name }}</span>
+                    <span style="display:block;font-family:var(--font-mono);font-size:11px;color:var(--gray-30)">{{ p.sub }}</span>
+                  </span>
+                  <span style="font-family:var(--font-mono);font-size:11px;letter-spacing:0.06em;text-transform:uppercase;color:var(--cglp-blue);white-space:nowrap">+ Add</span>
+                </button>
+              </sc-for>
+            </div>
+          </sc-if>
+          <sc-if value="{{ shareNoMatches }}" hint-placeholder-val="{{ false }}">
+            <div style="font-size:13px;color:var(--gray-30)">Nobody on the team by that name.</div>
+          </sc-if>
+        </div>
+
+        <div>
+          <div style="font-family:var(--font-mono);font-size:10px;letter-spacing:0.09em;text-transform:uppercase;color:var(--gray-30);margin-bottom:6px">People with access</div>
+          <div style="display:flex;align-items:center;gap:10px;padding:10px 0;border-bottom:1px solid var(--gray-10)">
+            <span style="flex:1;min-width:0;font-size:14px;font-weight:700">{{ shareOwnerName }}</span>
+            <span style="font-family:var(--font-mono);font-size:11px;letter-spacing:0.06em;text-transform:uppercase;color:var(--gray-30)">Owner</span>
+          </div>
+          <sc-for list="{{ shareRows }}" as="r" hint-placeholder-count="0">
+            <div class="sl-share-row" style="display:flex;align-items:center;gap:10px;padding:10px 0;border-bottom:1px solid var(--gray-10);flex-wrap:wrap">
+              <span style="flex:1 1 160px;min-width:0">
+                <span style="display:block;font-size:14px;font-weight:700">{{ r.name }}</span>
+                <span style="display:block;font-family:var(--font-mono);font-size:11px;color:var(--gray-30)">{{ r.sub }}</span>
+              </span>
+              <span style="display:flex;border:1px solid var(--gray-15)">
+                <button data-id="{{ r.id }}" data-level="view" sc-camel-on-click="{{ shareSetLevel }}" aria-pressed="{{ r.isViewStr }}" style="{{ r.viewStyle }}">Can view</button>
+                <button data-id="{{ r.id }}" data-level="edit" sc-camel-on-click="{{ shareSetLevel }}" aria-pressed="{{ r.isEditStr }}" style="{{ r.editStyle }}">Can edit</button>
+              </span>
+              <button data-id="{{ r.id }}" sc-camel-on-click="{{ shareRemove }}" title="Remove access" aria-label="{{ r.removeLabel }}" style="width:30px;height:30px;flex:0 0 30px;background:transparent;border:1px solid var(--gray-15);color:var(--gray-40);cursor:pointer;display:flex;align-items:center;justify-content:center;padding:0" style-hover="color:var(--red-500);border-color:var(--red-500)">
+                <svg width="14" height="14"><use href="#ui-close"></use></svg>
+              </button>
+            </div>
+          </sc-for>
+          <sc-if value="{{ shareNobody }}" hint-placeholder-val="{{ false }}">
+            <div style="font-size:13px;color:var(--gray-30);padding-top:10px">Not shared with anyone yet. Search above to add someone.</div>
+          </sc-if>
+        </div>
+
+        <div>
+          <div style="font-family:var(--font-mono);font-size:10px;letter-spacing:0.09em;text-transform:uppercase;color:var(--gray-30);margin-bottom:6px">General access</div>
+          <div style="display:flex;flex-direction:column;gap:6px">
+            <sc-for list="{{ shareGeneral }}" as="g" hint-placeholder-count="2">
+              <button data-v="{{ g.key }}" sc-camel-on-click="{{ shareSetVisibility }}" aria-pressed="{{ g.pressed }}" style="{{ g.style }}">
+                <span style="display:block;font-size:14px;font-weight:700">{{ g.label }}</span>
+                <span style="display:block;font-size:12px;color:var(--gray-40);margin-top:2px">{{ g.hint }}</span>
+              </button>
+            </sc-for>
+          </div>
+        </div>
+      </sc-if>
+
+      <sc-if value="{{ hasShareError }}" hint-placeholder-val="{{ false }}">
+        <div style="border:1px solid var(--red-500);color:var(--red-500);padding:10px 12px;font-size:13px">{{ shareError }}</div>
+      </sc-if>
+
+      <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
+        <sc-if value="{{ shareReady }}" hint-placeholder-val="{{ false }}">
+          <button sc-camel-on-click="{{ copyShareLink }}" style="display:flex;align-items:center;gap:6px;height:36px;padding:0 12px;background:transparent;border:1px solid var(--gray-15);color:var(--gray-50);font-size:12px;font-weight:700;cursor:pointer;text-transform:uppercase;letter-spacing:0.04em" style-hover="border-color:var(--black);color:var(--black)">
+            <svg width="16" height="16"><use href="#ui-link"></use></svg>Copy link
+          </button>
+        </sc-if>
+        <span style="flex:1;min-width:120px;font-size:12px;color:var(--gray-40)">{{ shareStatus }}</span>
+        <button sc-camel-on-click="{{ closeShare }}" style="{{ addBtnStyle }}" style-hover="opacity:0.88">Done</button>
+      </div>
     </div>
   </div>
 </sc-if>
@@ -1079,6 +1206,8 @@ const LIB_ERRORS = {
   busy: 'Someone else is saving this storyboard right now. Try again in a moment.',
   not_found: 'That storyboard is no longer in the team library.',
   exists: 'That storyboard is already back — refresh to see it.',
+  not_yours: 'Only the person who made this storyboard (or an admin) can do that.',
+  bad_person: 'That person can no longer use the Slate. Close this and try again.',
 };
 function libMessage(err) {
   return LIB_ERRORS[err && err.message] || 'Could not reach the team library. Check your connection and try again.';
@@ -1191,8 +1320,18 @@ class Component extends DCLogic {
     libraryMax: 0,
     libraryLoading: false,
     libraryError: '',
-    librarySaving: false,
     libraryStatus: '',
+    // What I may do with the open board: 'owner', 'edit' or 'view'.
+    boardAccess: 'owner',
+    boardOwnerName: '',
+    boardCanManage: true,
+    // The Share panel.
+    shareOpen: false,
+    share: null,
+    shareQuery: '',
+    shareBusy: false,
+    shareError: '',
+    shareNote: '',
   };
   cardEls = {};
 
@@ -1206,6 +1345,23 @@ class Component extends DCLogic {
   }
   componentDidUpdate() {
     this.syncTitle();
+    this.syncReadOnly();
+  }
+  // View only: every field on the board refuses typing. Only fields made
+  // read-only here are given back, so the always-read-only shot number stays so.
+  syncReadOnly() {
+    const wrap = document.querySelector('.cg-board-wrap');
+    if (!wrap) return;
+    const ro = this.state.boardAccess === 'view';
+    wrap.querySelectorAll('input:not([type=file]), textarea, select').forEach(el => {
+      if (ro && !el.dataset.slRo) {
+        el.dataset.slRo = el.tagName === 'SELECT' ? (el.disabled ? 'was' : '1') : (el.readOnly ? 'was' : '1');
+        if (el.tagName === 'SELECT') el.disabled = true; else el.readOnly = true;
+      } else if (!ro && el.dataset.slRo) {
+        if (el.dataset.slRo === '1') { if (el.tagName === 'SELECT') el.disabled = false; else el.readOnly = false; }
+        delete el.dataset.slRo;
+      }
+    });
   }
   componentDidMount() {
     this.syncTitle();
@@ -1213,9 +1369,12 @@ class Component extends DCLogic {
     this.initBoards();
     if (LIB_ENABLED) this.loadLibrary();
     window.addEventListener('keydown', this.onKeyDown);
+    // A share link pasted into a tab that already has the Slate open.
+    window.addEventListener('hashchange', this.onHashChange);
   }
   componentWillUnmount() {
     window.removeEventListener('keydown', this.onKeyDown);
+    window.removeEventListener('hashchange', this.onHashChange);
   }
 
   initBoards = async () => {
@@ -1265,17 +1424,23 @@ class Component extends DCLogic {
     const byLibraryId = new Map();
     index.forEach(b => { if (b.libraryId) byLibraryId.set(b.libraryId, b); });
 
+    // Who it belongs to and who else has it, straight from the server.
+    const sharing = (r) => ({
+      access: r.access || 'owner', canManage: !!r.canManage, visibility: r.visibility,
+      sharedWithMe: !!r.sharedWithMe, ownerName: r.ownerName || '', shareCount: r.shareCount || 0,
+    });
     (remote || []).forEach(r => {
       const local = byLibraryId.get(r.id);
       if (!local) {
         // On this machine for the first time.
-        index.push({
+        index.push(Object.assign({
           id: 'b' + Math.random().toString(36).slice(2, 10),
           title: r.title, shotCount: r.shotCount, updatedAt: r.updatedAt,
           libraryId: r.id, needsFetch: true,
-        });
+        }, sharing(r)));
         return;
       }
+      Object.assign(local, sharing(r));
       local.title = r.title;
       local.shotCount = r.shotCount;
       // Edited elsewhere since this browser last saw it: fetch on open rather
@@ -1288,8 +1453,19 @@ class Component extends DCLogic {
 
     // A board the server no longer has, which this browser thought was synced,
     // was deleted from another machine.
+    // One that was shared with me and no longer is goes too, synced or not:
+    // it was never mine to keep.
     const liveIds = new Set((remote || []).map(r => r.id));
-    index = index.filter(b => !(b.libraryId && b.syncedAt && !liveIds.has(b.libraryId)));
+    index = index.filter(b => !(b.libraryId && (b.syncedAt || b.sharedWithMe) && !liveIds.has(b.libraryId)));
+    if (this.state.view === 'board' && this.state.libraryId && !liveIds.has(this.state.libraryId)
+      && (this.state.boards.find(b => b.id === this.state.boardId) || {}).sharedWithMe) {
+      this.setState({ boardAccess: 'view', syncStatus: 'No longer shared with you' });
+    }
+    // Open right now, and its sharing changed: follow it.
+    const openEntry = index.find(b => b.id === this.state.boardId);
+    if (this.state.view === 'board' && openEntry && openEntry.access) {
+      this.setState({ boardAccess: openEntry.access, boardOwnerName: openEntry.ownerName || '', boardCanManage: !!openEntry.canManage });
+    }
 
     try { localStorage.setItem(INDEX_KEY, JSON.stringify(index)); } catch (e) {}
     this.setState({ boards: index });
@@ -1317,7 +1493,8 @@ class Component extends DCLogic {
         frames: data.frames,
         tagNames: data.tagNames || {},
         libraryId: libraryId,
-        libraryRev: 0,
+        // Which revision this is, so the next save is not taken for a clash.
+        libraryRev: Number(res.headers.get('X-Slate-Rev')) || 0,
       };
     } catch (err) { return null; }
   };
@@ -1325,6 +1502,8 @@ class Component extends DCLogic {
   /** Push one board to the server. Skipped when nothing actually changed. */
   syncBoard = async (boardId, opts) => {
     if (!LIB_ENABLED || !boardId) return;
+    // Shared with me to look at: nothing of mine to send.
+    if ((this.state.boards.find(b => b.id === boardId) || {}).access === 'view') return;
     const options = opts || {};
     let data = null;
     try { data = await idbGet(boardId); } catch (err) {}
@@ -1415,6 +1594,7 @@ class Component extends DCLogic {
       layout: this.props.startLayout || 'grid', aspect: '16 / 9', frames: [], selected: [],
       tagNames: {},
       libraryId: null, libraryRev: 0, libraryStatus: '',
+      boardAccess: 'owner', boardOwnerName: '', boardCanManage: true,
     });
   };
   onTagLabelInput = (e) => {
@@ -1466,6 +1646,10 @@ class Component extends DCLogic {
       layout: data.layout || 'grid', aspect: data.aspect || '16 / 9', frames: data.frames || [], selected: [],
       tagNames: data.tagNames || {},
       libraryId: data.libraryId || null, libraryRev: data.libraryRev || 0, libraryStatus: '',
+      // A board made here before sharing existed has none of this: it is mine.
+      boardAccess: (entry && entry.access) || 'owner',
+      boardOwnerName: (entry && entry.ownerName) || '',
+      boardCanManage: entry && entry.access ? !!entry.canManage : true,
     });
   };
   goToMenu = () => {
@@ -1479,6 +1663,22 @@ class Component extends DCLogic {
     e.stopPropagation();
     const id = e.currentTarget.dataset.id;
     const entry = (this.state.boards || []).find(b => b.id === id);
+    // Someone else's, shared with me: I can only take it off my list.
+    if (entry && entry.sharedWithMe && entry.libraryId) {
+      if (!window.confirm('Remove “' + (entry.title || 'this storyboard') + '” from your storyboards?\n\n'
+        + (entry.ownerName || 'Its owner') + ' still has it, and can share it with you again.')) return;
+      try {
+        await libRequest('share.php?action=leave&id=' + encodeURIComponent(entry.libraryId), {
+          method: 'POST', headers: { 'X-Slate-CSRF': this.state.libraryCsrf || '' },
+        });
+      } catch (err) { window.alert(libMessage(err)); return; }
+      idbDel(id).catch(() => {});
+      this.setState(s => ({ boards: s.boards.filter(b => b.id !== id) }), () => {
+        try { localStorage.setItem(INDEX_KEY, JSON.stringify(this.state.boards)); } catch (err) {}
+      });
+      if (LIB_ENABLED) this.loadLibrary();
+      return;
+    }
     if (!window.confirm('Delete this storyboard? This removes it from every computer you use.\n\n'
       + 'If it was saved to the server, it stays in the Trash at the bottom of this page for 30 days.')) return;
 
@@ -1504,6 +1704,8 @@ class Component extends DCLogic {
 
   save = () => {
     if (!this.state.boardId) return;
+    // View only: whatever changed on screen (the layout, say) stays on screen.
+    if (this.state.boardAccess === 'view') return;
     const { meta, layout, aspect, frames, tagNames, libraryId, libraryRev } = this.state;
     const boardId = this.state.boardId;
     idbSet(boardId, { meta, layout, aspect, frames, tagNames, libraryId, libraryRev }).catch(() => {
@@ -1664,11 +1866,14 @@ class Component extends DCLogic {
     }, this.save);
   };
   onKeyDown = (e) => {
+    if (e.key === 'Escape' && this.state.shareOpen) { this.closeShare(); return; }
     const isMeta = e.metaKey || e.ctrlKey;
     if (!isMeta) return;
     const tag = (e.target.tagName || '').toLowerCase();
     if (tag === 'input' || tag === 'textarea') return;
+    const viewOnly = this.state.view === 'board' && this.state.boardAccess === 'view';
     if (e.key === 'c' || e.key === 'C') { this.copySelection(); }
+    else if (viewOnly) return;
     else if (e.key === 'v' || e.key === 'V') { this.pasteClipboard(); }
     else if (e.key === 'z' || e.key === 'Z') { e.preventDefault(); this.undo(); }
   };
@@ -2056,74 +2261,9 @@ class Component extends DCLogic {
       // The server is the durable copy of my own boards; bring this browser
       // into line with it.
       await this.reconcileBoards(data.mine || []);
+      if (this.state.view === 'menu') await this.openFromLink();
     } catch (err) {
       this.setState({ libraryLoading: false, libraryError: libMessage(err) });
-    }
-  };
-
-  saveToLibrary = async () => {
-    if (!LIB_ENABLED || this.state.librarySaving) return;
-    const { meta, frames } = this.state;
-    const body = new Blob([JSON.stringify(this.boardPayload())], { type: 'application/json' });
-    const max = this.state.libraryMax;
-    if (max && body.size > max) {
-      window.alert('This storyboard is ' + libSize(body.size) + ', and the server accepts up to '
-        + libSize(max) + '. Remove or replace a few reference images and try again.');
-      return;
-    }
-    // The signed-in account is the author; the server ignores anything the
-    // client might claim. The token proves the request came from this page.
-    if (!this.state.libraryCsrf) await this.loadLibrary();
-    const csrf = this.state.libraryCsrf;
-    if (!csrf) { window.alert(libMessage(new Error('not_signed_in'))); return; }
-
-    const post = (opts) => {
-      const params = new URLSearchParams({
-        title: meta.title || '', project: meta.project || '',
-        shots: String(frames.length),
-        // The board is already on the server and private; this shares it.
-        visibility: 'team',
-      });
-      if (opts.id) { params.set('id', opts.id); params.set('rev', String(opts.rev || 0)); }
-      if (opts.force) params.set('force', '1');
-      return libRequest('save.php?' + params.toString(), {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'X-Slate-CSRF': csrf },
-        body,
-      });
-    };
-
-    const id = this.state.libraryId;
-    const rev = this.state.libraryRev;
-    this.setState({ librarySaving: true, libraryStatus: 'Saving…' });
-    try {
-      let data;
-      try {
-        data = await post({ id, rev });
-      } catch (err) {
-        if (err.status !== 409) throw err;
-        const who = err.data.savedBy || 'Someone';
-        if (window.confirm(who + ' saved a newer version of this storyboard ' + libWhen(err.data.updatedAt)
-          + '.\n\nOverwrite it with your copy? The version on the server is kept as a backup.')) {
-          data = await post({ id, rev, force: true });
-        } else if (window.confirm('Save your version as a separate copy in the library instead?')) {
-          data = await post({});
-        } else {
-          this.setState({ librarySaving: false, libraryStatus: '' });
-          return;
-        }
-      }
-      this.setState({
-        libraryId: data.id, libraryRev: data.updatedAt,
-        librarySaving: false, libraryStatus: 'Saved to library',
-      }, this.save);
-      this.loadLibrary();
-      setTimeout(() => {
-        if (this.state.libraryStatus === 'Saved to library') this.setState({ libraryStatus: '' });
-      }, 4000);
-    } catch (err) {
-      this.setState({ librarySaving: false, libraryStatus: '' });
-      window.alert(libMessage(err));
     }
   };
 
@@ -2186,6 +2326,7 @@ class Component extends DCLogic {
     });
     this.setState(Object.assign({
       view: 'board', boardId: localId, selected: [], libraryLoading: false, libraryStatus: '',
+      boardAccess: entry.access || 'edit', boardOwnerName: '', boardCanManage: !!entry.canManage,
     }, board));
   };
 
@@ -2205,6 +2346,112 @@ class Component extends DCLogic {
     } catch (err) {
       window.alert(libMessage(err));
     }
+  };
+
+  // ---- Sharing -------------------------------------------------------------
+  // Like a document: the owner adds people who can view or edit, or opens it
+  // to the whole team. share.php does the deciding; this only asks.
+
+  openShare = async () => {
+    if (!LIB_ENABLED || this.state.shareBusy) return;
+    this.save();
+    this.setState({ shareOpen: true, share: null, shareQuery: '', shareError: '', shareNote: '', shareBusy: true });
+    // It has to be on the server before anyone else can open it.
+    await this.flushSync();
+    const id = this.state.libraryId;
+    if (!id) {
+      this.setState({ shareBusy: false, shareError: 'This storyboard is not saved to the server yet. Check your connection and try again.' });
+      return;
+    }
+    try {
+      const data = await libRequest('share.php?id=' + encodeURIComponent(id));
+      this.setState({ share: data, shareBusy: false });
+    } catch (err) {
+      this.setState({ shareBusy: false, shareError: libMessage(err) });
+    }
+  };
+  closeShare = () => {
+    this.setState({ shareOpen: false, share: null, shareQuery: '' });
+    if (LIB_ENABLED) this.loadLibrary();
+  };
+  stopShareClick = (e) => e.stopPropagation();
+  onShareQuery = (e) => this.setState({ shareQuery: e.target.value });
+
+  /** Send the whole of who-has-what; the server keeps the board's own lock. */
+  putShare = async (visibility, shares, note) => {
+    const current = this.state.share;
+    if (!current || !this.state.libraryId) return;
+    const map = {};
+    shares.forEach(s => { map[String(s.id)] = s.level; });
+    // Show it at once; put it back if the server says no.
+    this.setState({ share: Object.assign({}, current, { visibility, shares }), shareBusy: true, shareError: '', shareNote: '' });
+    try {
+      const data = await libRequest('share.php?id=' + encodeURIComponent(this.state.libraryId), {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'X-Slate-CSRF': this.state.libraryCsrf || '' },
+        body: JSON.stringify({ visibility, shares: map }),
+      });
+      this.setState({ share: Object.assign({}, current, data, { people: current.people }), shareBusy: false, shareNote: note || 'Saved' });
+    } catch (err) {
+      this.setState({ share: current, shareBusy: false, shareError: libMessage(err) });
+    }
+  };
+  shareAdd = (e) => {
+    const id = Number(e.currentTarget.dataset.id);
+    const s = this.state.share;
+    const person = s && (s.people || []).find(p => p.id === id);
+    if (!person || s.shares.some(x => x.id === id)) return;
+    this.setState({ shareQuery: '' });
+    this.putShare(s.visibility, s.shares.concat([Object.assign({}, person, { level: 'edit' })]),
+      person.name + ' can edit. It is in their storyboards now.');
+  };
+  shareSetLevel = (e) => {
+    const id = Number(e.currentTarget.dataset.id), level = e.currentTarget.dataset.level;
+    const s = this.state.share;
+    if (!s) return;
+    this.putShare(s.visibility, s.shares.map(x => x.id === id ? Object.assign({}, x, { level }) : x));
+  };
+  shareRemove = (e) => {
+    const id = Number(e.currentTarget.dataset.id);
+    const s = this.state.share;
+    if (!s) return;
+    this.putShare(s.visibility, s.shares.filter(x => x.id !== id));
+  };
+  shareSetVisibility = (e) => {
+    const v = e.currentTarget.dataset.v;
+    const s = this.state.share;
+    if (!s || s.visibility === v) return;
+    this.putShare(v, s.shares, v === 'team' ? 'Everyone on the team can find and edit it in the Team Library.' : 'Only you and the people above can open it.');
+  };
+  copyShareLink = async () => {
+    if (!this.state.libraryId) return;
+    const url = location.origin + location.pathname + '#board=' + encodeURIComponent(this.state.libraryId);
+    try {
+      await navigator.clipboard.writeText(url);
+      this.setState({ shareNote: 'Link copied. It opens only for people who have access.' });
+    } catch (err) {
+      window.prompt('Copy this link:', url);
+    }
+  };
+
+  onHashChange = () => {
+    if (!/^#board=/.test(location.hash || '')) return;
+    if (this.state.view === 'board') this.goToMenu();
+    this.openFromLink();
+  };
+  /** #board=<id>: a link someone copied from the Share panel. */
+  openFromLink = async () => {
+    const m = /^#board=([a-z0-9-]+)$/.exec(location.hash || '');
+    if (!m) return;
+    try { history.replaceState(null, '', location.pathname + location.search); } catch (e) {}
+    const libId = m[1];
+    const mine = (this.state.boards || []).find(b => b.libraryId === libId);
+    if (mine) { await this.openBoard({ currentTarget: { dataset: { id: mine.id } } }); return; }
+    if ((this.state.library || []).some(b => b.id === libId)) {
+      await this.openLibraryBoard({ currentTarget: { dataset: { id: libId } } });
+      return;
+    }
+    window.alert('That storyboard hasn’t been shared with you. Ask whoever sent the link to add you.');
   };
 
   // Trash: loaded when opened, since most visits never look at it.
@@ -2349,6 +2596,13 @@ class Component extends DCLogic {
         subtitle: b.shotCount === 1 ? '1 shot' : '',
         shotCount: b.shotCount || 0,
         updatedLabel: d ? d.toLocaleDateString() : '',
+        // Whose it is and who else has it, when that is anyone but me.
+        shareLine: b.sharedWithMe
+          ? 'Shared by ' + (b.ownerName || 'a teammate') + ' · ' + (b.access === 'view' ? 'Can view' : 'Can edit')
+          : b.visibility === 'team' ? 'Everyone on the team'
+          : b.shareCount ? 'Shared with ' + (b.shareCount === 1 ? '1 person' : b.shareCount + ' people') : '',
+        hasShareLine: !!(b.sharedWithMe || b.visibility === 'team' || b.shareCount),
+        deleteTitle: b.sharedWithMe ? 'Remove from my storyboards' : 'Delete',
       };
     });
 
@@ -2582,7 +2836,7 @@ class Component extends DCLogic {
         + (LIB_ENABLED && this.state.library ? ' · ' + this.state.library.length + ' in team library' : ''),
 
       libraryEnabled: LIB_ENABLED,
-      loadLibrary: this.loadLibrary, saveToLibrary: this.saveToLibrary,
+      loadLibrary: this.loadLibrary,
       openLibraryBoard: this.openLibraryBoard, deleteLibraryBoard: this.deleteLibraryBoard,
       libraryBoards: (this.state.library || []).map(b => ({
         id: b.id,
@@ -2610,19 +2864,9 @@ class Component extends DCLogic {
       hasOtherTools: (this.state.libraryTools || []).length > 0,
       hasLibraryStatus: !!this.state.libraryStatus,
       libraryStatus: this.state.libraryStatus,
-      // Every board is already on the server; this button is about who else
-      // can see it, not about saving.
-      libSaveLabel: this.state.librarySaving ? 'Sharing…' : 'Share with Team',
       syncStatus: this.state.syncStatus || '',
       hasSyncStatus: !!this.state.syncStatus,
-      libSaveBtnStyle: {
-        display: 'flex', alignItems: 'center', gap: '6px', height: '36px', padding: '0 12px',
-        background: 'transparent', border: '1px solid var(--gray-15)',
-        color: this.state.librarySaving ? 'var(--gray-30)' : 'var(--gray-50)',
-        fontSize: '12px', fontWeight: '700',
-        cursor: this.state.librarySaving ? 'default' : 'pointer',
-        textTransform: 'uppercase', letterSpacing: '0.04em',
-      },
+      ...this.shareVals(accent),
       newBoard: this.newBoard, openBoard: this.openBoard, goToMenu: this.goToMenu, deleteBoard: this.deleteBoard,
       organizeBtnStyle: {
         display: 'flex', alignItems: 'center', gap: '6px', height: '36px', padding: '0 12px',
@@ -2632,6 +2876,77 @@ class Component extends DCLogic {
         textTransform: 'uppercase', letterSpacing: '0.04em',
       },
       exportBoard: this.exportBoard, importBoard: this.importBoard,
+    };
+  }
+
+  /** Everything the Share button, the view-only banner and the Share panel show. */
+  shareVals(accent) {
+    const access = this.state.boardAccess || 'owner';
+    const s = this.state.share;
+    const shares = (s && s.shares) || [];
+    const q = (this.state.shareQuery || '').trim().toLowerCase();
+    const has = new Set(shares.map(x => x.id));
+    const sub = (p) => p.username + (p.pending ? ' · hasn’t signed in yet' : '');
+    const matches = !s || !q ? [] : (s.people || [])
+      .filter(p => !has.has(p.id) && (p.name.toLowerCase().includes(q) || p.username.toLowerCase().includes(q)))
+      .slice(0, 8)
+      .map(p => ({ id: p.id, name: p.name, sub: sub(p) }));
+    const seg = (on) => ({
+      height: '30px', padding: '0 10px', border: 'none', cursor: 'pointer',
+      fontSize: '11px', fontWeight: '700', textTransform: 'uppercase', letterSpacing: '0.04em',
+      background: on ? accent : 'var(--white)', color: on ? '#fff' : 'var(--gray-50)',
+    });
+    const general = [
+      { key: 'private', label: 'Only people added', hint: 'Only you and the people above can open it.' },
+      { key: 'team', label: 'Everyone on the team', hint: 'It appears in the Team Library, and anyone on the team can edit it.' },
+    ].map(g => {
+      const on = !!s && s.visibility === g.key;
+      return Object.assign(g, {
+        pressed: on ? 'true' : 'false',
+        style: {
+          display: 'block', width: '100%', textAlign: 'left', padding: '10px 12px', cursor: 'pointer',
+          background: on ? 'var(--gray-5)' : 'var(--white)',
+          border: on ? '2px solid ' + accent : '1px solid var(--gray-15)',
+        },
+      });
+    });
+    const viaTeam = this.state.boardAccess === 'edit' && !this.state.boardOwnerName;
+    return {
+      boardAccess: access,
+      isViewOnly: access === 'view',
+      viewOnlyNote: (this.state.boardOwnerName || 'Its owner') + ' shared this with you to look at. You can print or export it, but not change it.',
+      canShare: LIB_ENABLED && !!this.state.boardCanManage,
+      shareBtnLabel: 'Share',
+      shareBtnStyle: {
+        display: 'flex', alignItems: 'center', gap: '6px', height: '36px', padding: '0 14px',
+        background: accent, border: 'none', color: '#fff', fontSize: '12px', fontWeight: '700',
+        cursor: 'pointer', textTransform: 'uppercase', letterSpacing: '0.04em',
+      },
+      hasSharedByLine: !this.state.boardCanManage && !viaTeam && access !== 'owner',
+      sharedByLine: 'Shared by ' + (this.state.boardOwnerName || 'a teammate') + ' · ' + (access === 'view' ? 'Can view' : 'Can edit'),
+      openShare: this.openShare, closeShare: this.closeShare, stopShareClick: this.stopShareClick,
+      onShareQuery: this.onShareQuery, shareAdd: this.shareAdd, shareSetLevel: this.shareSetLevel,
+      shareRemove: this.shareRemove, shareSetVisibility: this.shareSetVisibility, copyShareLink: this.copyShareLink,
+      shareOpen: !!this.state.shareOpen,
+      shareTitle: (this.state.meta && this.state.meta.title && this.state.meta.title.trim()) || 'Untitled Storyboard',
+      shareLoading: !s && this.state.shareBusy,
+      shareReady: !!s,
+      shareQuery: this.state.shareQuery || '',
+      shareMatches: matches,
+      hasShareMatches: matches.length > 0,
+      shareNoMatches: !!s && !!q && matches.length === 0,
+      shareOwnerName: s ? (s.ownerName || s.owner || 'Owner') + (s.owner === this.state.libraryUsername ? ' (you)' : '') : '',
+      shareRows: shares.map(x => ({
+        id: x.id, name: x.name, sub: sub(x),
+        isViewStr: x.level === 'view' ? 'true' : 'false', isEditStr: x.level === 'edit' ? 'true' : 'false',
+        viewStyle: seg(x.level === 'view'), editStyle: seg(x.level === 'edit'),
+        removeLabel: 'Remove ' + x.name,
+      })),
+      shareNobody: !!s && shares.length === 0,
+      shareGeneral: general,
+      hasShareError: !!this.state.shareError,
+      shareError: this.state.shareError || '',
+      shareStatus: this.state.shareBusy && s ? 'Saving…' : (this.state.shareNote || ''),
     };
   }
 
