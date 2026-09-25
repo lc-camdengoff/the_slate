@@ -2,13 +2,18 @@
 /**
  * The Slate — the front door.
  *
- * Serves the app bundle to signed-in users and sends everyone else to the
- * sign-in page. The bundle itself is app.html, which .htaccess blocks from
- * being requested directly, so the only way to the tool is through here.
+ * Serves the app to signed-in users and sends everyone else to the sign-in
+ * page. The app is page.html — app.html unpacked ahead of time by
+ * tools/bundle.py build, so the browser loads ordinary cached files instead of
+ * decoding ~9 MB behind an "Unpacking..." screen on every visit. If page.html
+ * is missing (a build that did not run), the self-unpacking app.html still
+ * works. .htaccess blocks both from being requested directly, so the only
+ * way to the tool is through here.
  */
 
 declare(strict_types=1);
 
+const SLATE_PAGE = __DIR__ . '/page.html';
 const SLATE_BUNDLE = __DIR__ . '/app.html';
 
 /** A readable page when the server is not configured yet, instead of a 500. */
@@ -50,14 +55,14 @@ try {
 // This is all a new tool needs to join the same login.
 fm_require_login('slate');
 
-if (!is_readable(SLATE_BUNDLE)) {
+$app = is_readable(SLATE_PAGE) ? SLATE_PAGE : SLATE_BUNDLE;
+if (!is_readable($app)) {
     slate_setup_error('app.html is missing from this folder — the deploy may not have finished.');
 }
 
-// Conditional request support matters here: the bundle is around 5 MB, and
-// without it every page load would push the whole thing through PHP again.
-$stamp = (int) filemtime(SLATE_BUNDLE);
-$size = (int) filesize(SLATE_BUNDLE);
+// Conditional request support: an unchanged page is a 304, not a re-send.
+$stamp = (int) filemtime($app);
+$size = (int) filesize($app);
 $etag = '"' . $stamp . '-' . $size . '"';
 
 header('ETag: ' . $etag);
@@ -74,8 +79,8 @@ if (trim((string) ($_SERVER['HTTP_IF_NONE_MATCH'] ?? '')) === $etag || ($since &
 header('Content-Type: text/html; charset=utf-8');
 header('Content-Length: ' . $size);
 
-// Stream it: no buffering, no compression pass over 5 MB.
+// Stream it: no buffering, no compression pass over a large file.
 while (ob_get_level() > 0) {
     ob_end_clean();
 }
-readfile(SLATE_BUNDLE);
+readfile($app);

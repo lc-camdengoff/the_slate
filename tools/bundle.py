@@ -9,14 +9,27 @@ look like a single modified 100 KB line, so the readable source lives in
 src/template.html and is packed back in before committing.
 
     python3 tools/bundle.py unpack   # app.html -> src/template.html
-    python3 tools/bundle.py pack     # src/template.html -> app.html
+    python3 tools/bundle.py pack     # src/template.html -> app.html (+ build)
+    python3 tools/bundle.py build    # app.html -> page.html + assets/
     python3 tools/bundle.py check    # verify the two are in sync
 
 The encoding (`ensure_ascii=False` plus `</` -> `<\\u002F`) reproduces the
 original bundle byte for byte; `check` enforces that so a pack can never
 silently corrupt the file.
+
+`build` is what the server actually serves. Opening the bundle means
+decoding ~9 MB of fonts and scripts in the browser on every visit, behind a
+placeholder picture and an "Unpacking..." badge. `build` does that decoding
+once, ahead of time: every resource becomes a real file in assets/, named by
+a hash of its contents so browsers can keep it for a year, and page.html is
+the app with those files linked in — what the bundle's loader would have
+produced, as an ordinary page. The deploy workflow runs it; neither output
+is committed. index.php falls back to app.html if page.html is missing.
 """
 
+import base64
+import gzip
+import hashlib
 import json
 import os
 import re
@@ -25,6 +38,25 @@ import sys
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 BUNDLE = os.path.join(ROOT, 'app.html')
 SOURCE = os.path.join(ROOT, 'src', 'template.html')
+PAGE = os.path.join(ROOT, 'page.html')
+ASSETS = os.path.join(ROOT, 'assets')
+
+# File extension per MIME type in the manifest. The server picks the
+# Content-Type from the extension (see assets/.htaccess), so an unknown type
+# stops the build rather than shipping a file the browser might refuse.
+EXTENSIONS = {
+    'application/javascript': 'js',
+    'text/javascript': 'js',
+    'text/css': 'css',
+    'font/woff2': 'woff2',
+    'font/woff': 'woff',
+    'application/font-woff': 'woff',
+    'font/otf': 'otf',
+    'font/ttf': 'ttf',
+    'image/png': 'png',
+    'image/jpeg': 'jpg',
+    'image/svg+xml': 'svg',
+}
 
 # The payload sits on its own line between these markers.
 TEMPLATE_RE = re.compile(
@@ -71,6 +103,81 @@ def pack():
         fh.write(updated)
     print('packed %d bytes -> app.html%s' % (
         len(template), '' if updated != bundle else ' (no change)'))
+    # Keep a local page.html in step, so index.php never serves a stale one.
+    build()
+
+
+def _block(bundle, kind, default=None):
+    match = re.search(
+        r'<script type="__bundler/%s">(.*?)</script>' % re.escape(kind), bundle, re.S)
+    if not match:
+        if default is not None:
+            return default
+        sys.exit('error: no __bundler/%s block in app.html' % kind)
+    return json.loads(match.group(1))
+
+
+def render_page():
+    """The page and its asset files, as {name: bytes}, without writing."""
+    bundle, match = read_bundle()
+    manifest = _block(bundle, 'manifest')
+    ext_resources = _block(bundle, 'ext_resources', [])
+    if _block(bundle, 'page_order', []):
+        sys.exit('error: nested page bundles are not supported by build')
+    template = json.loads(match.group(2))
+
+    files = {}
+    urls = {}
+    for uuid, entry in manifest.items():
+        data = base64.b64decode(entry['data'])
+        if entry.get('compressed'):
+            data = gzip.decompress(data)
+        ext = EXTENSIONS.get(entry['mime'].split(';')[0].strip().lower())
+        if not ext:
+            sys.exit('error: no file extension for %s (%s)' % (uuid, entry['mime']))
+        name = hashlib.sha256(data).hexdigest()[:16] + '.' + ext
+        files[name] = data
+        urls[uuid] = 'assets/' + name
+
+    # Exactly what the loader does before it swaps the page in.
+    for uuid, url in urls.items():
+        template = template.replace(uuid, url)
+    template = re.sub(r'\s+integrity="[^"]*"', '', template, flags=re.I)
+    template = re.sub(r'\s+crossorigin="[^"]*"', '', template, flags=re.I)
+
+    resources = {e['id']: urls[e['uuid']] for e in ext_resources if e['uuid'] in urls}
+    script = ('<script>window.__resources = '
+              + json.dumps(resources).replace('</', '<\\/') + ';</script>')
+    head = re.search(r'<head[^>]*>', template, re.I)
+    if not head:
+        sys.exit('error: template has no <head>')
+    template = template[:head.end()] + script + template[head.end():]
+    return template.encode('utf-8'), files
+
+
+def build():
+    page, files = render_page()
+    os.makedirs(ASSETS, exist_ok=True)
+    written = 0
+    for name, data in files.items():
+        path = os.path.join(ASSETS, name)
+        if os.path.exists(path):
+            with open(path, 'rb') as fh:
+                if fh.read() == data:
+                    continue
+        with open(path, 'wb') as fh:
+            fh.write(data)
+        written += 1
+    # Files from an older build. Dotfiles (.htaccess) are kept.
+    removed = 0
+    for name in os.listdir(ASSETS):
+        if not name.startswith('.') and name not in files:
+            os.remove(os.path.join(ASSETS, name))
+            removed += 1
+    with open(PAGE, 'wb') as fh:
+        fh.write(page)
+    print('built page.html (%d bytes) and %d assets (%d written, %d removed)' % (
+        len(page), len(files), written, removed))
 
 
 def check():
@@ -82,7 +189,7 @@ def check():
     print('ok: app.html matches src/template.html')
 
 
-COMMANDS = {'unpack': unpack, 'pack': pack, 'check': check}
+COMMANDS = {'unpack': unpack, 'pack': pack, 'build': build, 'check': check}
 
 if __name__ == '__main__':
     if len(sys.argv) != 2 or sys.argv[1] not in COMMANDS:

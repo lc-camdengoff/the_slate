@@ -11,6 +11,12 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      # Unpack the app into page.html + assets/ (see tools/bundle.py), so the
+      # server hands browsers ordinary cacheable files instead of a bundle
+      # they have to decode on every visit. Neither output is committed.
+      - name: Build The Slate
+        run: python3 tools/bundle.py check && python3 tools/bundle.py build
+
       # The shared sign-in used by every tool under /filmmaking/. It lives
       # beside slate/, not inside it, so one copy serves them all. Deployed
       # first: the tool below depends on it being there.
