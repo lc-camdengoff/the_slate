@@ -14,7 +14,7 @@
  * 'key' is how permissions refer to the tool, so never change it once people
  * have roles in it. 'hooks' is an optional PHP file, relative to the tools
  * folder, defining <key>_account_renamed($old, $new) and/or
- * <key>_account_deleted($username), for a tool that stores usernames of its
+ * <key>_account_deleted($username, $userId), for a tool that stores usernames of its
  * own and has to follow when an admin renames or deletes someone. 'admin'
  * lists admin-only pages of the tool (label, path, blurb) for Team admin. 'roles' is the tool's own list, least to most powerful;
  * the admin page offers these plus "No access". 'default_role' is what
