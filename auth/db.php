@@ -122,9 +122,12 @@ function fm_migrate_columns(PDO $pdo): void
            (SELECT count(*) FROM information_schema.columns
              WHERE table_schema = 'public' AND table_name = 'users'
                AND column_name IN ('email', 'phone', 'department', 'notes')) AS cols,
+           (SELECT count(*) FROM information_schema.columns
+             WHERE table_schema = 'public' AND table_name = 'invite_codes'
+               AND column_name = 'claims_pending') AS claims,
            to_regclass('public.user_tool_roles') IS NOT NULL AS roles"
     )->fetch();
-    if ((int) ($have['cols'] ?? 0) === 4 && !empty($have['roles'])) {
+    if ((int) ($have['cols'] ?? 0) === 4 && (int) ($have['claims'] ?? 0) === 1 && !empty($have['roles'])) {
         return;
     }
 
@@ -141,6 +144,7 @@ function fm_migrate_columns(PDO $pdo): void
                         tool    text   NOT NULL,
                         role    text   NOT NULL,
                         PRIMARY KEY (user_id, tool))');
+        $pdo->exec('ALTER TABLE invite_codes ADD COLUMN IF NOT EXISTS claims_pending boolean NOT NULL DEFAULT false');
     } finally {
         $pdo->exec('SELECT pg_advisory_unlock(8264774)');
     }

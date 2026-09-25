@@ -180,6 +180,10 @@ fm_page_head('Import people');
       opens their link, enters their code and chooses a password. Codes work once
       and expire in <?= intdiv(FM_SETUP_CODE_HOURS, 24) ?> days. You can issue a new
       one from their page on Team admin.
+      <br><br>
+      Rather hand out one code to everyone? On Team admin, create an invite code
+      with <em>Also works for people already added</em> ticked. They enter it
+      with their email on the sign-up page and their account is waiting.
     </div>
     <label>
       <span>Copy into a spreadsheet (tab separated)</span>

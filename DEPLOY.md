@@ -150,6 +150,16 @@ saved until the last step:
 No passwords come across. An imported account can't sign in until its setup
 code is used, and nobody but its owner ever knows its password.
 
+**One code for everyone instead.** When you create an invite code, tick
+*Also works for people already added*. Anyone whose account is waiting can
+then enter that shared code and their email on the sign-up page, choose a
+password, and get the account with the access you already gave it. Their
+personal setup code stops working. You can switch this on or off for each
+code in the list. It's easier to hand out, but anyone holding the code who
+knows a waiting teammate's email could claim that account, so turn it off
+(or give the code an expiry) once everyone is in. Accounts that already have
+a password can never be claimed this way.
+
 For someone who already has an account, the import only fills in phone,
 department and notes where theirs are blank. It changes their access only if
 you tick "Also set their access from this file".
