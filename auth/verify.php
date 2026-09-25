@@ -29,6 +29,11 @@
  *
  * No session is started. The Cage mints its own; this only answers a question.
  *
+ * The answer carries `role`, the person's role in The Cage as set on the Team
+ * admin page (member, manager or admin; see tools.php), and `tools`, every
+ * tool they can use. Someone whose Cage access is "No access" gets 403
+ * no_access from either form, even with the right password.
+ *
  * -------------------------------------------------------------- who may call
  *
  * A shared secret in X-Cage-Auth, compared in constant time. Without it this
@@ -57,6 +62,39 @@ function cage_reply(int $status, array $payload): void
     http_response_code($status);
     echo json_encode($payload, JSON_UNESCAPED_SLASHES);
     exit;
+}
+
+/** The Cage's key in tools.php — whose role this endpoint reports. */
+const CAGE_TOOL = 'cage';
+
+/**
+ * Answer with who this is, or refuse someone the admin page has not given
+ * access to The Cage.
+ *
+ * The password hash is never in this response, and nor is anything else the
+ * caller did not ask about — hence naming the fields rather than returning
+ * the row. `role` is this person's role in The Cage, from the admin page;
+ * `tools` is every tool they can use, for a nav that matches the Slate's.
+ */
+function cage_reply_user(array $user): void
+{
+    $role = fm_tool_role($user, CAGE_TOOL);
+    if ($role === FM_NO_ACCESS) {
+        cage_reply(403, ['ok' => false, 'error' => 'no_access']);
+    }
+    $tools = array_filter(fm_tool_roles((int) $user['id']), static fn($r) => $r !== FM_NO_ACCESS);
+    $text = static fn($v) => $v === null || $v === '' ? null : (string) $v;
+    cage_reply(200, [
+        'ok' => true,
+        'username' => (string) $user['username'],
+        'display_name' => (string) ($user['display_name'] ?? ''),
+        'email' => $text($user['email'] ?? null),
+        'phone' => $text($user['phone'] ?? null),
+        'department' => $text($user['department'] ?? null),
+        'is_admin' => (bool) $user['is_admin'],
+        'role' => $role,
+        'tools' => (object) $tools,
+    ]);
 }
 
 if (($_SERVER['REQUEST_METHOD'] ?? '') !== 'POST') {
@@ -108,13 +146,7 @@ if ($sessionToken !== '') {
         // Expired, unknown, or the account has since been turned off.
         cage_reply(401, ['ok' => false, 'error' => 'no_session']);
     }
-    cage_reply(200, [
-        'ok' => true,
-        'username' => (string) $user['username'],
-        'display_name' => (string) ($user['display_name'] ?? ''),
-        'email' => isset($user['email']) && $user['email'] !== null ? (string) $user['email'] : null,
-        'is_admin' => (bool) $user['is_admin'],
-    ]);
+    cage_reply_user($user);
 }
 
 $username = trim((string) ($body['username'] ?? ''));
@@ -139,8 +171,8 @@ $user = fm_find_user($username);
    take about the same time. Mirrors fm_attempt_login() deliberately: this
    endpoint is that function without the session, and the timing property is
    part of what it does. */
-$hash = $user['password_hash'] ?? '$2y$10$usernamedoesnotexistpaddingpaddingpaddingpaddingpaddingpad';
-$ok = password_verify($password, $hash);
+$hash = $user && fm_has_password($user) ? (string) $user['password_hash'] : FM_DUMMY_HASH;
+$ok = password_verify($password, $hash) && $hash !== FM_DUMMY_HASH;
 
 if (!$user || !$ok) {
     fm_record_attempt('login', $username, false);
@@ -163,13 +195,4 @@ if (password_needs_rehash($hash, fm_password_algo())) {
 fm_db()->prepare('UPDATE users SET last_login_at = now() WHERE id = ?')->execute([$user['id']]);
 fm_record_attempt('login', $username, true);
 
-/* The password hash is never in this response, and nor is anything else the
-   caller did not ask about — hence naming the fields rather than returning
-   the row. */
-cage_reply(200, [
-    'ok' => true,
-    'username' => (string) $user['username'],
-    'display_name' => (string) ($user['display_name'] ?? ''),
-    'email' => isset($user['email']) && $user['email'] !== null ? (string) $user['email'] : null,
-    'is_admin' => (bool) $user['is_admin'],
-]);
+cage_reply_user($user);

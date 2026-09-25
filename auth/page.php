@@ -68,10 +68,29 @@ function fm_page_head(string $title): void
     display: block; font-family: var(--mono); font-size: 10px; letter-spacing: 0.09em;
     text-transform: uppercase; color: var(--gray-30); margin-bottom: 5px;
   }
-  input[type=text], input[type=password], input[type=number] {
+  input[type=text], input[type=password], input[type=number], input[type=email],
+  input[type=tel], select, textarea {
     width: 100%; font-size: 15px; font-weight: 600; color: var(--black);
     border: 1px solid var(--gray-15); background: var(--white); padding: 9px 10px;
+    font-family: inherit;
   }
+  textarea { font-weight: 400; min-height: 80px; resize: vertical; }
+  textarea.mono { font-family: var(--mono); font-size: 12px; white-space: pre; }
+  input[type=file] { font-size: 14px; }
+  select:focus, textarea:focus { outline: none; border-color: var(--black); }
+  label.check { display: flex; gap: 8px; align-items: center; font-size: 14px; }
+  label.check > span { display: inline; font-family: inherit; font-size: 14px;
+    letter-spacing: 0; text-transform: none; color: var(--black); margin: 0; }
+  .card.wider { max-width: 1180px; }
+  .grid2 { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 0 18px; }
+  .scroll { overflow-x: auto; }
+  td.small, th.small { font-size: 12px; }
+  .tag { display: inline-block; font-family: var(--mono); font-size: 10px; letter-spacing: 0.06em;
+    text-transform: uppercase; padding: 2px 6px; border: 1px solid var(--gray-15); color: var(--gray-50);
+    white-space: nowrap; }
+  .tag.good { border-color: var(--accent); color: var(--black); }
+  .tag.bad { border-color: var(--red); color: var(--red); }
+  tr.skip td { color: var(--gray-30); }
   input:focus { outline: none; border-color: var(--black); }
   button, .btn {
     display: inline-flex; align-items: center; justify-content: center; gap: 6px;
@@ -124,7 +143,7 @@ function fm_nav(string $currentTool = '', string $theme = ''): void
     echo '<nav class="fmnav' . ($theme === 'dark' ? ' dark' : '') . '">';
     echo '<a class="home" href="' . fm_h(fm_base_path()) . '">Filmmaking Team</a>';
 
-    foreach (fm_tool_links($currentTool) as $tool) {
+    foreach (fm_tool_links($currentTool, $user) as $tool) {
         echo '<a class="' . ($tool['current'] ? 'here' : '') . '" href="'
             . fm_h($tool['url']) . '">' . fm_h($tool['label']) . '</a>';
     }

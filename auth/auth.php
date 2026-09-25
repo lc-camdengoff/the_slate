@@ -28,6 +28,17 @@ const FM_THROTTLE_WINDOW = '15 minutes';
 
 const FM_MIN_PASSWORD = 10;
 
+// How long a setup code for a new or imported account lasts. Longer than a
+// reset code: it is handed out in a batch and people get to it when they can.
+const FM_SETUP_CODE_HOURS = 14 * 24;
+const FM_RESET_CODE_HOURS = 48;
+
+// Verified against when there is no real hash to check, so a missing account
+// costs the same time as a wrong password. A real hash of a random password
+// nobody kept — a malformed one would fail instantly and give the game away —
+// and never accepted even if it somehow matched.
+const FM_DUMMY_HASH = '$argon2id$v=19$m=65536,t=4,p=1$NmFrNlFVc1pOUUZaSURiaA$deNt8RkLzz2j5ZENsqe2AGQ9nZqtf1C1SWNJW3Ku+0I';
+
 /**
  * Turn any uncaught error into a bland response.
  *
@@ -672,9 +683,11 @@ function fm_attempt_login(string $username, string $password): array
 
     $user = fm_find_user($username);
     // Hash even when the user is missing, so a bad username and a bad password
-    // take about the same time.
-    $hash = $user['password_hash'] ?? '$2y$10$usernamedoesnotexistpaddingpaddingpaddingpaddingpaddingpad';
-    $ok = password_verify($password, $hash);
+    // take about the same time. An account still waiting for its setup code
+    // gets the same treatment, so it cannot be told apart from a wrong
+    // password either.
+    $hash = $user && fm_has_password($user) ? (string) $user['password_hash'] : FM_DUMMY_HASH;
+    $ok = password_verify($password, $hash) && $hash !== FM_DUMMY_HASH;
 
     if (!$user || !$ok || !$user['is_active']) {
         fm_record_attempt('login', $username, false);
@@ -692,6 +705,37 @@ function fm_attempt_login(string $username, string $password): array
     fm_record_attempt('login', $username, true);
     fm_prune();
     return [true, ''];
+}
+
+/**
+ * False for an account an admin or an import made, until its owner redeems
+ * the setup code they were given and picks a password.
+ */
+function fm_has_password(array $user): bool
+{
+    return (string) ($user['password_hash'] ?? '') !== '';
+}
+
+/**
+ * Issue a one-time code that lets someone set this account's password.
+ *
+ * The same thing serves as a reset code for someone who forgot theirs and a
+ * setup code for someone whose account was imported. Only its hash is kept,
+ * so it can be shown once and never again.
+ */
+function fm_issue_code(int $userId, int $createdBy, int $hours): string
+{
+    $code = strtolower(bin2hex(random_bytes(4)) . '-' . bin2hex(random_bytes(4)));
+    // One live code per person: issuing a new one retires the last, so a code
+    // sent to the wrong place can be cancelled by sending another.
+    fm_db()->prepare('UPDATE password_resets SET used_at = now() WHERE user_id = ? AND used_at IS NULL')
+        ->execute([$userId]);
+    $stmt = fm_db()->prepare(
+        'INSERT INTO password_resets (user_id, code_hash, expires_at, created_by)
+         VALUES (?, ?, now() + (?::text || \' hours\')::interval, ?)'
+    );
+    $stmt->execute([$userId, hash('sha256', $code), (string) max(1, $hours), $createdBy ?: null]);
+    return $code;
 }
 
 function fm_set_password(int $userId, string $password): bool
@@ -718,24 +762,39 @@ function fm_set_password(int $userId, string $password): bool
  * This is what a tool calls. Anyone without a session is sent to the shared
  * sign-in page and comes back here afterwards.
  */
-function fm_require_login(): array
+function fm_require_login(string $tool = ''): array
 {
     $user = fm_current_user();
     if ($user === null) {
         header('Location: ' . fm_auth_url_with_next('login.php', fm_current_url()));
         exit;
     }
+    if ($tool !== '' && !fm_can_use($user, $tool)) {
+        require_once __DIR__ . '/page.php';
+        http_response_code(403);
+        fm_page_head('No access');
+        echo '<div class="card"><div class="eyebrow">Filmmaking tools</div>'
+            . '<h1>No access</h1><p class="note" style="margin-top:0">Your account '
+            . 'is not set up to use ' . fm_h((string) (fm_tool($tool)['label'] ?? 'this tool'))
+            . '. Ask an admin if you need it.</p></div>';
+        fm_page_foot();
+        exit;
+    }
     return $user;
 }
 
-function fm_require_api_user(): array
+/**
+ * @param string $tool when given, also require access to this tool (key from
+ *   tools.php), answering 403 no_access without it
+ */
+function fm_require_api_user(string $tool = ''): array
 {
     $user = fm_current_user();
-    if ($user === null) {
-        http_response_code(401);
+    if ($user === null || ($tool !== '' && !fm_can_use($user, $tool))) {
+        http_response_code($user === null ? 401 : 403);
         header('Content-Type: application/json; charset=utf-8');
         header('Cache-Control: no-store');
-        echo json_encode(['ok' => false, 'error' => 'not_signed_in']);
+        echo json_encode(['ok' => false, 'error' => $user === null ? 'not_signed_in' : 'no_access']);
         exit;
     }
     return $user;
@@ -748,9 +807,9 @@ function fm_require_api_user(): array
  * header is the belt to that braces, since a cross-origin caller cannot set a
  * custom header without a preflight we never answer.
  */
-function fm_require_api_write(): array
+function fm_require_api_write(string $tool = ''): array
 {
-    $user = fm_require_api_user();
+    $user = fm_require_api_user($tool);
     $given = $_SERVER['HTTP_X_SLATE_CSRF'] ?? null;
     if (!fm_check_csrf(is_string($given) ? $given : null)) {
         http_response_code(403);

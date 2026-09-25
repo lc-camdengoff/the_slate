@@ -17,7 +17,7 @@ require __DIR__ . '/../auth/auth.php';
 fm_error_handler('json');
 
 slate_require_write_request();
-$account = fm_require_api_write();
+$account = fm_require_api_write('slate');
 
 $saved = slate_saved_dir();
 if ($saved === null) {

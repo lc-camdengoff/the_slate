@@ -116,11 +116,15 @@ function fm_migrate(PDO $pdo): void
  */
 function fm_migrate_columns(PDO $pdo): void
 {
-    $stmt = $pdo->query(
-        "SELECT count(*) AS n FROM information_schema.columns
-          WHERE table_schema = 'public' AND table_name = 'users' AND column_name = 'email'"
-    );
-    if ((int) ($stmt->fetch()['n'] ?? 0) > 0) {
+    // One cheap query decides whether there is anything to do at all.
+    $have = $pdo->query(
+        "SELECT
+           (SELECT count(*) FROM information_schema.columns
+             WHERE table_schema = 'public' AND table_name = 'users'
+               AND column_name IN ('email', 'phone', 'department', 'notes')) AS cols,
+           to_regclass('public.user_tool_roles') IS NOT NULL AS roles"
+    )->fetch();
+    if ((int) ($have['cols'] ?? 0) === 4 && !empty($have['roles'])) {
         return;
     }
 
@@ -129,6 +133,14 @@ function fm_migrate_columns(PDO $pdo): void
         $pdo->exec('ALTER TABLE users ADD COLUMN IF NOT EXISTS email text');
         $pdo->exec('CREATE UNIQUE INDEX IF NOT EXISTS users_email_lower_idx
                         ON users (lower(email)) WHERE email IS NOT NULL');
+        $pdo->exec('ALTER TABLE users ADD COLUMN IF NOT EXISTS phone text');
+        $pdo->exec('ALTER TABLE users ADD COLUMN IF NOT EXISTS department text');
+        $pdo->exec('ALTER TABLE users ADD COLUMN IF NOT EXISTS notes text');
+        $pdo->exec('CREATE TABLE IF NOT EXISTS user_tool_roles (
+                        user_id bigint NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+                        tool    text   NOT NULL,
+                        role    text   NOT NULL,
+                        PRIMARY KEY (user_id, tool))');
     } finally {
         $pdo->exec('SELECT pg_advisory_unlock(8264774)');
     }

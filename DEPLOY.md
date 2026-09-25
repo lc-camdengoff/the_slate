@@ -11,8 +11,10 @@ shared cPanel hosting (LiteSpeed, cPanel user `creaueyu`).
     ├── index.html          public "Filmmaking Team" page
     ├── auth/               ← shared sign-in for EVERY tool here
     │   ├── login.php  signup.php  logout.php  reset.php
-    │   ├── account.php  admin.php  index.php
-    │   ├── auth.php  db.php  page.php  schema.sql   (includes, not reachable)
+    │   ├── account.php  admin.php  person.php  import.php  index.php
+    │   ├── verify.php      The Cage asks who a session belongs to
+    │   ├── auth.php  db.php  page.php  people.php  tools.php  email.php
+    │   │   schema.sql      (includes, not reachable)
     │   └── .htaccess  config.sample.php
     ├── slate/              ← The Slate, deployed from this repo
     │   ├── index.php       the front door: requires a session, serves the app
@@ -92,9 +94,52 @@ Then, as that admin, open `auth/admin.php` and create an invite code to share
 with the team. From the admin page you can also:
 
 - turn invite codes on and off, cap their uses, or give them an expiry
+- click anyone in the **Team** list to edit their details (name, email, phone,
+  department, admin-only notes), set what they can use in each tool, make them
+  an admin, or turn the account off — which signs it out everywhere at once
 - generate a **reset code** for someone who is locked out (single use, expires
   after 48 hours, shown once — pass it to them in person or over chat)
-- make someone an admin, or turn an account off, which signs it out immediately
+- **Add person** to make an account for someone, or **Import from CSV** to
+  bring a whole team over (below)
+
+A username can't be changed after the account exists: storyboards record their
+owner by username, so renaming would orphan that person's private boards.
+
+#### Importing from Cheqroom (or any spreadsheet)
+
+Export the people as CSV, then **Team admin → Import from CSV**. Nothing is
+saved until the last step:
+
+1. **Columns.** Each field is matched to a column by its header name; fix any
+   guess that's wrong. Email is required — it's how people already here are
+   matched, and The Cage needs it for reminders.
+2. **Access.** Pick what new people get in each tool, and what each role value
+   in the file becomes in The Cage. The suggestions are deliberately stingy:
+   only "Admin" becomes Admin, so raise anything else by hand. Nobody becomes
+   an admin of the Team admin page through an import.
+3. **Preview.** Every row shows New, Update, Here or Skip, and why. Untick
+   anyone to leave them out. Rows are skipped for no email, an address outside
+   `allowed_email_domains`, or a repeat of an earlier row.
+4. **Import.** Each new person gets a **setup code**, shown once, with a
+   tab-separated list to paste into a spreadsheet. They open
+   `auth/reset.php?setup=1&u=<username>` (the link is in the list), enter the
+   code and choose a password, and are signed straight in. Setup codes last
+   14 days. A person's page can issue a new one, which cancels the old.
+
+No passwords come across. An imported account can't sign in until its setup
+code is used, and nobody but its owner ever knows its password.
+
+For someone who already has an account, the import only fills in phone,
+department and notes where theirs are blank. It changes their access only if
+you tick "Also set their access from this file".
+
+#### Access to each tool
+
+Each tool in `auth/tools.php` lists its own roles, plus a default for anyone
+not given one. The Slate has Member; The Cage has Member, Gear manager and
+Admin. Setting a tool to **No access** removes it from that person's nav bar
+and refuses them at the door: the Slate shows a "No access" page, and
+`verify.php` tells The Cage `no_access`.
 
 ### 4. Cutover: turn off cPanel Directory Privacy
 
@@ -159,15 +204,22 @@ require __DIR__ . '/../auth/auth.php';
 $user = fm_require_login();   // bounces to the shared sign-in, comes back here
 ```
 
-Then add one line to `auth/tools.php` so it appears in the nav everywhere:
+Then add one entry to `auth/tools.php` so it appears in the nav everywhere and
+gets a row on each person's admin page:
 
 ```php
-['label' => 'The Cage', 'path' => 'cage/', 'blurb' => 'Gear checkout'],
+['key' => 'edit', 'label' => 'The Edit Bay', 'path' => 'edit/', 'blurb' => 'Post',
+ 'roles' => ['member' => 'Member'], 'default_role' => 'member'],
 ```
 
-That is the whole integration. Anyone signed in to The Slate is already signed
-in to it, and signing out of either signs out of both. `$user` gives you
-`display_name`, `username` and `is_admin`.
+and gate its front door on that key: `fm_require_login('edit')`. That is the
+whole integration. Anyone signed in to The Slate is already signed in to it,
+and signing out of either signs out of both. `$user` gives you
+`display_name`, `username` and `is_admin`, and `fm_tool_role($user, 'edit')`
+gives their role there.
+
+Never change a tool's `key` once people have roles in it: roles are stored
+against it.
 
 ### Putting the nav on a page of your own
 
@@ -252,12 +304,19 @@ if (token) {
     headers: { 'Content-Type': 'application/json', 'X-Cage-Auth': SLATE_VERIFY_SECRET },
     body: JSON.stringify({ session: token }),
   });
-  if (r.ok) { /* {username, display_name, email, is_admin} */ }
+  if (r.ok) {
+    /* {username, display_name, email, phone, department, is_admin,
+        role: 'member' | 'manager' | 'admin',   ← their Cage role
+        tools: {slate: 'member', cage: 'manager'}} */
+  }
 }
 ```
 
 A 401 `no_session` means expired, unknown, or the account has been turned off —
 fall through to The Cage's own sign-in form, which uses the password body.
+A 403 `no_access` means a real account whose Cage access is set to No access
+on the Team admin page. Show a "no access" message, not the sign-in form.
+Both body forms answer the same way.
 
 Session checks are neither throttled nor recorded: the token is 64 hex
 characters and either matches a live row or does not, so it is not a guessing

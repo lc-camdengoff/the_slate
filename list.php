@@ -23,7 +23,7 @@ if (!in_array($_SERVER['REQUEST_METHOD'] ?? '', ['GET', 'HEAD'], true)) {
     slate_fail(405, 'method_not_allowed');
 }
 
-$account = fm_require_api_user();
+$account = fm_require_api_user('slate');
 $user = slate_user();
 $response = [
     'ok' => true,
@@ -40,7 +40,7 @@ $response = [
     // The same registry the account pages use, so a new tool shows up in the
     // app's header without touching the app.
     'homeUrl' => fm_base_path(),
-    'tools' => fm_tool_links('slate/'),
+    'tools' => fm_tool_links('slate/', $account),
     'maxBytes' => slate_max_bytes(),
     'versionsKept' => SLATE_VERSIONS_KEPT,
     'mine' => [],

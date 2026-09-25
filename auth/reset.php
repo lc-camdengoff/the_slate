@@ -1,10 +1,14 @@
 <?php
 /**
- * The Slate — redeem a password reset code.
+ * Filmmaking tools — redeem a reset code or a setup code.
  *
  * There is no outbound mail on this host, so resets are not emailed links: an
  * admin generates a one-time code on the admin page and passes it to the
  * person directly. The code is single-use and expires.
+ *
+ * A setup code is the same thing for an account an admin made or imported,
+ * which has no password yet. Redeeming one signs the person straight in —
+ * they have just proved who they are, and it is their first visit.
  */
 
 declare(strict_types=1);
@@ -16,7 +20,9 @@ fm_error_handler('html');
 
 $error = '';
 $done = false;
-$username = '';
+// Prefilled from the link on a setup sheet: reset.php?setup=1&u=camden.goff
+$username = trim((string) ($_GET['u'] ?? ''));
+$username = fm_valid_username($username) ? $username : '';
 
 if (($_SERVER['REQUEST_METHOD'] ?? '') === 'POST') {
     $username = trim((string) ($_POST['username'] ?? ''));
@@ -53,22 +59,32 @@ if (($_SERVER['REQUEST_METHOD'] ?? '') === 'POST') {
             fm_record_attempt('reset', $username, false);
             $error = 'That reset code is not valid for this account, or it has expired.';
         } else {
+            $firstTime = !fm_has_password($user);
             fm_set_password((int) $user['id'], $password);
             fm_db()->prepare('UPDATE password_resets SET used_at = now() WHERE id = ?')
                 ->execute([$matched['id']]);
             // Anyone holding an old session for this account loses it.
             fm_end_all_sessions((int) $user['id']);
             fm_record_attempt('reset', $username, true);
+            if ($firstTime && $user['is_active'] && fm_attempt_login($username, $password)[0]) {
+                header('Location: ' . fm_base_path());
+                exit;
+            }
             $done = true;
         }
     }
 }
 
-fm_page_head('Reset password');
+// Wording only, from the link rather than the account, so the page never
+// says whether a username exists or has been set up. It works the same
+// either way.
+$setup = !empty($_GET['setup']) || !empty($_POST['setup']);
+
+fm_page_head($setup ? 'Set up your account' : 'Reset password');
 ?>
 <div class="card">
   <div class="eyebrow">Filmmaking tools</div>
-  <h1>Reset password</h1>
+  <h1><?= $setup ? 'Set up your account' : 'Reset password' ?></h1>
 
   <?php if ($done): ?>
     <div class="msg good">
@@ -81,20 +97,28 @@ fm_page_head('Reset password');
       <div class="msg bad"><?= fm_h($error) ?></div>
     <?php endif; ?>
 
-    <div class="msg">
-      Ask an admin to generate a reset code for you. Codes are single use and
-      expire after 48 hours.
-    </div>
+    <?php if ($setup): ?>
+      <div class="msg">
+        Enter the setup code an admin gave you and choose a password. Your
+        account is ready. This is the only step.
+      </div>
+    <?php else: ?>
+      <div class="msg">
+        Ask an admin to generate a reset code for you. Codes are single use and
+        expire after 48 hours. Got a setup code for a new account? It works here too.
+      </div>
+    <?php endif; ?>
 
     <form method="post">
+      <?php if ($setup): ?><input type="hidden" name="setup" value="1"><?php endif; ?>
       <label>
         <span>Username</span>
         <input type="text" name="username" value="<?= fm_h($username) ?>"
-               autocapitalize="none" autocorrect="off" required autofocus>
+               autocapitalize="none" autocorrect="off" autocomplete="username" required<?= $username === '' ? ' autofocus' : '' ?>>
       </label>
       <label>
-        <span>Reset code</span>
-        <input type="text" name="code" autocapitalize="none" autocorrect="off" required>
+        <span><?= $setup ? 'Setup code' : 'Reset code' ?></span>
+        <input type="text" name="code" autocapitalize="none" autocorrect="off" autocomplete="one-time-code" required<?= $username !== '' ? ' autofocus' : '' ?>>
       </label>
       <label>
         <span>New password</span>
@@ -105,7 +129,7 @@ fm_page_head('Reset password');
         <span>Confirm new password</span>
         <input type="password" name="confirm" autocomplete="new-password" required>
       </label>
-      <button type="submit">Set new password</button>
+      <button type="submit"><?= $setup ? 'Set password and sign in' : 'Set new password' ?></button>
     </form>
 
     <div class="note"><a href="login.php">Back to sign in</a></div>
