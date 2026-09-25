@@ -85,6 +85,7 @@ return [
     //   node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"
     // 'cage_auth_secret' => '...',
 
-    // Domains a signup address may be on, comma separated. Empty means any.
+    // Domains a self-signup address may be on, comma separated. Empty means
+    // any. Admins adding people (Add person, CSV import) can use any address.
     // 'allowed_email_domains' => 'life.church',
 ];

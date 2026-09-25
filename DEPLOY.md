@@ -137,8 +137,10 @@ saved until the last step:
    only "Admin" becomes Admin, so raise anything else by hand. Nobody becomes
    an admin of the Team admin page through an import.
 3. **Preview.** Every row shows New, Update, Here or Skip, and why. Untick
-   anyone to leave them out. Rows are skipped for no email, an address outside
-   `allowed_email_domains`, or a repeat of an earlier row.
+   anyone to leave them out. Rows are skipped for no email, an address that
+   isn't valid, or a repeat of an earlier row. Any domain is accepted here,
+   and on Add person and each person's page: `allowed_email_domains` in the
+   config applies only to people signing themselves up.
    A row is also skipped if the username its email makes (the part before the
    @) already belongs to a different account.
 4. **Import.** Each new person gets a **setup code**, shown once, with a

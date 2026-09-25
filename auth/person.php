@@ -82,7 +82,8 @@ if (($_SERVER['REQUEST_METHOD'] ?? '') === 'POST') {
         $wantAdmin = !empty($_POST['is_admin']);
         $wantActive = !empty($_POST['is_active']);
 
-        $emailProblem = fm_email_problem($form['email']);
+        // Any domain: only self-signup is held to allowed_email_domains.
+        $emailProblem = fm_email_problem($form['email'], true);
 
         if ($form['display_name'] === '') {
             $error = 'Give them a name.';
