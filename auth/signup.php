@@ -5,11 +5,18 @@
  * Gated by a shared invite code from the admin page. While the users table is
  * empty the bootstrap code from the config file is accepted instead, and that
  * first account becomes the admin.
+ *
+ * An email address is collected as well, because the gear room (The Cage)
+ * refuses a sign-in from an account without one: it is how a pickup notice or
+ * an overdue chase reaches anyone, and a username cannot receive either. It is
+ * NOT verified — nothing is sent to it — so the invite code is what keeps a
+ * mistyped or borrowed address from mattering. See email.php.
  */
 
 declare(strict_types=1);
 
 require __DIR__ . '/auth.php';
+require __DIR__ . '/email.php';
 require __DIR__ . '/page.php';
 
 fm_error_handler('html');
@@ -24,14 +31,21 @@ if (fm_current_user() !== null) {
 $error = '';
 $username = '';
 $displayName = '';
+$email = '';
 $firstRun = fm_user_count() === 0;
 
 if (($_SERVER['REQUEST_METHOD'] ?? '') === 'POST') {
     $username = trim((string) ($_POST['username'] ?? ''));
     $displayName = trim((string) ($_POST['display_name'] ?? ''));
+    $email = trim((string) ($_POST['email'] ?? ''));
     $password = (string) ($_POST['password'] ?? '');
     $confirm = (string) ($_POST['confirm'] ?? '');
     $code = trim((string) ($_POST['invite'] ?? ''));
+
+    /* The email is checked here, with the rest of the form, rather than after
+       the invite is redeemed — redeeming spends a use, and a typo'd address
+       should not cost one. Same reasoning as fm_release_invite() below. */
+    $emailProblem = fm_email_problem($email);
 
     if (fm_throttled('signup')) {
         $error = 'Too many attempts from this connection. Wait a few minutes and try again.';
@@ -41,6 +55,14 @@ if (($_SERVER['REQUEST_METHOD'] ?? '') === 'POST') {
         $error = 'Use at least ' . FM_MIN_PASSWORD . ' characters for your password.';
     } elseif (!fm_valid_username($username)) {
         $error = 'Usernames are 3–32 characters: letters, numbers, dot, dash or underscore.';
+    } elseif ($emailProblem !== '') {
+        $error = $emailProblem;
+    } elseif (fm_email_taken($email)) {
+        /* Checked before the account is created rather than after, so a
+           duplicate address fails cleanly instead of leaving a half-made
+           account with no way to reach its owner. The unique index is still
+           the thing that decides; this only makes the common case tidy. */
+        $error = 'That email address is already on another account.';
     } else {
         // The first account is authorised by the config file, not the database
         // — there is no admin yet to have issued a code.
@@ -56,6 +78,16 @@ if (($_SERVER['REQUEST_METHOD'] ?? '') === 'POST') {
         } else {
             [$ok, $err] = fm_create_user($username, $displayName, $password, $usedBootstrap);
             if ($ok) {
+                /* Separate statement because fm_create_user() predates the
+                   column. A failure here leaves a usable Slate account that
+                   can't sign in to the gear room, so it is reported rather
+                   than swallowed. The column itself is created by
+                   fm_migrate_columns() in db.php on the first request after a
+                   deploy. */
+                $stored = fm_set_email($username, $email);
+                if ($stored !== '') {
+                    error_log("slate: account $username created but email not stored: $stored");
+                }
                 fm_record_attempt('signup', $code, true);
                 fm_attempt_login($username, $password);
                 header('Location: ' . $next);
@@ -104,6 +136,13 @@ fm_page_head($firstRun ? 'Set up' : 'Sign up');
              autocomplete="name" placeholder="Camden Goff">
     </label>
     <div class="hint">Shown on the storyboards you save.</div>
+    <label>
+      <span>Email</span>
+      <input type="email" name="email" value="<?= fm_h($email) ?>"
+             autocapitalize="none" autocorrect="off" spellcheck="false"
+             autocomplete="email" placeholder="camden.goff@life.church" required>
+    </label>
+    <div class="hint">Where the gear room sends pickup and overdue reminders.</div>
     <label>
       <span>Username</span>
       <input type="text" name="username" value="<?= fm_h($username) ?>"

@@ -70,4 +70,16 @@ return [
     // Absolute URL of the auth folder. Tools on other hosts need this to link
     // back here; a relative path would resolve against their own host.
     // 'auth_url' => 'https://creativemedia.church/filmmaking/auth/',
+
+    // ---- The Cage ---------------------------------------------------------
+    // Shared secret for auth/verify.php, which The Cage calls to check a
+    // password because it is a Node app and cannot run PHP or read the
+    // session cookie. Must match The Cage's SLATE_VERIFY_SECRET. Without it
+    // verify.php answers 503 rather than becoming a public password oracle.
+    //
+    //   node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"
+    // 'cage_auth_secret' => '...',
+
+    // Domains a signup address may be on, comma separated. Empty means any.
+    // 'allowed_email_domains' => 'life.church',
 ];
