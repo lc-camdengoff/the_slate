@@ -5,8 +5,10 @@
  * POST delete.php?id=...
  *
  * Soft delete: the board, its sidecar and its kept versions move into
- * saved/.trash/ rather than being unlinked, so a mis-click is recoverable over
- * FTP or the cPanel file manager. Nothing else backs these files up.
+ * saved/.trash/ rather than being unlinked, recording who deleted it. They
+ * can be restored from the Trash section of the app (trash.php) for
+ * SLATE_TRASH_DAYS, after which housekeeping removes them. Nothing else backs
+ * these files up.
  */
 
 declare(strict_types=1);
@@ -43,7 +45,7 @@ if (!slate_can_write($meta, (string) $account['username'])) {
 }
 
 $lock = slate_lock($saved, $id);
-if (!slate_trash_board($saved, $id)) {
+if (!slate_trash_board($saved, $id, (string) $account['username'], (string) $account['display_name'])) {
     flock($lock, LOCK_UN);
     fclose($lock);
     slate_fail(500, 'delete_failed');

@@ -21,7 +21,7 @@ shared cPanel hosting (LiteSpeed, cPanel user `creaueyu`).
     │   ├── app.html        the app as one self-unpacking bundle (the source)
     │   ├── page.html       the same, unpacked at deploy — what index.php serves
     │   ├── assets/         its fonts and scripts, cached by browsers for a year
-    │   ├── list.php  save.php  load.php  delete.php  diag.php  storage.php
+    │   ├── list.php  save.php  load.php  delete.php  trash.php  diag.php  storage.php
     │   ├── lib.php
     │   └── .htaccess  .user.ini
     └── saved/              ← the team's storyboards, NEVER deployed
@@ -426,10 +426,14 @@ Two folders sit beside the boards and are never served:
 - `saved/.versions/` — the previous copy of each board (one, to undo a bad
   save), kept automatically when someone overwrites it.
 - `saved/.trash/` — boards removed from the library, with their previous copy.
-  They are kept for 30 days from deletion and then removed for good. **This is
-  where you recover a storyboard someone deleted by mistake**: within those 30
-  days, move the newest `<id>.<timestamp>.json` back to `saved/<id>.json` and
-  rename its `.meta.json` alongside it.
+  They are kept for 30 days from deletion and then removed for good. **To
+  recover a storyboard deleted by mistake, use the Trash section at the bottom
+  of the Slate's storyboard list**: it shows each deleted board with who
+  deleted it and how many days are left, and Restore puts it back where it
+  was, previous copy included (`trash.php`). People see deleted team boards
+  and their own private ones; admins see everything. By hand, it is moving the
+  newest `<id>.<timestamp>.json` back to `saved/<id>.json` with its
+  `.meta.json`.
 
 Both are tidied automatically, at most once an hour, when someone opens the
 Slate (`slate_housekeeping()` in `lib.php`). Both live inside `saved/`, so
