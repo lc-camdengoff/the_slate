@@ -350,26 +350,37 @@
 </svg>
 
 <sc-if value="{{ isMenuView }}" hint-placeholder-val="{{ true }}">
-  <div style="min-height:100vh;background:var(--gray-5);padding:48px 32px">
-    <div style="max-width:1100px;margin:0 auto">
-      <sc-if value="{{ signedIn }}" hint-placeholder-val="{{ false }}">
-        <div style="display:flex;align-items:center;gap:14px;flex-wrap:wrap;margin-bottom:22px;padding-bottom:16px;border-bottom:1px solid var(--gray-15)">
-          <a href="{{ homeUrl }}" style="font-family:var(--font-display);font-weight:900;font-size:14px;letter-spacing:-0.01em;color:var(--black);text-decoration:none">Filmmaking Team</a>
+  <div style="min-height:100vh;background:var(--gray-5)">
+    <!-- The bar across the top, full width, styled after The Cage's so the
+         tools read as one set: tool name and a count on the left, the other
+         tools, the account and sign-out on the right. -->
+    <sc-if value="{{ signedIn }}" hint-placeholder-val="{{ false }}">
+      <div data-noprint="" style="display:flex;align-items:center;gap:6px 18px;flex-wrap:wrap;min-height:56px;padding:10px 26px;box-sizing:border-box;background:#1F2023;border-bottom:1px solid #2E2F33">
+        <div style="display:flex;align-items:baseline;gap:12px;margin-right:6px">
+          <span style="font-family:var(--font-display);font-weight:900;font-size:20px;letter-spacing:0.14em;text-transform:uppercase;color:#F2F2F2;line-height:1">The Slate</span>
+          <span style="font-family:var(--font-mono);font-size:11px;color:#8B8C90;white-space:nowrap">{{ navMeta }}</span>
+        </div>
+        <div style="display:flex;align-items:center;gap:2px;flex-wrap:wrap">
+          <a href="{{ homeUrl }}" style="font-family:var(--font-mono);font-size:11px;letter-spacing:0.08em;text-transform:uppercase;color:#A9AAAE;text-decoration:none;padding:6px 8px" style-hover="color:#FFFFFF">Filmmaking Team</a>
           <sc-for list="{{ otherTools }}" as="t" hint-placeholder-count="0">
-            <a href="{{ t.url }}" style="font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:0.04em;color:var(--gray-50);text-decoration:none;padding:7px 10px">{{ t.label }}</a>
+            <a href="{{ t.url }}" style="font-family:var(--font-mono);font-size:11px;letter-spacing:0.08em;text-transform:uppercase;color:#A9AAAE;text-decoration:none;padding:6px 8px" style-hover="color:#FFFFFF">{{ t.label }}</a>
           </sc-for>
-          <span style="margin-left:auto"></span>
-          <span style="font-family:var(--font-mono);font-size:11px;letter-spacing:0.06em;text-transform:uppercase;color:var(--gray-40)">Signed in as {{ signedInAs }}</span>
-          <a href="{{ accountUrl }}" style="font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:0.04em;color:var(--gray-50);text-decoration:none;border:1px solid var(--gray-15);padding:7px 11px">Account</a>
+        </div>
+        <span style="margin-left:auto"></span>
+        <div style="display:flex;align-items:center;gap:2px 10px;flex-wrap:wrap">
+          <a href="{{ accountUrl }}" style="font-family:var(--font-mono);font-size:11px;letter-spacing:0.08em;text-transform:uppercase;color:#A9AAAE;text-decoration:none;padding:6px 8px" style-hover="color:#FFFFFF">Account</a>
           <sc-if value="{{ isLibraryAdmin }}" hint-placeholder-val="{{ false }}">
-            <a href="{{ adminUrl }}" style="font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:0.04em;color:var(--gray-50);text-decoration:none;border:1px solid var(--gray-15);padding:7px 11px">Team Admin</a>
+            <a href="{{ adminUrl }}" style="font-family:var(--font-mono);font-size:11px;letter-spacing:0.08em;text-transform:uppercase;color:#A9AAAE;text-decoration:none;padding:6px 8px" style-hover="color:#FFFFFF">Team Admin</a>
           </sc-if>
+          <span style="font-family:var(--font-mono);font-size:12px;color:#A9AAAE;padding:0 4px;white-space:nowrap">{{ signedInAs }}</span>
           <form method="post" action="{{ logoutUrl }}" style="margin:0">
             <input type="hidden" name="csrf" value="{{ libraryCsrf }}">
-            <button type="submit" style="height:32px;padding:0 11px;background:transparent;border:1px solid var(--gray-15);color:var(--gray-50);font-size:12px;font-weight:700;cursor:pointer;text-transform:uppercase;letter-spacing:0.04em">Sign out</button>
+            <button type="submit" style="height:30px;padding:0 12px;background:#2A2B2F;border:1px solid #3A3B40;color:#ECECEC;font-size:11px;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;cursor:pointer" style-hover="background:#34353A">Sign out</button>
           </form>
         </div>
-      </sc-if>
+      </div>
+    </sc-if>
+    <div style="max-width:1164px;margin:0 auto;padding:40px 32px 48px;box-sizing:border-box">
       <div style="font-family:var(--font-mono);font-size:11px;letter-spacing:0.14em;text-transform:uppercase;color:var(--gray-30);margin-bottom:8px">Storyboard</div>
       <div style="display:flex;align-items:flex-end;justify-content:space-between;flex-wrap:wrap;gap:16px;margin-bottom:32px">
         <div style="font-family:var(--font-display);font-weight:900;font-size:40px;line-height:0.9;letter-spacing:-0.02em;text-transform:uppercase;color:var(--black)">Your Storyboards</div>
@@ -2195,6 +2206,9 @@ class Component extends DCLogic {
         };
       }),
       isMenuView, isBoardView, noBoards: uiBoards.length === 0, boards: uiBoards,
+      // "3 storyboards · 12 in team library", beside the name in the top bar.
+      navMeta: (uiBoards.length === 1 ? '1 storyboard' : uiBoards.length + ' storyboards')
+        + (LIB_ENABLED && this.state.library ? ' · ' + this.state.library.length + ' in team library' : ''),
 
       libraryEnabled: LIB_ENABLED,
       loadLibrary: this.loadLibrary, saveToLibrary: this.saveToLibrary,
