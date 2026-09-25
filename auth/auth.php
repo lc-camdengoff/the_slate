@@ -582,11 +582,32 @@ function fm_check_csrf(?string $given): bool
 // Accounts
 // ---------------------------------------------------------------------------
 
+/**
+ * Find an account by username, or by email address if what was typed has an
+ * @ in it — people will type the whole address into a username box, and
+ * since the username is made from the address there is no reason to refuse.
+ */
 function fm_find_user(string $username): ?array
 {
-    $stmt = fm_db()->prepare('SELECT * FROM users WHERE username_ci = ?');
-    $stmt->execute([strtolower(trim($username))]);
+    $username = strtolower(trim($username));
+    if (strpos($username, '@') !== false) {
+        $stmt = fm_db()->prepare('SELECT * FROM users WHERE lower(email) = ?');
+    } else {
+        $stmt = fm_db()->prepare('SELECT * FROM users WHERE username_ci = ?');
+    }
+    $stmt->execute([$username]);
     return $stmt->fetch() ?: null;
+}
+
+/**
+ * What a sign-in attempt is throttled and logged under. An address and the
+ * username made from it are the same account, so they share one allowance —
+ * otherwise switching between the two would double the guesses allowed.
+ */
+function fm_login_subject(string $typed): string
+{
+    $typed = strtolower(trim($typed));
+    return strpos($typed, '@') !== false ? (string) strstr($typed, '@', true) : $typed;
 }
 
 function fm_user_count(): int
@@ -594,9 +615,29 @@ function fm_user_count(): int
     return (int) (fm_db()->query('SELECT count(*) AS n FROM users')->fetch()['n'] ?? 0);
 }
 
+/**
+ * Usernames are the part of the email before the @ (first.last), so this
+ * accepts what a real address can start with. Older accounts that picked
+ * their own name at signup also pass.
+ */
 function fm_valid_username(string $username): bool
 {
-    return preg_match('/^[A-Za-z0-9][A-Za-z0-9._-]{2,31}$/', $username) === 1;
+    return preg_match('/^[A-Za-z0-9][A-Za-z0-9._+-]{0,63}$/', $username) === 1;
+}
+
+/**
+ * The username an email address gives: everything before the @, lowercased.
+ * camden.goff@life.church → camden.goff. '' if the address can't make one.
+ */
+function fm_username_for_email(string $email): string
+{
+    $email = strtolower(trim($email));
+    $at = strrpos($email, '@');
+    if ($at === false || $at === 0) {
+        return '';
+    }
+    $local = substr($email, 0, $at);
+    return fm_valid_username($local) ? $local : '';
 }
 
 /**
@@ -676,12 +717,14 @@ function fm_create_user(string $username, string $displayName, string $password,
  */
 function fm_attempt_login(string $username, string $password): array
 {
+    $typed = $username;
+    $username = fm_login_subject($typed);
     if (fm_throttled('login', $username)) {
         fm_record_attempt('login', $username, false);
         return [false, 'throttled'];
     }
 
-    $user = fm_find_user($username);
+    $user = fm_find_user($typed);
     // Hash even when the user is missing, so a bad username and a bad password
     // take about the same time. An account still waiting for its setup code
     // gets the same treatment, so it cannot be told apart from a wrong

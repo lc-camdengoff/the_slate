@@ -272,7 +272,8 @@ fm_page_head('Import people');
     </div>
     <div class="hint" style="margin-top:0">
       Use Full name, or First and Last name. Email is required: it's how
-      existing accounts are matched, and The Cage needs it for reminders.
+      existing accounts are matched, The Cage needs it for reminders, and each
+      person's username is the part before the @ (first.last).
     </div>
 
     <h2>Access for new people</h2>

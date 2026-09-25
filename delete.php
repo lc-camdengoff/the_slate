@@ -42,27 +42,11 @@ if (!slate_can_write($meta, (string) $account['username'])) {
     slate_fail(403, 'not_yours');
 }
 
-$trash = slate_internal_dir($saved, '.trash');
-if ($trash === null) {
-    slate_fail(500, 'storage_unavailable');
-}
-
 $lock = slate_lock($saved, $id);
-$stamp = slate_now_ms();
-$prefix = $trash . '/' . $id . '.' . $stamp;
-
-if (!@rename($path, $prefix . '.json')) {
+if (!slate_trash_board($saved, $id)) {
     flock($lock, LOCK_UN);
     fclose($lock);
     slate_fail(500, 'delete_failed');
-}
-@rename(slate_meta_path($saved, $id), $prefix . '.meta.json');
-
-$versions = $saved . '/.versions';
-if (is_dir($versions)) {
-    foreach (glob($versions . '/' . $id . '.*.json') ?: [] as $old) {
-        @rename($old, $trash . '/' . basename($old));
-    }
 }
 
 flock($lock, LOCK_UN);

@@ -96,14 +96,33 @@ with the team. From the admin page you can also:
 - turn invite codes on and off, cap their uses, or give them an expiry
 - click anyone in the **Team** list to edit their details (name, email, phone,
   department, admin-only notes), set what they can use in each tool, make them
-  an admin, or turn the account off — which signs it out everywhere at once
+  an admin, turn the account off (signs it out everywhere at once, keeps
+  everything), or delete it
 - generate a **reset code** for someone who is locked out (single use, expires
   after 48 hours, shown once — pass it to them in person or over chat)
 - **Add person** to make an account for someone, or **Import from CSV** to
   bring a whole team over (below)
 
-A username can't be changed after the account exists: storyboards record their
-owner by username, so renaming would orphan that person's private boards.
+**Usernames come from the email.** A username is always the part of the email
+before the @: `camden.goff@life.church` signs in as `camden.goff`, and the
+full address works in the username box too. Signup has no username box, and
+the import and **Add person** both follow the same rule. Changing someone's
+email on their page renames them. Their password is kept, their devices stay
+signed in, and their storyboards follow them, because each tool with a
+`hooks` entry in `tools.php` is told about the rename.
+
+Accounts made before this rule appear under **Usernames to update** on Team
+admin, with the name each will get. One button renames them all. Tell each
+person their new username. An account with no email keeps its old username
+until one is added.
+
+**Deleting someone** is at the bottom of their page, and you have to type their
+username to confirm. You can't delete your own account. Their sessions, codes and
+access go with it. In the Slate, their private storyboards move to
+`saved/.trash` (still recoverable by moving the files back), and the boards
+they shared with the team stay in the library, credited to them. The username
+on those shared boards becomes `(deleted) first.last`, so nobody given the
+same username later inherits them. To keep everything, turn the account off instead.
 
 #### Importing from Cheqroom (or any spreadsheet)
 
@@ -120,6 +139,8 @@ saved until the last step:
 3. **Preview.** Every row shows New, Update, Here or Skip, and why. Untick
    anyone to leave them out. Rows are skipped for no email, an address outside
    `allowed_email_domains`, or a repeat of an earlier row.
+   A row is also skipped if the username its email makes (the part before the
+   @) already belongs to a different account.
 4. **Import.** Each new person gets a **setup code**, shown once, with a
    tab-separated list to paste into a spreadsheet. They open
    `auth/reset.php?setup=1&u=<username>` (the link is in the list), enter the
@@ -305,14 +326,18 @@ if (token) {
     body: JSON.stringify({ session: token }),
   });
   if (r.ok) {
-    /* {username, display_name, email, phone, department, is_admin,
+    /* {id, username, display_name, email, phone, department, is_admin,
         role: 'member' | 'manager' | 'admin',   ← their Cage role
         tools: {slate: 'member', cage: 'manager'}} */
   }
 }
 ```
 
-A 401 `no_session` means expired, unknown, or the account has been turned off —
+Key The Cage's own records on `id`, which never changes. `username` and `email`
+can change (the username follows the email), so update them from each
+answer rather than matching on them.
+
+A 401 `no_session` means expired, unknown, or the account has been turned off or deleted —
 fall through to The Cage's own sign-in form, which uses the password body.
 A 403 `no_access` means a real account whose Cage access is set to No access
 on the Team admin page. Show a "no access" message, not the sign-in form.

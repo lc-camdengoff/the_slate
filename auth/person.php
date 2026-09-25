@@ -6,9 +6,14 @@
  *   person.php          add someone by hand (they get a setup code)
  *   person.php?id=12    edit an existing account
  *
- * The username cannot be changed once an account exists. Storyboards record
- * their owner by username, so renaming would quietly orphan every private
- * board that person has.
+ * The username is always the part of the email before the @ (first.last), so
+ * changing someone's email renames them. Storyboards record their owner by
+ * username, so a rename is passed on to each tool (see fm_rename_user()) and
+ * their boards follow them.
+ *
+ * Deleting someone moves their private storyboards to the Slate's trash and
+ * keeps their team ones. Turning an account off is the gentler option and
+ * keeps everything.
  */
 
 declare(strict_types=1);
@@ -68,9 +73,6 @@ if (($_SERVER['REQUEST_METHOD'] ?? '') === 'POST') {
             $form[$k] = fm_clean_text((string) ($_POST[$k] ?? ''), $f['max']);
         }
         $form['email'] = strtolower(trim((string) ($_POST['email'] ?? '')));
-        if ($isNew) {
-            $form['username'] = trim((string) ($_POST['username'] ?? ''));
-        }
         foreach (fm_tools() as $tool) {
             $want = (string) ($_POST['role'][$tool['key']] ?? '');
             if (fm_valid_tool_role($tool['key'], $want)) {
@@ -80,44 +82,36 @@ if (($_SERVER['REQUEST_METHOD'] ?? '') === 'POST') {
         $wantAdmin = !empty($_POST['is_admin']);
         $wantActive = !empty($_POST['is_active']);
 
-        $emailProblem = ($isNew || $form['email'] !== '') ? fm_email_problem($form['email']) : '';
+        $emailProblem = fm_email_problem($form['email']);
 
         if ($form['display_name'] === '') {
             $error = 'Give them a name.';
         } elseif ($emailProblem !== '') {
             $error = $emailProblem === 'Enter your email address.' ? 'Enter their email address.' : $emailProblem;
-        } elseif ($form['email'] !== '' && fm_email_taken($form['email'], $isNew ? '' : (string) $target['username'])) {
+        } elseif (fm_email_taken($form['email'], $isNew ? '' : (string) $target['username'])) {
             $error = 'That email address is already on another account.';
-        } elseif ($isNew && $form['username'] !== '' && !fm_valid_username($form['username'])) {
-            $error = 'Usernames are 3–32 characters: letters, numbers, dot, dash or underscore.';
+        } elseif (($usernameProblem = fm_username_problem($form['email'], $isNew ? 0 : (int) $target['id'])) !== '') {
+            $error = $usernameProblem;
         } elseif ($isNew) {
-            $taken = fm_taken_usernames();
-            if ($form['username'] !== '' && isset($taken[strtolower($form['username'])])) {
-                $error = 'That username is already taken.';
+            [$newId, $err] = fm_create_pending_user(fm_username_for_email($form['email']), $form);
+            if ($newId === 0) {
+                $error = $err === 'email_taken'
+                    ? 'That email address is already on another account.'
+                    : 'That username is already taken.';
             } else {
-                $username = $form['username'] !== ''
-                    ? $form['username']
-                    : fm_pick_username('', $form['email'], $form['display_name'], $taken);
-                [$newId, $err] = fm_create_pending_user($username, $form);
-                if ($newId === 0) {
-                    $error = $err === 'email_taken'
-                        ? 'That email address is already on another account.'
-                        : 'That username is already taken.';
-                } else {
-                    foreach ($roles as $key => $role) {
-                        fm_set_tool_role($newId, $key, $role);
-                    }
-                    if ($wantAdmin) {
-                        $stmt = $db->prepare('UPDATE users SET is_admin = ? WHERE id = ?');
-                        fm_bind_bool($stmt, 1, true);
-                        $stmt->bindValue(2, $newId);
-                        $stmt->execute();
-                    }
-                    $freshCode = fm_issue_code($newId, (int) $me['id'], FM_SETUP_CODE_HOURS);
-                    $target = $load($newId);
-                    $isNew = false;
-                    $notice = 'Account created for ' . $target['display_name'] . '.';
+                foreach ($roles as $key => $role) {
+                    fm_set_tool_role($newId, $key, $role);
                 }
+                if ($wantAdmin) {
+                    $stmt = $db->prepare('UPDATE users SET is_admin = ? WHERE id = ?');
+                    fm_bind_bool($stmt, 1, true);
+                    $stmt->bindValue(2, $newId);
+                    $stmt->execute();
+                }
+                $freshCode = fm_issue_code($newId, (int) $me['id'], FM_SETUP_CODE_HOURS);
+                $target = $load($newId);
+                $isNew = false;
+                $notice = 'Account created for ' . $target['display_name'] . '.';
             }
         } else {
             // Nobody locks themselves out from here: your own admin rights and
@@ -149,8 +143,24 @@ if (($_SERVER['REQUEST_METHOD'] ?? '') === 'POST') {
                     // A turned-off account loses access now, not at next sign-in.
                     $db->prepare('DELETE FROM sessions WHERE user_id = ?')->execute([(int) $target['id']]);
                 }
-                $target = $load((int) $target['id']);
                 $notice = 'Saved.';
+
+                // A new email means a new username.
+                $oldName = (string) $target['username'];
+                $newName = fm_username_for_email($form['email']);
+                if ($newName !== $oldName) {
+                    [$renameError, $problems] = fm_rename_user((int) $target['id'], $newName);
+                    if ($renameError !== '') {
+                        $error = 'Saved, but the username could not change: ' . $renameError;
+                    } else {
+                        $notice = 'Saved. Username changed from ' . $oldName . ' to ' . $newName
+                            . ($isMe ? ' — sign in with ' . $newName . ' from now on.' : '.');
+                        if ($problems) {
+                            $error = implode(' ', $problems);
+                        }
+                    }
+                }
+                $target = $load((int) $target['id']);
             } catch (PDOException $e) {
                 if ($e->getCode() !== '23505') {
                     throw $e;
@@ -162,6 +172,28 @@ if (($_SERVER['REQUEST_METHOD'] ?? '') === 'POST') {
     } elseif ($action === 'code' && !$isNew) {
         $hours = fm_has_password($target) ? FM_RESET_CODE_HOURS : FM_SETUP_CODE_HOURS;
         $freshCode = fm_issue_code((int) $target['id'], (int) $me['id'], $hours);
+
+    } elseif ($action === 'delete' && !$isNew) {
+        $typed = strtolower(trim((string) ($_POST['confirm'] ?? '')));
+        if ($isMe) {
+            $error = 'You can\'t delete your own account.';
+        } elseif ($typed !== strtolower((string) $target['username'])) {
+            $error = 'To delete this account, type its username, ' . $target['username'] . ', exactly.';
+        } else {
+            $problems = fm_delete_user((int) $target['id']);
+            if (!$problems) {
+                header('Location: admin.php?deleted=1', true, 303);
+                exit;
+            }
+            // Gone from the database, but a tool could not follow. Say so on
+            // a page of its own, since there is no account left to show.
+            fm_page_head('Account deleted');
+            echo '<div class="card"><div class="eyebrow">Team admin</div><h1>Account deleted</h1>'
+                . '<div class="msg bad">' . fm_h(implode(' ', $problems)) . '</div>'
+                . '<p class="note"><a href="admin.php">Back to Team admin</a></p></div>';
+            fm_page_foot();
+            exit;
+        }
 
     } elseif ($action === 'signout' && !$isNew) {
         fm_end_all_sessions((int) $target['id'], $isMe);
@@ -231,16 +263,15 @@ fm_page_head($isNew ? 'Add person' : (string) $target['display_name']);
         <input type="text" name="display_name" value="<?= fm_h($form['display_name']) ?>" maxlength="80" required>
       </label>
       <label>
-        <span>Email<?= $isNew ? '' : ' (The Cage needs one)' ?></span>
+        <span>Email</span>
         <input type="email" name="email" value="<?= fm_h($form['email']) ?>" autocapitalize="none"
-               spellcheck="false"<?= $isNew ? ' required' : '' ?>>
+               spellcheck="false" required>
       </label>
-      <?php if ($isNew): ?>
-        <label>
-          <span>Username (blank to make one from the email)</span>
-          <input type="text" name="username" value="<?= fm_h($form['username']) ?>" autocapitalize="none" autocorrect="off">
-        </label>
-      <?php endif; ?>
+      <label>
+        <span>Username (from the email: what they sign in with)</span>
+        <input type="text" value="<?= fm_h($isNew ? '' : (string) $target['username']) ?>"
+               placeholder="first.last" readonly tabindex="-1" style="background:var(--gray-5);color:var(--gray-50)">
+      </label>
       <label>
         <span>Phone</span>
         <input type="tel" name="phone" value="<?= fm_h($form['phone']) ?>" maxlength="40">
@@ -303,6 +334,29 @@ fm_page_head($isNew ? 'Add person' : (string) $target['display_name']);
     <p class="hint" style="margin-top:10px">
       A new code cancels any earlier one that hasn't been used yet.
     </p>
+
+    <?php if (!$isMe): ?>
+      <h2>Delete account</h2>
+      <p class="note" style="margin-top:0">
+        Removes the account for good: they can't sign in to any tool, and their
+        access and codes are gone. Their <strong>private storyboards</strong> move
+        to the Slate's trash on the server, where they can still be recovered by
+        hand. Boards they shared with the team stay in the library. To keep
+        everything instead, untick <em>Account on</em> above.
+      </p>
+      <form method="post" style="margin-top:14px">
+        <input type="hidden" name="csrf" value="<?= $csrf ?>">
+        <input type="hidden" name="action" value="delete">
+        <input type="hidden" name="id" value="<?= (int) $target['id'] ?>">
+        <div class="row" style="align-items:flex-end">
+          <label style="flex:1 1 240px;margin-bottom:0">
+            <span>Type <?= fm_h((string) $target['username']) ?> to confirm</span>
+            <input type="text" name="confirm" autocapitalize="none" autocorrect="off" autocomplete="off" required>
+          </label>
+          <button class="danger" type="submit">Delete account</button>
+        </div>
+      </form>
+    <?php endif; ?>
   <?php endif; ?>
 </div>
 <?php

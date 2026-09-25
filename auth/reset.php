@@ -30,7 +30,7 @@ if (($_SERVER['REQUEST_METHOD'] ?? '') === 'POST') {
     $password = (string) ($_POST['password'] ?? '');
     $confirm = (string) ($_POST['confirm'] ?? '');
 
-    if (fm_throttled('reset', $username)) {
+    if (fm_throttled('reset', fm_login_subject($username))) {
         $error = 'Too many attempts. Wait a few minutes and try again.';
     } elseif ($password !== $confirm) {
         $error = 'The two passwords do not match.';
@@ -56,7 +56,7 @@ if (($_SERVER['REQUEST_METHOD'] ?? '') === 'POST') {
         }
 
         if ($matched === null) {
-            fm_record_attempt('reset', $username, false);
+            fm_record_attempt('reset', fm_login_subject($username), false);
             $error = 'That reset code is not valid for this account, or it has expired.';
         } else {
             $firstTime = !fm_has_password($user);
@@ -65,7 +65,7 @@ if (($_SERVER['REQUEST_METHOD'] ?? '') === 'POST') {
                 ->execute([$matched['id']]);
             // Anyone holding an old session for this account loses it.
             fm_end_all_sessions((int) $user['id']);
-            fm_record_attempt('reset', $username, true);
+            fm_record_attempt('reset', fm_login_subject($username), true);
             if ($firstTime && $user['is_active'] && fm_attempt_login($username, $password)[0]) {
                 header('Location: ' . fm_base_path());
                 exit;
@@ -112,7 +112,7 @@ fm_page_head($setup ? 'Set up your account' : 'Reset password');
     <form method="post">
       <?php if ($setup): ?><input type="hidden" name="setup" value="1"><?php endif; ?>
       <label>
-        <span>Username</span>
+        <span>Username or email</span>
         <input type="text" name="username" value="<?= fm_h($username) ?>"
                autocapitalize="none" autocorrect="off" autocomplete="username" required<?= $username === '' ? ' autofocus' : '' ?>>
       </label>
