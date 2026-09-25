@@ -338,6 +338,12 @@
   @media (hover:none){
     .sl-imgtools{opacity:1!important;pointer-events:auto!important}
   }
+  /* Reorder buttons: for touch screens (no drag and drop) and narrow
+     windows. Everywhere else, drag the handle. */
+  .sl-move{display:none!important}
+  @media (hover:none), (max-width:640px){
+    .sl-move{display:flex!important}
+  }
 
   /* Phones. The layout is built from inline styles, so these override them
      by class (hence !important). Nothing here changes print or PDF. */
@@ -397,11 +403,22 @@
     .sl-fieldrow{flex-wrap:wrap}
     .sl-caminline{flex:1 1 100%!important}
     .sl-descdlg{flex-direction:column!important}
-    .sl-cardfoot{flex-wrap:wrap}
+    /* Two tidy rows: move and add/duplicate/delete on top, then the drag
+       handle and the colour dots. */
+    .sl-cardfoot{flex-wrap:wrap;row-gap:0!important}
+    .sl-cardfoot .sl-move{order:1}
+    .sl-cardfoot .sl-act{order:2}
+    .sl-cardfoot .sl-act-first{margin-left:auto}
+    .sl-cardfoot::before{content:"";order:3;flex-basis:100%;height:10px}
+    .sl-cardfoot .sl-handle{order:4}
+    .sl-cardfoot .sl-tags{order:5}
   }
 
   @media print{
     [data-noprint]{display:none!important}
+    /* An empty field prints empty, not with its "Add project" hint — except
+       where the hint is the real value (colour names, scene 1). */
+    :not([data-print-hint])::placeholder{color:transparent!important}
     body{background:#fff}
     .cg-board{overflow:visible!important}
     .cg-card{break-inside:avoid;page-break-inside:avoid}
@@ -586,7 +603,7 @@
             <sc-for list="{{ tagKey }}" as="t" hint-placeholder-count="5">
               <div style="display:flex;align-items:center;gap:6px">
                 <span style="{{ t.swatchStyle }}"></span>
-                <input data-key="{{ t.key }}" value="{{ t.label }}" sc-camel-on-input="{{ onTagLabelInput }}" placeholder="{{ t.placeholder }}" style="font-size:13px;font-weight:600;border:none;background:transparent;padding:2px 0;width:100%;min-width:0">
+                <input data-key="{{ t.key }}" data-print-hint="" value="{{ t.label }}" sc-camel-on-input="{{ onTagLabelInput }}" placeholder="{{ t.placeholder }}" style="font-size:13px;font-weight:600;border:none;background:transparent;padding:2px 0;width:100%;min-width:0">
               </div>
             </sc-for>
           </div>
@@ -770,7 +787,7 @@
               <div class="sl-fieldrow" style="display:flex;align-items:flex-start;gap:10px">
                 <div style="display:flex;flex-direction:column;gap:2px;width:52px;flex:0 0 52px">
                   <span style="font-family:var(--font-mono);font-size:9px;letter-spacing:0.08em;text-transform:uppercase;color:var(--gray-30)">Scene</span>
-                  <input data-id="{{ f.id }}" data-field="scene" value="{{ f.scene }}" sc-camel-on-input="{{ onFieldInput }}" placeholder="1" style="font-family:var(--font-display);font-weight:900;font-size:18px;border:none;border-bottom:1px solid var(--gray-15);background:transparent;padding:2px 0;width:100%">
+                  <input data-id="{{ f.id }}" data-field="scene" data-print-hint="" value="{{ f.scene }}" sc-camel-on-input="{{ onFieldInput }}" placeholder="1" style="font-family:var(--font-display);font-weight:900;font-size:18px;border:none;border-bottom:1px solid var(--gray-15);background:transparent;padding:2px 0;width:100%">
                 </div>
                 <div style="display:flex;flex-direction:column;gap:2px;width:52px;flex:0 0 52px">
                   <span style="font-family:var(--font-mono);font-size:9px;letter-spacing:0.08em;text-transform:uppercase;color:var(--gray-30)">Shot</span>
@@ -860,21 +877,29 @@
               </div>
 
               <div class="sl-cardfoot" data-noprint="" style="display:flex;align-items:center;gap:6px;margin-top:2px;padding-top:8px;border-top:1px solid var(--gray-10)">
-                <span data-id="{{ f.id }}" draggable="{{ true }}" sc-camel-on-drag-start="{{ onHandleDragStart }}" sc-camel-on-drag-end="{{ onHandleDragEnd }}" sc-camel-on-click="{{ onHandleClick }}" title="Click to select (shift/cmd for multiple) — drag to move" style="{{ f.handleStyle }}">
+                <span class="sl-handle" data-id="{{ f.id }}" draggable="{{ true }}" sc-camel-on-drag-start="{{ onHandleDragStart }}" sc-camel-on-drag-end="{{ onHandleDragEnd }}" sc-camel-on-click="{{ onHandleClick }}" title="Click to select (shift/cmd for multiple) — drag to move" style="{{ f.handleStyle }}">
                   <svg width="16" height="16"><use href="#ui-drag"></use></svg>{{ f.handleLabel }}
                 </span>
-                <div style="margin-left:auto;display:flex;align-items:center;gap:6px">
+                <!-- Touch screens can't drag, so they get these instead; hidden
+                     where a mouse is available (see the hover rules). -->
+                <button class="sl-move" data-id="{{ f.id }}" data-dir="-1" sc-camel-on-click="{{ moveFrame }}" sc-camel-disabled="{{ f.isFirst }}" title="Move earlier" aria-label="Move shot earlier" style="{{ f.moveUpStyle }}">
+                  <svg width="16" height="16" style="transform:rotate(180deg)"><use href="#ui-caret"></use></svg>
+                </button>
+                <button class="sl-move" data-id="{{ f.id }}" data-dir="1" sc-camel-on-click="{{ moveFrame }}" sc-camel-disabled="{{ f.isLast }}" title="Move later" aria-label="Move shot later" style="{{ f.moveDownStyle }}">
+                  <svg width="16" height="16"><use href="#ui-caret"></use></svg>
+                </button>
+                <div class="sl-tags" style="margin-left:auto;display:flex;align-items:center;gap:6px">
                   <sc-for list="{{ f.tags }}" as="t" hint-placeholder-count="5">
                     <button data-id="{{ f.id }}" data-key="{{ t.key }}" sc-camel-on-click="{{ chooseTagEvt }}" title="{{ t.label }}" style="{{ t.style }}"></button>
                   </sc-for>
                 </div>
-                <button data-id="{{ f.id }}" sc-camel-on-click="{{ addShotAfter }}" title="Add shot after" style="width:30px;height:30px;background:transparent;border:1px solid var(--gray-15);color:var(--cglp-blue);cursor:pointer;display:flex;align-items:center;justify-content:center" style-hover="background:var(--gray-5)">
+                <button class="sl-act sl-act-first" data-id="{{ f.id }}" sc-camel-on-click="{{ addShotAfter }}" title="Add shot after" style="width:30px;height:30px;background:transparent;border:1px solid var(--gray-15);color:var(--cglp-blue);cursor:pointer;display:flex;align-items:center;justify-content:center" style-hover="background:var(--gray-5)">
                   <svg width="22" height="22" stroke-width="4" style="stroke: #56C4E5EB; fill: #56C4E5"><use href="#ui-plus"></use></svg>
                 </button>
-                <button data-id="{{ f.id }}" sc-camel-on-click="{{ duplicateFrame }}" title="Duplicate" style="width:30px;height:30px;background:transparent;border:1px solid var(--gray-15);color:var(--gray-40);cursor:pointer;display:flex;align-items:center;justify-content:center" style-hover="background:var(--gray-5)">
+                <button class="sl-act" data-id="{{ f.id }}" sc-camel-on-click="{{ duplicateFrame }}" title="Duplicate" style="width:30px;height:30px;background:transparent;border:1px solid var(--gray-15);color:var(--gray-40);cursor:pointer;display:flex;align-items:center;justify-content:center" style-hover="background:var(--gray-5)">
                   <svg width="16" height="16"><use href="#ui-copy"></use></svg>
                 </button>
-                <button data-id="{{ f.id }}" sc-camel-on-click="{{ deleteFrame }}" title="Delete shot" style="width:30px;height:30px;background:transparent;border:1px solid var(--gray-15);color:var(--gray-40);cursor:pointer;display:flex;align-items:center;justify-content:center" style-hover="color:var(--red-500);border-color:var(--red-500)">
+                <button class="sl-act" data-id="{{ f.id }}" sc-camel-on-click="{{ deleteFrame }}" title="Delete shot" style="width:30px;height:30px;background:transparent;border:1px solid var(--gray-15);color:var(--gray-40);cursor:pointer;display:flex;align-items:center;justify-content:center" style-hover="color:var(--red-500);border-color:var(--red-500)">
                   <svg width="16" height="16"><use href="#ui-trash"></use></svg>
                 </button>
               </div>
@@ -1788,6 +1813,21 @@ class Component extends DCLogic {
       this.setState({ overId: id, overSide: side });
     }
   };
+  // One step earlier (-1) or later (+1): the touch-screen stand-in for
+  // dragging a card, saved and undoable the same way.
+  moveFrame = (e) => {
+    const id = e.currentTarget.dataset.id;
+    const dir = Number(e.currentTarget.dataset.dir) < 0 ? -1 : 1;
+    const i = this.state.frames.findIndex(f => f.id === id);
+    const j = i + dir;
+    if (i < 0 || j < 0 || j >= this.state.frames.length) return;
+    this.snapshot();
+    this.setState(s => {
+      const arr = s.frames.slice();
+      [arr[i], arr[j]] = [arr[j], arr[i]];
+      return { frames: arr };
+    }, this.save);
+  };
   onCardDrop = (e) => {
     const from = this._drag;
     if (from && from.length) this.snapshot();
@@ -2098,12 +2138,57 @@ class Component extends DCLogic {
     }
   };
 
+  moveBtnStyle = (disabled) => ({
+    width: '30px', height: '30px', flex: '0 0 30px', background: 'transparent',
+    border: '1px solid var(--gray-15)', color: 'var(--gray-40)', padding: '0',
+    alignItems: 'center', justifyContent: 'center',
+    cursor: disabled ? 'default' : 'pointer', opacity: disabled ? '0.35' : '1',
+  });
   toggleNav = () => this.setState({ navOpen: !this.state.navOpen });
   toggleTheme = () => {
     const theme = this.state.theme === 'dark' ? 'light' : 'dark';
     document.documentElement.setAttribute('data-theme', theme);
     try { localStorage.setItem(THEME_KEY, theme); } catch (e) { /* not remembered, still applied */ }
     this.setState({ theme });
+  };
+  /**
+   * html2canvas draws form fields badly: large text such as the title is cut
+   * off at the top, and an empty field shows its placeholder ("Add project")
+   * as if it had been typed. Fields marked data-print-hint keep theirs. In the copy it draws — never the page on screen
+   * — each text box becomes a plain block with the same size, type and
+   * spacing, holding the value or nothing.
+   */
+  flattenFieldsForPdf = (target, doc) => {
+    const sel = 'input:not([type=file]):not([type=range]):not([type=checkbox]):not([type=radio]):not([type=hidden]), textarea';
+    const originals = [...target.querySelectorAll(sel)];
+    const root = doc.querySelector('.cg-board-wrap') || doc.body;
+    const copies = [...root.querySelectorAll(sel)];
+    const view = doc.defaultView || window;
+    const props = ['fontFamily', 'fontSize', 'fontWeight', 'fontStyle', 'letterSpacing', 'textTransform',
+      'lineHeight', 'color', 'textAlign', 'paddingTop', 'paddingRight', 'paddingBottom', 'paddingLeft',
+      'borderTop', 'borderRight', 'borderBottom', 'borderLeft', 'backgroundColor', 'boxSizing'];
+    copies.forEach((el, n) => {
+      const original = originals[n];
+      if (!original) return;
+      const cs = view.getComputedStyle(el);
+      if (cs.display === 'none' || cs.visibility === 'hidden') return;
+      const r = original.getBoundingClientRect();
+      const box = doc.createElement('div');
+      props.forEach(k => { box.style[k] = cs[k]; });
+      const multiline = el.tagName === 'TEXTAREA';
+      Object.assign(box.style, {
+        width: r.width + 'px', minHeight: r.height + 'px', boxSizing: 'border-box',
+        margin: cs.margin, flex: cs.flex, alignSelf: cs.alignSelf,
+        display: multiline ? 'block' : 'flex', alignItems: 'center',
+        whiteSpace: multiline ? 'pre-wrap' : 'nowrap', overflow: 'hidden', wordBreak: 'break-word',
+        lineHeight: multiline ? cs.lineHeight : 'normal',
+      });
+      // A hint that stands in for the value (a colour's default name, scene
+      // 1) prints; any other hint ("Add project") does not.
+      box.textContent = original.value
+        || (original.hasAttribute('data-print-hint') ? original.getAttribute('placeholder') || '' : '');
+      el.replaceWith(box);
+    });
   };
   printBoard = () => window.print();
   exportPdf = async () => {
@@ -2116,7 +2201,10 @@ class Component extends DCLogic {
     const theme = document.documentElement.getAttribute('data-theme');
     document.documentElement.removeAttribute('data-theme');
     try {
-      const canvas = await window.html2canvas(target, { scale: 2, backgroundColor: '#ffffff', useCORS: true });
+      const canvas = await window.html2canvas(target, {
+        scale: 2, backgroundColor: '#ffffff', useCORS: true,
+        onclone: (doc) => this.flattenFieldsForPdf(target, doc),
+      });
       const { jsPDF } = window.jspdf;
       const pageW = 792, pageH = 612; // letter landscape, pt
       const ratio = canvas.width / canvas.height;
@@ -2264,6 +2352,10 @@ class Component extends DCLogic {
         color: selected ? accent : 'var(--gray-30)', fontWeight: selected ? '700' : '400',
       },
       handleLabel: selected ? 'Selected' : 'Drag',
+      isFirst: i === 0,
+      isLast: i === frames.length - 1,
+      moveUpStyle: this.moveBtnStyle(i === 0),
+      moveDownStyle: this.moveBtnStyle(i === frames.length - 1),
       showDayBreak: layout === 'filmstrip' && !!f.dayBreak,
       dayLabel: f.dayLabel || '',
     };
@@ -2306,7 +2398,7 @@ class Component extends DCLogic {
         swatchStyle: { width: '14px', height: '14px', borderRadius: '50%', background: t.color, display: 'inline-block', flex: '0 0 auto' },
       })),
       addFrame: this.addFrame, addThree: this.addThree, addShotAfter: this.addShotAfter,
-      deleteFrame: this.deleteFrame, duplicateFrame: this.duplicateFrame,
+      deleteFrame: this.deleteFrame, duplicateFrame: this.duplicateFrame, moveFrame: this.moveFrame,
       insertDayBreak: this.insertDayBreak, showDayBreakBtn: layout === 'filmstrip',
 
       setLayoutEvt: this.setLayoutEvt, setAspectEvt: this.setAspectEvt,
