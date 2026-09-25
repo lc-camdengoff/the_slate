@@ -321,26 +321,27 @@ function fm_start_session(int $userId): void
 }
 
 /** The signed-in user, or null. Extends the session as a side effect. */
-function fm_current_user(): ?array
+/**
+ * Resolve a session token to its user, extending the session.
+ *
+ * Separate from the cookie so a tool that cannot read a PHP session can ask
+ * about one — The Cage is a Node app on its own subdomain and does exactly
+ * that through verify.php. Only the hash of the token is ever compared, and
+ * only a live session belonging to an enabled account resolves.
+ */
+function fm_user_by_token(string $token): ?array
 {
-    static $user = null;
-    static $looked = false;
-    if ($looked) {
-        return $user;
-    }
-    $looked = true;
-
-    $token = (string) ($_COOKIE[FM_COOKIE] ?? '');
     if ($token === '' || !preg_match('/^[0-9a-f]{64}$/', $token)) {
         return null;
     }
 
+    $hash = hash('sha256', $token);
     $stmt = fm_db()->prepare(
         'SELECT u.* FROM sessions s
            JOIN users u ON u.id = s.user_id
           WHERE s.token_hash = ? AND s.expires_at > now() AND u.is_active'
     );
-    $stmt->execute([hash('sha256', $token)]);
+    $stmt->execute([$hash]);
     $found = $stmt->fetch();
     if (!$found) {
         return null;
@@ -351,9 +352,21 @@ function fm_current_user(): ?array
             SET last_seen_at = now(), expires_at = now() + (? || \' days\')::interval
           WHERE token_hash = ?'
     );
-    $touch->execute([(string) fm_session_days(), hash('sha256', $token)]);
+    $touch->execute([(string) fm_session_days(), $hash]);
 
-    $user = $found;
+    return $found;
+}
+
+function fm_current_user(): ?array
+{
+    static $user = null;
+    static $looked = false;
+    if ($looked) {
+        return $user;
+    }
+    $looked = true;
+
+    $user = fm_user_by_token((string) ($_COOKIE[FM_COOKIE] ?? ''));
     return $user;
 }
 

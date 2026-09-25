@@ -232,6 +232,39 @@ alternative, giving The Cage database credentials and reimplementing argon2 in
 Node, means two copies of the logic, two rate limiters, and a silent breakage
 the day PHP's `password_hash()` defaults move.
 
+It takes a POST with the shared secret in `X-Cage-Auth` and one of two bodies:
+
+```json
+{"session": "<the fm_session cookie value>"}
+{"username": "...", "password": "..."}
+```
+
+**Prefer the session form.** The cookie is scoped to the whole domain, so a
+browser signed in to the Slate sends it to The Cage too — asking about it means
+nobody types a password twice, and signing out of either tool ends both. In
+Node that is roughly:
+
+```js
+const token = req.cookies.fm_session;
+if (token) {
+  const r = await fetch(SLATE_VERIFY_URL, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', 'X-Cage-Auth': SLATE_VERIFY_SECRET },
+    body: JSON.stringify({ session: token }),
+  });
+  if (r.ok) { /* {username, display_name, email, is_admin} */ }
+}
+```
+
+A 401 `no_session` means expired, unknown, or the account has been turned off —
+fall through to The Cage's own sign-in form, which uses the password body.
+
+Session checks are neither throttled nor recorded: the token is 64 hex
+characters and either matches a live row or does not, so it is not a guessing
+game, and logging every page view would bury the failed sign-ins that
+`auth_attempts` exists to show. Password checks are throttled, and share the
+Slate's allowance — guessing through The Cage locks the Slate's login too.
+
 `verify.php` needs `cage_auth_secret` in the config, matching The Cage's
 `SLATE_VERIFY_SECRET`. Without it the endpoint answers 503 rather than
 becoming an unauthenticated password oracle on the public internet.

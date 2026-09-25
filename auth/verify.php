@@ -10,8 +10,17 @@
  * ---------------------------------------------------------------- what it is
  *
  * The Cage is a Node app on its own subdomain, so it cannot call PHP functions
- * and cannot read a PHP session. It asks this endpoint instead: here is a
- * username and password, is that person real?
+ * and cannot verify a session itself. It asks this endpoint instead, in one of
+ * two ways:
+ *
+ *   {"session": "<fm_session cookie value>"}   — who is this, if anyone?
+ *   {"username": "...", "password": "..."}     — is this person real?
+ *
+ * The session form is the one to prefer. The cookie is scoped to the whole
+ * domain, so a browser signed in to the Slate sends it to The Cage as well:
+ * asking about it means nobody types a password twice, and signing out of
+ * either tool ends both. The password form stays for a direct sign-in at The
+ * Cage, and for when there is no cookie to ask about.
  *
  * The point is that auth.php stays the only thing that ever checks a password.
  * The alternative — giving The Cage database credentials and reimplementing
@@ -83,6 +92,29 @@ $raw = file_get_contents('php://input');
 $body = json_decode((string) $raw, true);
 if (!is_array($body)) {
     cage_reply(400, ['ok' => false, 'error' => 'bad_request']);
+}
+
+/* ------------------------------------------------------------- session form
+ *
+ * Answering "who holds this token" is not a guessing game the way a password
+ * is — the token is 64 hex characters and either matches a live row or does
+ * not — so this path is neither throttled nor recorded. Logging every page
+ * view of The Cage into auth_attempts would bury the failed sign-ins that
+ * table exists to show. */
+$sessionToken = trim((string) ($body['session'] ?? ''));
+if ($sessionToken !== '') {
+    $user = fm_user_by_token($sessionToken);
+    if (!$user) {
+        // Expired, unknown, or the account has since been turned off.
+        cage_reply(401, ['ok' => false, 'error' => 'no_session']);
+    }
+    cage_reply(200, [
+        'ok' => true,
+        'username' => (string) $user['username'],
+        'display_name' => (string) ($user['display_name'] ?? ''),
+        'email' => isset($user['email']) && $user['email'] !== null ? (string) $user['email'] : null,
+        'is_admin' => (bool) $user['is_admin'],
+    ]);
 }
 
 $username = trim((string) ($body['username'] ?? ''));
