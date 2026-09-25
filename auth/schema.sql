@@ -59,6 +59,10 @@ CREATE TABLE IF NOT EXISTS invite_codes (
     uses       integer     NOT NULL DEFAULT 0,
     expires_at timestamptz,                      -- NULL = never
     is_active  boolean     NOT NULL DEFAULT true,
+    -- Also lets someone an admin already added (an import, say) claim their
+    -- waiting account at signup by entering its email, instead of needing a
+    -- personal setup code. Off unless the admin ticks it; see signup.php.
+    claims_pending boolean NOT NULL DEFAULT false,
     created_by bigint      REFERENCES users(id) ON DELETE SET NULL,
     created_at timestamptz NOT NULL DEFAULT now()
 );

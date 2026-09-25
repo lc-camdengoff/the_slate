@@ -70,20 +70,25 @@ if (($_SERVER['REQUEST_METHOD'] ?? '') === 'POST') {
                 . '-' . bin2hex(random_bytes(3)));
 
             $stmt = $db->prepare(
-                'INSERT INTO invite_codes (code, label, max_uses, expires_at, created_by)
+                'INSERT INTO invite_codes (code, label, max_uses, expires_at, created_by, claims_pending)
                  VALUES (?, ?, ?, CASE WHEN ?::text = \'\' THEN NULL
-                                       ELSE now() + (?::text || \' days\')::interval END, ?)'
+                                       ELSE now() + (?::text || \' days\')::interval END, ?, ?)'
             );
-            $stmt->execute([
-                $code,
-                substr($label, 0, 80),
-                $maxUses === '' ? null : max(1, (int) $maxUses),
-                $days,
-                $days,
-                $me['id'],
-            ]);
+            $stmt->bindValue(1, $code);
+            $stmt->bindValue(2, substr($label, 0, 80));
+            $stmt->bindValue(3, $maxUses === '' ? null : max(1, (int) $maxUses));
+            $stmt->bindValue(4, $days);
+            $stmt->bindValue(5, $days);
+            $stmt->bindValue(6, $me['id']);
+            fm_bind_bool($stmt, 7, !empty($_POST['claims_pending']));
+            $stmt->execute();
             $freshCode = $code;
             $notice = 'Invite code created. Share it with whoever needs an account.';
+
+        } elseif ($action === 'toggle_claims') {
+            $db->prepare('UPDATE invite_codes SET claims_pending = NOT claims_pending WHERE id = ?')
+                ->execute([(int) ($_POST['id'] ?? 0)]);
+            $notice = 'Invite code updated.';
 
         } elseif ($action === 'toggle_invite') {
             $db->prepare('UPDATE invite_codes SET is_active = NOT is_active WHERE id = ?')
@@ -151,10 +156,20 @@ fm_page_head('Admin');
       </label>
       <button type="submit">Create code</button>
     </div>
+    <label class="check" style="margin:12px 0 0">
+      <input type="checkbox" name="claims_pending" value="1">
+      <span>Also works for people already added who haven't set up yet: they enter
+        this code and their email on the sign-up page instead of a personal setup code</span>
+    </label>
+    <p class="hint" style="margin:6px 0 0 24px">
+      Handy after an import. The catch: anyone with this code who knows a
+      waiting teammate's email could claim that account. Turn it off once
+      everyone is in.
+    </p>
   </form>
 
   <table style="margin-top:18px">
-    <tr><th>Code</th><th>For</th><th>Used</th><th>Expires</th><th>Status</th><th></th></tr>
+    <tr><th>Code</th><th>For</th><th>Used</th><th>Expires</th><th>Status</th><th>People already added</th><th></th></tr>
     <?php foreach ($invites as $i): ?>
       <tr>
         <td><code><?= fm_h($i['code']) ?></code></td>
@@ -162,6 +177,16 @@ fm_page_head('Admin');
         <td><?= (int) $i['uses'] ?><?= $i['max_uses'] === null ? '' : ' / ' . (int) $i['max_uses'] ?></td>
         <td><?= $i['expires_at'] === null ? 'never' : fm_h(substr((string) $i['expires_at'], 0, 10)) ?></td>
         <td><?= $i['is_active'] ? 'active' : 'off' ?></td>
+        <td>
+          <form method="post">
+            <input type="hidden" name="csrf" value="<?= $csrf ?>">
+            <input type="hidden" name="action" value="toggle_claims">
+            <input type="hidden" name="id" value="<?= (int) $i['id'] ?>">
+            <button class="ghost small" type="submit"
+                    title="<?= $i['claims_pending'] ? 'People already added can use this code to set up. Click to stop that.' : 'Only new accounts. Click to let people already added use it too.' ?>">
+              <?= $i['claims_pending'] ? 'Can set up · turn off' : 'New only · allow' ?></button>
+          </form>
+        </td>
         <td>
           <div class="row">
             <form method="post">
@@ -181,7 +206,7 @@ fm_page_head('Admin');
       </tr>
     <?php endforeach; ?>
     <?php if (!$invites): ?>
-      <tr><td colspan="6" class="hint">No codes yet. Create one so the team can sign up.</td></tr>
+      <tr><td colspan="7" class="hint">No codes yet. Create one so the team can sign up.</td></tr>
     <?php endif; ?>
   </table>
 

@@ -644,20 +644,24 @@ function fm_username_for_email(string $email): string
  * Validate an invite code and reserve one use.
  *
  * Returns true only if the code exists, is active, unexpired and has uses
- * left. The increment is conditional in SQL so two people redeeming the last
+ * left — and, with $toClaim, only if the admin let it claim accounts that
+ * are waiting to be set up. The increment is conditional in SQL so two people redeeming the last
  * use of a code cannot both win.
  */
-function fm_redeem_invite(string $code): bool
+function fm_redeem_invite(string $code, bool $toClaim = false): bool
 {
     $stmt = fm_db()->prepare(
         'UPDATE invite_codes
             SET uses = uses + 1
           WHERE code = ?
             AND is_active
+            AND (claims_pending OR NOT ?)
             AND (expires_at IS NULL OR expires_at > now())
             AND (max_uses IS NULL OR uses < max_uses)'
     );
-    $stmt->execute([$code]);
+    $stmt->bindValue(1, $code);
+    fm_bind_bool($stmt, 2, $toClaim);
+    $stmt->execute();
     return $stmt->rowCount() === 1;
 }
 

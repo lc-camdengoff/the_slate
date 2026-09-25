@@ -14,6 +14,15 @@
  *
  * There is no username box: the username is the part of the email before the
  * @ (first.last), the same rule the admin pages and the import follow.
+ *
+ * Someone an admin already added (imported from Cheqroom, say) has an account
+ * waiting with no password. Normally they set it up with their personal setup
+ * code on reset.php. If the admin ticked "works for people already added" on
+ * an invite code, they can instead use that shared code here with the same
+ * email, and the waiting account — with the access the admin gave it — becomes
+ * theirs. That is weaker than a personal code, since anyone holding the shared
+ * code who knows a waiting teammate's address could take it, which is why it
+ * is a choice per code and not the default.
  */
 
 declare(strict_types=1);
@@ -50,6 +59,7 @@ if (($_SERVER['REQUEST_METHOD'] ?? '') === 'POST') {
        should not cost one. Same reasoning as fm_release_invite() below. */
     $emailProblem = fm_email_problem($email);
     $username = fm_username_for_email($email);
+    $waiting = $emailProblem === '' ? fm_find_user($email) : null;
 
     if (fm_throttled('signup')) {
         $error = 'Too many attempts from this connection. Wait a few minutes and try again.';
@@ -59,6 +69,32 @@ if (($_SERVER['REQUEST_METHOD'] ?? '') === 'POST') {
         $error = 'Use at least ' . FM_MIN_PASSWORD . ' characters for your password.';
     } elseif ($emailProblem !== '') {
         $error = $emailProblem;
+    } elseif ($waiting !== null && fm_has_password($waiting)) {
+        $error = 'That email already has an account. Sign in with ' . $waiting['username']
+            . ', or ask an admin for a reset code if you have forgotten the password.';
+    } elseif ($waiting !== null) {
+        // An admin already made this account. Claim it rather than make another.
+        if (!$waiting['is_active']) {
+            $error = 'The account for that email has been turned off. Ask an admin.';
+        } elseif (!$firstRun && fm_redeem_invite($code, true)) {
+            fm_set_password((int) $waiting['id'], $password);
+            if ($displayName !== '') {
+                fm_db()->prepare('UPDATE users SET display_name = ? WHERE id = ?')
+                    ->execute([substr($displayName, 0, 80), $waiting['id']]);
+            }
+            // Their personal setup code, if they had one, is now spent too.
+            fm_db()->prepare('UPDATE password_resets SET used_at = now() WHERE user_id = ? AND used_at IS NULL')
+                ->execute([$waiting['id']]);
+            fm_record_attempt('signup', $code, true);
+            error_log('slate: waiting account ' . $waiting['username'] . ' claimed with an invite code');
+            fm_attempt_login((string) $waiting['username'], $password);
+            header('Location: ' . $next);
+            exit;
+        } else {
+            fm_record_attempt('signup', $code, false);
+            $error = 'An admin already made an account for that email. Use the setup code '
+                . 'they gave you (Sign in → Set up your account), or ask them for one.';
+        }
     } elseif (($usernameProblem = fm_username_problem($email)) !== '') {
         // Most likely an admin already made this person an account, or an
         // older account took the name before usernames came from emails.
@@ -149,7 +185,8 @@ fm_page_head($firstRun ? 'Set up' : 'Sign up');
              autocomplete="email" placeholder="camden.goff@life.church" required>
     </label>
     <div class="hint">Where the gear room sends pickup and overdue reminders. The part
-      before the @ is your username: camden.goff@life.church signs in as camden.goff.</div>
+      before the @ is your username: camden.goff@life.church signs in as camden.goff.
+      If an admin already added you, use the same email and your account is waiting.</div>
     <label>
       <span>Password</span>
       <input type="password" name="password" autocomplete="new-password" required>
