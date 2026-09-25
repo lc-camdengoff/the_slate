@@ -2536,12 +2536,17 @@ class Component extends DCLogic {
   };
   /** #board=<id>: a link someone copied from the Share panel. */
   openFromLink = async () => {
-    const m = /^#board=([a-z0-9-]+)$/.exec(location.hash || '');
+    // "&share=1" is from an email asking the owner to answer a request.
+    const m = /^#board=([a-z0-9-]+)(&share=1)?$/.exec(location.hash || '');
     if (!m) return;
     try { history.replaceState(null, '', location.pathname + location.search); } catch (e) {}
     const libId = m[1];
     const mine = (this.state.boards || []).find(b => b.libraryId === libId);
-    if (mine) { await this.openBoard({ currentTarget: { dataset: { id: mine.id } } }); return; }
+    if (mine) {
+      await this.openBoard({ currentTarget: { dataset: { id: mine.id } } });
+      if (m[2] && this.state.view === 'board' && this.state.boardCanManage) this.openShare();
+      return;
+    }
     if ((this.state.library || []).some(b => b.id === libId)) {
       await this.openLibraryBoard({ currentTarget: { dataset: { id: libId } } });
       return;

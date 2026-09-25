@@ -24,6 +24,7 @@ declare(strict_types=1);
 
 require __DIR__ . '/lib.php';
 require __DIR__ . '/../auth/auth.php';
+require __DIR__ . '/../auth/mailer.php';
 
 fm_error_handler('json');
 
@@ -67,7 +68,10 @@ if ($method === 'POST' && $action === 'request') {
     $lock = slate_lock($saved, $id);
     $meta = slate_read_meta($saved, $id) ?? ['id' => $id];
     $requests = slate_requests($meta);
-    // Asking again just updates what for and when.
+    // Asking again just updates what for and when, and only emails the
+    // owner again once the last ask is an hour old.
+    $before = $requests[$userId] ?? null;
+    $tell = $before === null || $before['level'] !== $level || slate_now_ms() - $before['at'] > 3600000;
     $requests[$userId] = ['level' => $level, 'at' => slate_now_ms()];
     uasort($requests, static fn($a, $b) => $b['at'] <=> $a['at']);
     $requests = array_slice($requests, 0, SLATE_MAX_REQUESTS, true);
@@ -79,6 +83,11 @@ if ($method === 'POST' && $action === 'request') {
         slate_fail(500, 'write_failed');
     }
     error_log('slate: ' . $username . ' asked for ' . $level . ' access to ' . $id);
+    if ($tell) {
+        $name = (string) $account['display_name'];
+        $mailMeta = $meta + ['id' => $id];
+        slate_after_response(static fn() => slate_mail_request($mailMeta, $level, $name, $username));
+    }
     slate_json(200, ['ok' => true, 'id' => $id, 'requested' => $level]);
 }
 
@@ -190,6 +199,7 @@ if ($meta === null || !is_file(slate_board_path($saved, $id))) {
     fclose($lock);
     slate_fail(404, 'not_found');
 }
+$hadShares = slate_shares($meta);
 $meta['visibility'] = $visibility;
 if (trim((string) ($meta['owner'] ?? '')) === '') {
     // A board from before owners: record the one it has been credited to.
@@ -207,4 +217,12 @@ if (!$ok) {
     slate_fail(500, 'write_failed');
 }
 error_log('slate: ' . $username . ' set sharing on ' . $id . ': ' . $visibility . ', ' . count($shares) . ' people');
+// Tell whoever was just given access (not someone whose level changed).
+$added = array_diff_key($shares, $hadShares);
+unset($added[$userId]);
+if ($added) {
+    $name = (string) $account['display_name'];
+    $mailMeta = $meta + ['id' => $id];
+    slate_after_response(static fn() => slate_mail_shared($mailMeta, $added, $name));
+}
 slate_json(200, ['ok' => true, 'id' => $id] + slate_share_view(json_decode((string) json_encode($meta), true), $people));

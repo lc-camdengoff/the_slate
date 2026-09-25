@@ -175,14 +175,13 @@ fm_page_head('Admin');
         }
     }
   ?>
-  <?php if ($toolPages): ?>
-    <h2>Tools</h2>
-    <div class="row" style="gap:10px">
-      <?php foreach ($toolPages as $tp): ?>
-        <a class="btn ghost small" href="<?= fm_h($tp['url']) ?>" title="<?= fm_h($tp['blurb']) ?>"><?= fm_h($tp['tool'] . ' · ' . $tp['label']) ?></a>
-      <?php endforeach; ?>
-    </div>
-  <?php endif; ?>
+  <h2>Tools</h2>
+  <div class="row" style="gap:10px">
+    <?php foreach ($toolPages as $tp): ?>
+      <a class="btn ghost small" href="<?= fm_h($tp['url']) ?>" title="<?= fm_h($tp['blurb']) ?>"><?= fm_h($tp['tool'] . ' · ' . $tp['label']) ?></a>
+    <?php endforeach; ?>
+    <a class="btn ghost small" href="mail-test.php" title="Check the email settings and send a test">Email</a>
+  </div>
 
   <h2>Invite codes</h2>
   <form method="post">

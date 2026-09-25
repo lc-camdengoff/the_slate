@@ -88,4 +88,18 @@ return [
     // Domains a self-signup address may be on, comma separated. Empty means
     // any. Admins adding people (Add person, CSV import) can use any address.
     // 'allowed_email_domains' => 'life.church',
+
+    // ---- Email ------------------------------------------------------------
+    // Sent from a cPanel email account (cPanel → Email Accounts; Connect
+    // Devices shows its outgoing server and port). Without mail_from nothing
+    // is sent. Team admin → Email shows these settings and sends a test.
+    // 'mail_from' => 'slate@creativemedia.church',
+    // 'mail_from_name' => 'Filmmaking Team',
+    // 'smtp_host' => 'mail.creativemedia.church',  // leave out to use PHP mail()
+    // 'smtp_port' => 465,                          // 465 (SSL) or 587 (STARTTLS)
+    // 'smtp_user' => 'slate@creativemedia.church', // defaults to mail_from
+    // 'smtp_pass' => 'that account’s password',
+    // Links in emails are built from the address the site was reached on;
+    // set this if that ever comes out wrong.
+    // 'site_url' => 'https://creativemedia.church',
 ];
