@@ -34,9 +34,12 @@
 
 declare(strict_types=1);
 
-/** Domains an address may be on. Empty means any, matching emailAllowed()
-    in The Cage — one rule, stated in two places because the two apps can't
-    share code. */
+/** Domains a self-signup address may be on. Empty means any.
+
+    Only people signing themselves up are held to this. An admin adding
+    someone (Add person, the CSV import, editing their page) may use any
+    valid address, since an admin choosing it is the check the domain rule
+    stands in for. */
 function fm_email_domains(): array
 {
     $raw = (string) (fm_config()['allowed_email_domains'] ?? 'life.church');
@@ -49,9 +52,10 @@ function fm_email_domains(): array
 /**
  * Is this an address we'll accept?
  *
+ * @param bool $anyDomain skip the domain rule: an admin is adding this person
  * @return string '' when fine, otherwise the reason, ready to show.
  */
-function fm_email_problem(string $email): string
+function fm_email_problem(string $email, bool $anyDomain = false): string
 {
     $email = trim($email);
     if ($email === '') {
@@ -61,7 +65,7 @@ function fm_email_problem(string $email): string
         return 'That does not look like an email address.';
     }
 
-    $domains = fm_email_domains();
+    $domains = $anyDomain ? [] : fm_email_domains();
     if (!$domains) {
         return '';
     }

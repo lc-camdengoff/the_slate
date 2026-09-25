@@ -464,7 +464,8 @@ function fm_import_plan(array $rows, array $opts): array
                  'username' => '', 'user_id' => 0, 'action' => 'skip', 'reason' => '', 'changes' => [],
                  'set_roles' => false];
 
-        $problem = $email === '' ? 'No email address.' : fm_email_problem($email);
+        // Any domain: an admin chose to import these people.
+        $problem = $email === '' ? 'No email address.' : fm_email_problem($email, true);
         if ($problem !== '') {
             $plan['reason'] = $problem === 'Enter your email address.' ? 'No email address.' : $problem;
         } elseif (isset($seenEmails[$email])) {

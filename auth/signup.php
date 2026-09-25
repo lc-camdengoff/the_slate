@@ -57,9 +57,13 @@ if (($_SERVER['REQUEST_METHOD'] ?? '') === 'POST') {
     /* The email is checked here, with the rest of the form, rather than after
        the invite is redeemed — redeeming spends a use, and a typo'd address
        should not cost one. Same reasoning as fm_release_invite() below. */
-    $emailProblem = fm_email_problem($email);
+    /* An address an admin already gave someone (any domain) is fine for
+       claiming that account; a brand-new one has to be on an allowed
+       domain. So the lookup comes before the domain rule. */
+    $formatProblem = fm_email_problem($email, true);
     $username = fm_username_for_email($email);
-    $waiting = $emailProblem === '' ? fm_find_user($email) : null;
+    $waiting = $formatProblem === '' ? fm_find_user($email) : null;
+    $emailProblem = $waiting !== null ? $formatProblem : fm_email_problem($email);
 
     if (fm_throttled('signup')) {
         $error = 'Too many attempts from this connection. Wait a few minutes and try again.';
