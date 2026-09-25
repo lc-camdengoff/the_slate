@@ -20,7 +20,8 @@ function fm_page_head(string $title): void
     header('Cache-Control: no-store');
     header('X-Content-Type-Options: nosniff');
     header('X-Frame-Options: DENY');
-    header("Content-Security-Policy: default-src 'none'; style-src 'self' 'unsafe-inline'; form-action 'self'; base-uri 'none'");
+    // Scripts only from this folder (forms.js), never inline or third-party.
+    header("Content-Security-Policy: default-src 'none'; script-src 'self'; style-src 'self' 'unsafe-inline'; form-action 'self'; base-uri 'none'");
     ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -28,6 +29,7 @@ function fm_page_head(string $title): void
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <link rel="stylesheet" href="<?= fm_h(fm_auth_url('nav.css')) ?>">
+<script src="<?= fm_h(fm_auth_url('forms.js')) ?>" defer></script>
 <title><?= fm_h($title) ?> — The Slate</title>
 <style>
   :root {

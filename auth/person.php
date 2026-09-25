@@ -264,12 +264,13 @@ fm_page_head($isNew ? 'Add person' : (string) $target['display_name']);
       </label>
       <label>
         <span>Email</span>
-        <input type="email" name="email" value="<?= fm_h($form['email']) ?>" autocapitalize="none"
+        <input type="email" name="email" id="person-email" value="<?= fm_h($form['email']) ?>" autocapitalize="none"
                spellcheck="false" required>
       </label>
       <label>
         <span>Username (from the email: what they sign in with)</span>
         <input type="text" value="<?= fm_h($isNew ? '' : (string) $target['username']) ?>"
+               data-username-from="#person-email"
                placeholder="first.last" readonly tabindex="-1" style="background:var(--gray-5);color:var(--gray-50)">
       </label>
       <label>

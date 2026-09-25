@@ -180,13 +180,15 @@ fm_page_head($firstRun ? 'Set up' : 'Sign up');
     <div class="hint">Shown on the storyboards you save.</div>
     <label>
       <span>Email</span>
-      <input type="email" name="email" value="<?= fm_h($email) ?>"
+      <input type="email" name="email" id="signup-email" value="<?= fm_h($email) ?>"
              autocapitalize="none" autocorrect="off" spellcheck="false"
              autocomplete="email" placeholder="camden.goff@life.church" required>
     </label>
     <div class="hint">Where the gear room sends pickup and overdue reminders. The part
       before the @ is your username: camden.goff@life.church signs in as camden.goff.
       If an admin already added you, use the same email and your account is waiting.</div>
+    <div class="hint">Your username: <strong data-username-from="#signup-email"
+      data-username-empty="appears as you type your email">appears as you type your email</strong></div>
     <label>
       <span>Password</span>
       <input type="password" name="password" autocomplete="new-password" required>
