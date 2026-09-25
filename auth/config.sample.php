@@ -64,6 +64,11 @@ return [
     //
     // Path becomes "/" automatically when this is set, because a tool at the
     // root of its subdomain would never receive "/filmmaking/".
+    //
+    // Safe to turn on or off while people are signed in: cookies left under
+    // the old setting are cleared on their next page load. A value that does
+    // not cover this host (a typo, or "https://" in front) is ignored and
+    // logged, and sign-in stays host-only rather than breaking.
     // 'cookie_domain' => '.creativemedia.church',
     // 'cookie_path' => '/',
 
