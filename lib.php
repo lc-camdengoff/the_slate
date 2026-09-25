@@ -300,3 +300,149 @@ function slate_can_write(?array $meta, string $username): bool
 {
     return slate_visibility($meta) === SLATE_TEAM || slate_owns($meta, $username);
 }
+
+// ---------------------------------------------------------------------------
+// Trash
+// ---------------------------------------------------------------------------
+
+/**
+ * Move a board, its sidecar and its old versions into saved/.trash.
+ *
+ * Nothing is destroyed: a board in the trash can be put back by moving its
+ * files out again. The caller holds the board's lock.
+ */
+function slate_trash_board(string $saved, string $id): bool
+{
+    $trash = slate_internal_dir($saved, '.trash');
+    if ($trash === null) {
+        return false;
+    }
+    $prefix = $trash . '/' . $id . '.' . slate_now_ms();
+    if (!@rename(slate_board_path($saved, $id), $prefix . '.json')) {
+        return false;
+    }
+    @rename(slate_meta_path($saved, $id), $prefix . '.meta.json');
+
+    $versions = $saved . '/.versions';
+    if (is_dir($versions)) {
+        foreach (glob($versions . '/' . $id . '.*.json') ?: [] as $old) {
+            @rename($old, $trash . '/' . basename($old));
+        }
+    }
+    return true;
+}
+
+// ---------------------------------------------------------------------------
+// Account changes
+//
+// Boards record people by username (owner, savedByUser, createdByUser), so
+// when an account is renamed or deleted on the Team admin page, the boards
+// have to follow. auth/ calls these through the 'hooks' entry in tools.php;
+// they never run from a request to the Slate itself.
+// ---------------------------------------------------------------------------
+
+/** The username fields a sidecar can carry. */
+const SLATE_PERSON_FIELDS = ['owner', 'savedByUser', 'createdByUser'];
+
+/**
+ * Apply $change to the sidecar of every board that names $username.
+ *
+ * $change gets the decoded sidecar and returns the new one, or null to leave
+ * that board alone. Each board is locked while it is rewritten, the same lock
+ * save.php takes, so this cannot interleave with somebody saving.
+ *
+ * @return array{0: int, 1: int} [boards changed, boards that failed]
+ */
+function slate_each_board_of(string $username, callable $change): array
+{
+    $saved = slate_saved_dir();
+    if ($saved === null || $username === '') {
+        return [0, 0];
+    }
+    $lockDir = slate_internal_dir($saved, '.tmp');
+    $changed = 0;
+    $failed = 0;
+
+    foreach (glob($saved . '/*.meta.json') ?: [] as $metaPath) {
+        $id = substr(basename($metaPath), 0, -strlen('.meta.json'));
+        if (!slate_is_id($id)) {
+            continue;
+        }
+        $meta = slate_read_meta($saved, $id);
+        $names = false;
+        foreach (SLATE_PERSON_FIELDS as $field) {
+            if (strcasecmp(trim((string) ($meta[$field] ?? '')), $username) === 0) {
+                $names = true;
+            }
+        }
+        if (!$meta || !$names) {
+            continue;
+        }
+
+        $lock = $lockDir === null ? false : @fopen($lockDir . '/' . $id . '.lock', 'c');
+        if ($lock === false || !flock($lock, LOCK_EX)) {
+            $failed++;
+            continue;
+        }
+        try {
+            // Read again under the lock: a save may have landed in between.
+            $meta = slate_read_meta($saved, $id);
+            $next = $meta === null ? null : $change($saved, $id, $meta);
+            if ($next === true) {
+                $changed++; // handled it itself (moved to trash)
+            } elseif (is_array($next)) {
+                $tmp = $metaPath . '.tmp';
+                $json = json_encode($next, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE);
+                if ($json !== false && @file_put_contents($tmp, $json) !== false && @rename($tmp, $metaPath)) {
+                    $changed++;
+                } else {
+                    @unlink($tmp);
+                    $failed++;
+                }
+            } elseif ($next === false) {
+                $failed++;
+            }
+        } finally {
+            flock($lock, LOCK_UN);
+            fclose($lock);
+        }
+    }
+    return [$changed, $failed];
+}
+
+/** Rename a person on every board that names them. */
+function slate_account_renamed(string $old, string $new): array
+{
+    return slate_each_board_of($old, static function (string $saved, string $id, array $meta) use ($old, $new) {
+        foreach (SLATE_PERSON_FIELDS as $field) {
+            if (strcasecmp(trim((string) ($meta[$field] ?? '')), $old) === 0) {
+                $meta[$field] = $new;
+            }
+        }
+        return $meta;
+    });
+}
+
+/**
+ * Someone's account is gone.
+ *
+ * Their private boards go to the trash: nobody else could open them anyway,
+ * and leaving them would hand them to whoever is next given that username.
+ * Team boards stay in the library, still credited to them by name, but the
+ * username on them becomes one no account can have, for the same reason.
+ */
+function slate_account_deleted(string $username): array
+{
+    $gone = '(deleted) ' . $username;
+    return slate_each_board_of($username, static function (string $saved, string $id, array $meta) use ($username, $gone) {
+        if (slate_visibility($meta) === SLATE_PRIVATE && slate_owns($meta, $username)) {
+            return slate_trash_board($saved, $id);
+        }
+        foreach (SLATE_PERSON_FIELDS as $field) {
+            if (strcasecmp(trim((string) ($meta[$field] ?? '')), $username) === 0) {
+                $meta[$field] = $gone;
+            }
+        }
+        return $meta;
+    });
+}

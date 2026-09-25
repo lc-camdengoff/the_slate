@@ -55,9 +55,9 @@ fm_page_head('Sign in');
   <form method="post" autocomplete="on">
     <input type="hidden" name="next" value="<?= fm_h($next) ?>">
     <label>
-      <span>Username</span>
+      <span>Username or email</span>
       <input type="text" name="username" autocapitalize="none" autocorrect="off"
-             autocomplete="username" required autofocus>
+             autocomplete="username" placeholder="first.last" required autofocus>
     </label>
     <label>
       <span>Password</span>

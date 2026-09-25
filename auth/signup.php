@@ -11,12 +11,16 @@
  * an overdue chase reaches anyone, and a username cannot receive either. It is
  * NOT verified — nothing is sent to it — so the invite code is what keeps a
  * mistyped or borrowed address from mattering. See email.php.
+ *
+ * There is no username box: the username is the part of the email before the
+ * @ (first.last), the same rule the admin pages and the import follow.
  */
 
 declare(strict_types=1);
 
 require __DIR__ . '/auth.php';
 require __DIR__ . '/email.php';
+require __DIR__ . '/people.php';
 require __DIR__ . '/page.php';
 
 fm_error_handler('html');
@@ -35,7 +39,6 @@ $email = '';
 $firstRun = fm_user_count() === 0;
 
 if (($_SERVER['REQUEST_METHOD'] ?? '') === 'POST') {
-    $username = trim((string) ($_POST['username'] ?? ''));
     $displayName = trim((string) ($_POST['display_name'] ?? ''));
     $email = trim((string) ($_POST['email'] ?? ''));
     $password = (string) ($_POST['password'] ?? '');
@@ -46,6 +49,7 @@ if (($_SERVER['REQUEST_METHOD'] ?? '') === 'POST') {
        the invite is redeemed — redeeming spends a use, and a typo'd address
        should not cost one. Same reasoning as fm_release_invite() below. */
     $emailProblem = fm_email_problem($email);
+    $username = fm_username_for_email($email);
 
     if (fm_throttled('signup')) {
         $error = 'Too many attempts from this connection. Wait a few minutes and try again.';
@@ -53,10 +57,12 @@ if (($_SERVER['REQUEST_METHOD'] ?? '') === 'POST') {
         $error = 'The two passwords do not match.';
     } elseif (strlen($password) < FM_MIN_PASSWORD) {
         $error = 'Use at least ' . FM_MIN_PASSWORD . ' characters for your password.';
-    } elseif (!fm_valid_username($username)) {
-        $error = 'Usernames are 3–32 characters: letters, numbers, dot, dash or underscore.';
     } elseif ($emailProblem !== '') {
         $error = $emailProblem;
+    } elseif (($usernameProblem = fm_username_problem($email)) !== '') {
+        // Most likely an admin already made this person an account, or an
+        // older account took the name before usernames came from emails.
+        $error = $usernameProblem . ' Ask an admin to sort it out.';
     } elseif (fm_email_taken($email)) {
         /* Checked before the account is created rather than after, so a
            duplicate address fails cleanly instead of leaving a half-made
@@ -98,8 +104,8 @@ if (($_SERVER['REQUEST_METHOD'] ?? '') === 'POST') {
             }
             fm_record_attempt('signup', $code, false);
             $error = [
-                'username_taken' => 'That username is already taken.',
-                'bad_username' => 'Usernames are 3–32 characters: letters, numbers, dot, dash or underscore.',
+                'username_taken' => 'The username ' . $username . ' already belongs to another account.',
+                'bad_username' => 'A username can\'t be made from that email address.',
                 'weak_password' => 'Use at least ' . FM_MIN_PASSWORD . ' characters for your password.',
             ][$err] ?? 'Could not create that account.';
         }
@@ -142,12 +148,8 @@ fm_page_head($firstRun ? 'Set up' : 'Sign up');
              autocapitalize="none" autocorrect="off" spellcheck="false"
              autocomplete="email" placeholder="camden.goff@life.church" required>
     </label>
-    <div class="hint">Where the gear room sends pickup and overdue reminders.</div>
-    <label>
-      <span>Username</span>
-      <input type="text" name="username" value="<?= fm_h($username) ?>"
-             autocapitalize="none" autocorrect="off" autocomplete="username" required>
-    </label>
+    <div class="hint">Where the gear room sends pickup and overdue reminders. The part
+      before the @ is your username: camden.goff@life.church signs in as camden.goff.</div>
     <label>
       <span>Password</span>
       <input type="password" name="password" autocomplete="new-password" required>

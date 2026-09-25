@@ -12,7 +12,10 @@
  * sign-in will then accept a return to that origin, and nothing else.
  *
  * 'key' is how permissions refer to the tool, so never change it once people
- * have roles in it. 'roles' is the tool's own list, least to most powerful;
+ * have roles in it. 'hooks' is an optional PHP file, relative to the tools
+ * folder, defining <key>_account_renamed($old, $new) and/or
+ * <key>_account_deleted($username), for a tool that stores usernames of its
+ * own and has to follow when an admin renames or deletes someone. 'roles' is the tool's own list, least to most powerful;
  * the admin page offers these plus "No access". 'default_role' is what
  * someone gets in the tool until an admin says otherwise.
  */
@@ -29,6 +32,8 @@ function fm_tools(): array
             'key' => 'slate', 'label' => 'The Slate', 'path' => 'slate/', 'blurb' => 'Storyboards',
             'roles' => ['member' => 'Member'],
             'default_role' => 'member',
+            // Storyboards record their owner by username; see people.php.
+            'hooks' => 'slate/lib.php',
         ],
         [
             'key' => 'cage', 'label' => 'The Cage', 'url' => 'https://cage.creativemedia.church/',

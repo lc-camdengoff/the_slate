@@ -20,6 +20,10 @@ $db = fm_db();
 $error = '';
 $notice = '';
 $freshCode = '';
+$renamed = [];
+if (!empty($_GET['deleted'])) {
+    $notice = 'Account deleted.';
+}
 
 if (($_SERVER['REQUEST_METHOD'] ?? '') === 'POST') {
     if (!fm_check_csrf($_POST['csrf'] ?? null)) {
@@ -27,7 +31,36 @@ if (($_SERVER['REQUEST_METHOD'] ?? '') === 'POST') {
     } else {
         $action = (string) ($_POST['action'] ?? '');
 
-        if ($action === 'new_invite') {
+        if ($action === 'sync_usernames') {
+            /* Several passes, because one rename can free the name another
+               is waiting for (camden → camden.goff lets camden@ have camden).
+               Stops as soon as a pass changes nothing. */
+            $problems = [];
+            for ($pass = 0; $pass < 5; $pass++) {
+                $progress = false;
+                foreach (fm_username_mismatches() as $m) {
+                    if ($m['problem'] !== '') {
+                        continue;
+                    }
+                    [$err, $toolProblems] = fm_rename_user($m['id'], $m['to']);
+                    if ($err === '') {
+                        $renamed[] = $m;
+                        $progress = true;
+                        $problems = array_merge($problems, $toolProblems);
+                    }
+                }
+                if (!$progress) {
+                    break;
+                }
+            }
+            $mine = array_filter($renamed, static fn($m) => $m['id'] === (int) $me['id']);
+            $notice = count($renamed) . ' username' . (count($renamed) === 1 ? '' : 's') . ' updated.'
+                . ($mine ? ' Yours is now ' . reset($mine)['to'] . ': sign in with that from now on.' : '');
+            if ($problems) {
+                $error = implode(' ', array_unique($problems));
+            }
+
+        } elseif ($action === 'new_invite') {
             $label = trim((string) ($_POST['label'] ?? ''));
             $maxUses = trim((string) ($_POST['max_uses'] ?? ''));
             $days = trim((string) ($_POST['days'] ?? ''));
@@ -77,6 +110,9 @@ $users = $db->query(
             password_hash = '' AS pending, created_at, last_login_at
        FROM users ORDER BY lower(display_name), lower(username)"
 )->fetchAll();
+
+$mismatches = fm_username_mismatches();
+$noEmail = count(array_filter($users, static fn($u) => !$u['email']));
 
 $csrf = fm_h(fm_csrf_token());
 
@@ -149,6 +185,40 @@ fm_page_head('Admin');
     <?php endif; ?>
   </table>
 
+  <?php if ($mismatches): ?>
+    <h2>Usernames to update</h2>
+    <p class="note" style="margin-top:0">
+      Usernames are the part of the email before the @. These accounts were
+      made before that rule and still have their old one. Updating keeps their
+      password, their devices stay signed in, and their storyboards follow them.
+      Tell each person their new username.
+    </p>
+    <table style="margin-top:10px">
+      <tr><th>Name</th><th>Email</th><th>Now</th><th>Becomes</th><th></th></tr>
+      <?php foreach ($mismatches as $m): ?>
+        <tr class="<?= $m['problem'] !== '' ? 'skip' : '' ?>">
+          <td><a href="person.php?id=<?= $m['id'] ?>" style="color:inherit"><?= fm_h($m['display_name']) ?></a></td>
+          <td class="small"><?= fm_h($m['email']) ?></td>
+          <td class="small"><?= fm_h($m['from']) ?></td>
+          <td class="small"><strong><?= fm_h($m['to']) ?></strong></td>
+          <td class="small"><?= fm_h($m['problem']) ?></td>
+        </tr>
+      <?php endforeach; ?>
+    </table>
+    <form method="post" style="margin-top:12px">
+      <input type="hidden" name="csrf" value="<?= $csrf ?>">
+      <input type="hidden" name="action" value="sync_usernames">
+      <button type="submit">Update <?= count($mismatches) ?> username<?= count($mismatches) === 1 ? '' : 's' ?></button>
+    </form>
+  <?php endif; ?>
+  <?php if ($renamed): ?>
+    <div class="msg good" style="margin-top:16px">
+      <?php foreach ($renamed as $m): ?>
+        <?= fm_h($m['display_name']) ?>: <?= fm_h($m['from']) ?> → <strong><?= fm_h($m['to']) ?></strong><br>
+      <?php endforeach; ?>
+    </div>
+  <?php endif; ?>
+
   <div class="topbar" style="margin-top:30px">
     <h2 style="margin:0">Team</h2>
     <div class="row">
@@ -183,9 +253,16 @@ fm_page_head('Admin');
     <?php endforeach; ?>
   </table>
   </div>
+  <?php if ($noEmail): ?>
+    <p class="hint" style="margin-top:12px">
+      <?= $noEmail ?> account<?= $noEmail === 1 ? ' has' : 's have' ?> no email, so
+      <?= $noEmail === 1 ? 'it keeps its' : 'they keep their' ?> old username. Add one on
+      their page and the username follows.
+    </p>
+  <?php endif; ?>
   <p class="hint" style="margin-top:12px">
     Click a name to edit their details and access, issue a setup or reset
-    code, or turn the account off. Turning an account off signs it out
+    code, turn the account off, or delete it. Turning an account off signs it out
     everywhere and blocks sign-in, but leaves the storyboards it saved.
   </p>
 </div>

@@ -86,6 +86,9 @@ function cage_reply_user(array $user): void
     $text = static fn($v) => $v === null || $v === '' ? null : (string) $v;
     cage_reply(200, [
         'ok' => true,
+        // Stable for the life of the account. The username can change (it
+        // follows the email), so this is what The Cage should key people on.
+        'id' => (int) $user['id'],
         'username' => (string) $user['username'],
         'display_name' => (string) ($user['display_name'] ?? ''),
         'email' => $text($user['email'] ?? null),
@@ -160,12 +163,14 @@ if ($username === '' || $password === '') {
    attempts at the Slate's own login page count against the same allowance.
    Somebody guessing passwords does not get a fresh budget by switching which
    door they knock on. */
+$typed = $username;
+$username = fm_login_subject($typed);
 if (fm_throttled('login', $username)) {
     fm_record_attempt('login', $username, false);
     cage_reply(429, ['ok' => false, 'error' => 'throttled']);
 }
 
-$user = fm_find_user($username);
+$user = fm_find_user($typed);
 
 /* Hash even when the user is missing, so a bad username and a bad password
    take about the same time. Mirrors fm_attempt_login() deliberately: this

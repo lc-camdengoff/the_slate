@@ -46,6 +46,10 @@ email:
 - **Bringing people over** from Cheqroom or a spreadsheet is a CSV import on
   the admin page. Each new person gets a one-time setup code and chooses their
   own password.
+- **Usernames** are always the part of the email before the @ (first.last).
+  Changing someone's email renames them, and their storyboards follow.
+- **Deleting someone** moves their private storyboards to the Slate's trash
+  and keeps their team ones. Turning the account off keeps everything.
 - **Access** is set per person and per tool (the Slate, The Cage and whatever
   comes next), with each tool's own roles, e.g. Cage Gear manager.
 

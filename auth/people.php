@@ -55,52 +55,152 @@ function fm_taken_usernames(): array
 }
 
 /**
- * A free username for someone, from what we know about them.
+ * Why this address can't become someone's username, or '' if it can.
  *
- * The part of the email before the @ if there is one (camden.goff), else
- * their name. A clash gets a number on the end. $taken is updated so a batch
- * of new people cannot collide with each other either.
+ * Every username is the part of the email before the @, so the address has
+ * to be usable as one and the result must not already be someone else's.
+ *
+ * @param int $exceptId an account allowed to have it already (the one being
+ *   edited)
  */
-function fm_pick_username(string $wanted, string $email, string $name, array &$taken): string
+function fm_username_problem(string $email, int $exceptId = 0): string
 {
-    $candidates = [];
-    if ($wanted !== '') {
-        $candidates[] = $wanted;
+    $username = fm_username_for_email($email);
+    if ($username === '') {
+        return 'A username can\'t be made from that address. It needs to start with a letter or number.';
     }
-    if ($email !== '' && strpos($email, '@') !== false) {
-        $candidates[] = strstr($email, '@', true);
+    $stmt = fm_db()->prepare('SELECT id, email FROM users WHERE username_ci = ? AND id <> ?');
+    $stmt->execute([$username, $exceptId]);
+    $other = $stmt->fetch();
+    if ($other) {
+        return 'The username ' . $username . ' already belongs to another account'
+            . ($other['email'] ? ' (' . $other['email'] . ')' : '') . '.';
     }
-    if ($name !== '') {
-        $candidates[] = str_replace(' ', '.', $name);
-    }
-    $candidates[] = 'user';
+    return '';
+}
 
-    foreach ($candidates as $raw) {
-        if (function_exists('iconv')) {
-            $ascii = @iconv('UTF-8', 'ASCII//TRANSLIT//IGNORE', $raw);
-            $raw = $ascii === false ? $raw : $ascii;
-        }
-        $base = strtolower((string) preg_replace('/[^A-Za-z0-9._-]+/', '', $raw));
-        $base = ltrim($base, '._-');
-        $base = substr($base, 0, 32);
-        if (strlen($base) < 3) {
+/**
+ * Run every tool's hook for an account change. See 'hooks' in tools.php.
+ *
+ * @return list<string> problems worth telling the admin about
+ */
+function fm_run_account_hooks(string $event, array $args): array
+{
+    $problems = [];
+    foreach (fm_tools() as $tool) {
+        $file = trim((string) ($tool['hooks'] ?? ''));
+        if ($file === '') {
             continue;
         }
-        $pick = $base;
-        for ($n = 2; isset($taken[$pick]) || !fm_valid_username($pick); $n++) {
-            $suffix = (string) $n;
-            $pick = substr($base, 0, 32 - strlen($suffix)) . $suffix;
-            if ($n > 999) {
-                continue 2;
-            }
+        $path = dirname(__DIR__) . '/' . ltrim($file, '/');
+        if (!is_file($path)) {
+            continue; // tool not installed on this server
         }
-        $taken[$pick] = true;
-        return $pick;
+        require_once $path;
+        $fn = $tool['key'] . '_account_' . $event;
+        if (!function_exists($fn)) {
+            continue;
+        }
+        try {
+            [$changed, $failed] = $fn(...$args) + [0, 0];
+            if ($failed > 0) {
+                $problems[] = $tool['label'] . ': ' . $failed . ' item' . ($failed === 1 ? '' : 's')
+                    . ' could not be updated. Try again; if it keeps failing, check the error log.';
+            }
+        } catch (Throwable $e) {
+            error_log("slate: $fn failed: " . $e->getMessage());
+            $problems[] = $tool['label'] . ' could not be updated. Check the error log.';
+        }
     }
-    // Only reachable if 'user' through 'user999' are all gone.
-    $pick = 'user' . bin2hex(random_bytes(3));
-    $taken[$pick] = true;
-    return $pick;
+    return $problems;
+}
+
+/**
+ * Change someone's username, and everything that records it.
+ *
+ * The account row changes first, where the unique index settles any clash;
+ * then each tool is told so it can follow. Sessions are keyed by account, not
+ * name, so nobody is signed out by this.
+ *
+ * @return array{0: string, 1: list<string>} [error, tool problems]
+ */
+function fm_rename_user(int $userId, string $newUsername): array
+{
+    if (!fm_valid_username($newUsername)) {
+        return ['That is not a usable username.', []];
+    }
+    $stmt = fm_db()->prepare('SELECT username FROM users WHERE id = ?');
+    $stmt->execute([$userId]);
+    $old = (string) ($stmt->fetch()['username'] ?? '');
+    if ($old === '') {
+        return ['No such account.', []];
+    }
+    if ($old === $newUsername) {
+        return ['', []];
+    }
+    try {
+        fm_db()->prepare('UPDATE users SET username = ?, username_ci = ? WHERE id = ?')
+            ->execute([$newUsername, strtolower($newUsername), $userId]);
+    } catch (PDOException $e) {
+        if ($e->getCode() === '23505') {
+            return ['The username ' . $newUsername . ' already belongs to another account.', []];
+        }
+        throw $e;
+    }
+    // A rename that only changes case is the same name to every tool.
+    if (strcasecmp($old, $newUsername) === 0) {
+        return ['', []];
+    }
+    return ['', fm_run_account_hooks('renamed', [$old, $newUsername])];
+}
+
+/**
+ * Delete an account for good.
+ *
+ * Its sessions, codes and access go with it (ON DELETE CASCADE); invite codes
+ * it made stay, credited to nobody. Then each tool is told: the Slate moves
+ * the person's private storyboards to its trash and keeps their team ones.
+ *
+ * @return list<string> tool problems
+ */
+function fm_delete_user(int $userId): array
+{
+    $stmt = fm_db()->prepare('DELETE FROM users WHERE id = ? RETURNING username');
+    $stmt->execute([$userId]);
+    $username = (string) ($stmt->fetch()['username'] ?? '');
+    if ($username === '') {
+        return [];
+    }
+    error_log("slate: account $username deleted");
+    return fm_run_account_hooks('deleted', [$username]);
+}
+
+/**
+ * Accounts whose username is not what their email address makes, with the
+ * username it should be. Those without an email keep theirs until one is added.
+ *
+ * @return list<array{id: int, display_name: string, email: string, from: string, to: string, problem: string}>
+ */
+function fm_username_mismatches(): array
+{
+    $out = [];
+    foreach (fm_db()->query(
+        'SELECT id, username, display_name, email FROM users WHERE email IS NOT NULL ORDER BY lower(display_name)'
+    )->fetchAll() as $u) {
+        $want = fm_username_for_email((string) $u['email']);
+        if ($want === (string) $u['username']) {
+            continue;
+        }
+        $out[] = [
+            'id' => (int) $u['id'],
+            'display_name' => (string) $u['display_name'],
+            'email' => (string) $u['email'],
+            'from' => (string) $u['username'],
+            'to' => $want,
+            'problem' => fm_username_problem((string) $u['email'], (int) $u['id']),
+        ];
+    }
+    return $out;
 }
 
 /**
@@ -225,7 +325,6 @@ function fm_import_fields(): array
         'first_name' => 'First name',
         'last_name' => 'Last name',
         'email' => 'Email',
-        'username' => 'Username',
         'phone' => 'Phone',
         'department' => 'Department',
         'role' => 'Role',
@@ -245,7 +344,6 @@ function fm_import_guess(array $header): array
         'first_name' => ['firstname', 'first', 'givenname', 'forename'],
         'last_name' => ['lastname', 'last', 'surname', 'familyname'],
         'email' => ['email', 'emailaddress', 'mail', 'workemail', 'primaryemail'],
-        'username' => ['username', 'login', 'userid', 'loginname'],
         'phone' => ['phone', 'phonenumber', 'mobile', 'mobilephone', 'cell', 'cellphone', 'telephone', 'tel'],
         'department' => ['department', 'dept', 'team', 'group', 'company', 'organization', 'organisation', 'location', 'campus'],
         'role' => ['role', 'userrole', 'accesslevel', 'permission', 'permissions', 'kind', 'type', 'usertype'],
@@ -393,14 +491,20 @@ function fm_import_plan(array $rows, array $opts): array
             $plan['reason'] = $plan['action'] === 'same' ? 'Already has an account.' : '';
         } else {
             $seenEmails[$email] = $i;
-            $wanted = $cell($row, 'username');
-            $plan['username'] = fm_pick_username(
-                fm_valid_username($wanted) && !isset($taken[strtolower($wanted)]) ? strtolower($wanted) : '',
-                $email,
-                $person['display_name'],
-                $taken
-            );
-            $plan['action'] = 'create';
+            // The username is always the part of the email before the @.
+            // A clash is shown rather than worked around with a number on
+            // the end, so nobody signs in as a name they wouldn't guess.
+            $username = fm_username_for_email($email);
+            if ($username === '') {
+                $plan['reason'] = 'A username can\'t be made from this address.';
+            } elseif (isset($taken[$username])) {
+                $plan['username'] = $username;
+                $plan['reason'] = 'The username ' . $username . ' already belongs to another account.';
+            } else {
+                $taken[$username] = true;
+                $plan['username'] = $username;
+                $plan['action'] = 'create';
+            }
         }
         $plans[] = $plan;
     }
