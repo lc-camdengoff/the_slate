@@ -333,6 +333,55 @@
       --red-500:#E07070; --shadow-2:0 4px 16px rgba(0,0,0,0.5);
     }
   }
+  /* Touch screens have no hover, so the image buttons (zoom, aspect,
+     replace, remove), which appear on hover, are shown all the time. */
+  @media (hover:none){
+    .sl-imgtools{opacity:1!important;pointer-events:auto!important}
+  }
+
+  /* Phones. The layout is built from inline styles, so these override them
+     by class (hence !important). Nothing here changes print or PDF. */
+  @media screen and (max-width:640px){
+    /* Top bar: name and theme on the first row, tools and account below. */
+    .sl-bar{padding:10px 14px!important;gap:8px 10px!important}
+    .sl-bar-title{order:1;flex:1 1 auto;min-width:0}
+    .sl-bar-title span:first-child{font-size:17px!important}
+    .sl-bar-meta,.sl-bar-div,.sl-bar-spacer,.sl-bar-name{display:none!important}
+    .sl-bar-theme{order:2}
+    .sl-bar-tools{order:3;flex:1 1 100%}
+    .sl-bar-account{order:4;flex:1 1 100%;gap:8px 12px!important}
+
+    .sl-menu-inner{padding:24px 16px 40px!important}
+    .sl-h1{font-size:30px!important}
+
+    /* Storyboard header: smaller title, colour key and fields full width. */
+    .sl-board-head{padding:16px 16px 18px!important}
+    .sl-title-box{min-width:0!important;flex:1 1 100%!important}
+    .sl-title-input{font-size:28px!important;width:100%!important}
+    .sl-colorkey{min-width:0!important;flex:1 1 100%!important;padding:0!important}
+    .sl-colorkey input{width:100%!important;min-width:0!important}
+    .sl-meta{gap:14px 18px!important}
+    .sl-meta label{flex:1 1 140px;min-width:0!important}
+    .sl-meta input{width:100%!important}
+
+    /* The toolbar wraps to several rows on a phone; pinned to the top it
+       would cover a third of the screen, so it scrolls away instead. */
+    .sl-toolbar{position:static!important;padding:12px 16px!important}
+    .sl-toolbar > div, .sl-toolbar > div > div{gap:8px!important}
+    .sl-toolbar button{padding-left:10px!important;padding-right:10px!important}
+
+    .sl-main{padding:16px 16px 48px!important}
+    .cg-board{grid-template-columns:minmax(0,1fr)!important}
+    /* List: the picture goes above the fields rather than beside them. */
+    .sl-imgwrap{width:100%!important;flex:1 1 100%!important;border-right:none!important}
+    .sl-fields{min-width:0!important}
+    /* Strip: its one long row of fields wraps, and camera move gets a line. */
+    .sl-fieldrow{flex-wrap:wrap}
+    .sl-caminline{flex:1 1 100%!important}
+    .sl-descdlg{flex-direction:column!important}
+    .sl-cardfoot{flex-wrap:wrap}
+  }
+
   @media print{
     [data-noprint]{display:none!important}
     body{background:#fff}
@@ -387,39 +436,39 @@
          tools read as one set: tool name and a count on the left, the other
          tools, the account and sign-out on the right. -->
     <sc-if value="{{ signedIn }}" hint-placeholder-val="{{ false }}">
-      <div data-noprint="" style="display:flex;align-items:center;gap:10px 16px;flex-wrap:wrap;min-height:56px;padding:12px 26px;box-sizing:border-box;background:#1F2023;border-bottom:1px solid #2E2F33">
-        <div style="display:flex;align-items:baseline;gap:12px">
-          <span style="font-family:var(--font-display);font-weight:900;font-size:20px;letter-spacing:0.14em;text-transform:uppercase;color:#F2F2F2;line-height:1">The Slate</span>
-          <span style="font-family:var(--font-mono);font-size:11px;color:#8B8C90;white-space:nowrap">{{ navMeta }}</span>
+      <div class="sl-bar" data-noprint="" style="display:flex;align-items:center;gap:10px 16px;flex-wrap:wrap;min-height:56px;padding:12px 26px;box-sizing:border-box;background:#1F2023;border-bottom:1px solid #2E2F33">
+        <div class="sl-bar-title" style="display:flex;align-items:baseline;gap:12px">
+          <span style="font-family:var(--font-display);font-weight:900;font-size:20px;white-space:nowrap;letter-spacing:0.14em;text-transform:uppercase;color:#F2F2F2;line-height:1">The Slate</span>
+          <span class="sl-bar-meta" style="font-family:var(--font-mono);font-size:11px;color:#8B8C90;white-space:nowrap">{{ navMeta }}</span>
         </div>
-        <span style="width:1px;height:22px;background:#3A3B40;margin:0 4px"></span>
-        <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
+        <span class="sl-bar-div" style="width:1px;height:22px;background:#3A3B40;margin:0 4px"></span>
+        <div class="sl-bar-tools" style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
           <a href="{{ homeUrl }}" style="display:inline-flex;align-items:center;height:30px;padding:0 12px;border:1px solid #3A3B40;background:transparent;font-family:var(--font-mono);font-size:11px;letter-spacing:0.08em;text-transform:uppercase;color:#C9CACE;text-decoration:none;white-space:nowrap" style-hover="color:#FFFFFF;border-color:#5A5B61">Menu</a>
           <sc-for list="{{ otherTools }}" as="t" hint-placeholder-count="0">
             <a href="{{ t.url }}" style="display:inline-flex;align-items:center;height:30px;padding:0 12px;border:1px solid #3A3B40;background:transparent;font-family:var(--font-mono);font-size:11px;letter-spacing:0.08em;text-transform:uppercase;color:#C9CACE;text-decoration:none;white-space:nowrap" style-hover="color:#FFFFFF;border-color:#5A5B61">{{ t.label }}</a>
           </sc-for>
         </div>
-        <span style="margin-left:auto"></span>
-        <div style="display:flex;align-items:center;gap:8px 14px;flex-wrap:wrap">
+        <span class="sl-bar-spacer" style="margin-left:auto"></span>
+        <div class="sl-bar-account" style="display:flex;align-items:center;gap:8px 14px;flex-wrap:wrap">
           <a href="{{ accountUrl }}" style="display:inline-flex;align-items:center;height:30px;padding:0 4px;font-family:var(--font-mono);font-size:11px;letter-spacing:0.08em;text-transform:uppercase;color:#A9AAAE;text-decoration:none;white-space:nowrap" style-hover="color:#FFFFFF">Account</a>
           <sc-if value="{{ isLibraryAdmin }}" hint-placeholder-val="{{ false }}">
             <a href="{{ adminUrl }}" style="display:inline-flex;align-items:center;height:30px;padding:0 4px;font-family:var(--font-mono);font-size:11px;letter-spacing:0.08em;text-transform:uppercase;color:#A9AAAE;text-decoration:none;white-space:nowrap" style-hover="color:#FFFFFF">Team Admin</a>
           </sc-if>
-          <span style="font-family:var(--font-mono);font-size:12px;color:#A9AAAE;white-space:nowrap">{{ signedInAs }}</span>
+          <span class="sl-bar-name" style="font-family:var(--font-mono);font-size:12px;color:#A9AAAE;white-space:nowrap">{{ signedInAs }}</span>
           <form method="post" action="{{ logoutUrl }}" style="margin:0">
             <input type="hidden" name="csrf" value="{{ libraryCsrf }}">
             <button type="submit" style="height:30px;padding:0 12px;background:#2A2B2F;border:1px solid #3A3B40;color:#ECECEC;font-size:11px;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;cursor:pointer" style-hover="background:#34353A">Sign out</button>
           </form>
-          <button sc-camel-on-click="{{ toggleTheme }}" title="{{ themeLabel }}" aria-label="{{ themeLabel }}" style="width:30px;height:30px;border-radius:50%;background:transparent;border:1px solid #3A3B40;color:#C9CACE;cursor:pointer;display:flex;align-items:center;justify-content:center;padding:0" style-hover="color:#FFFFFF;border-color:#5A5B61">
-            <svg width="15" height="15"><use href="{{ themeIcon }}"></use></svg>
-          </button>
         </div>
+        <button class="sl-bar-theme" sc-camel-on-click="{{ toggleTheme }}" title="{{ themeLabel }}" aria-label="{{ themeLabel }}" style="width:30px;height:30px;flex:0 0 30px;border-radius:50%;background:transparent;border:1px solid #3A3B40;color:#C9CACE;cursor:pointer;display:flex;align-items:center;justify-content:center;padding:0" style-hover="color:#FFFFFF;border-color:#5A5B61">
+          <svg width="15" height="15"><use href="{{ themeIcon }}"></use></svg>
+        </button>
       </div>
     </sc-if>
-    <div style="max-width:1164px;margin:0 auto;padding:40px 32px 48px;box-sizing:border-box">
+    <div class="sl-menu-inner" style="max-width:1164px;margin:0 auto;padding:40px 32px 48px;box-sizing:border-box">
       <div style="font-family:var(--font-mono);font-size:11px;letter-spacing:0.14em;text-transform:uppercase;color:var(--gray-30);margin-bottom:8px">Storyboard</div>
       <div style="display:flex;align-items:flex-end;justify-content:space-between;flex-wrap:wrap;gap:16px;margin-bottom:32px">
-        <div style="font-family:var(--font-display);font-weight:900;font-size:40px;line-height:0.9;letter-spacing:-0.02em;text-transform:uppercase;color:var(--black)">Your Storyboards</div>
+        <div class="sl-h1" style="font-family:var(--font-display);font-weight:900;font-size:40px;line-height:0.9;letter-spacing:-0.02em;text-transform:uppercase;color:var(--black)">Your Storyboards</div>
         <button sc-camel-on-click="{{ newBoard }}" style="{{ addBtnStyle }}" style-hover="opacity:0.88">
           <svg width="18" height="18" style="stroke:#FFFFFF;fill:#FFFFFF;stroke-width:4px"><use href="#ui-plus"></use></svg>New Shot List
         </button>
@@ -493,7 +542,7 @@
 <sc-if value="{{ isBoardView }}" hint-placeholder-val="{{ false }}">
 <div class="cg-board-wrap" style="min-height:100vh;display:flex;flex-direction:column">
 
-  <header style="background:var(--white);border-bottom:1px solid var(--gray-15);padding:26px 32px 22px">
+  <header class="sl-board-head" style="background:var(--white);border-bottom:1px solid var(--gray-15);padding:26px 32px 22px">
     <div style="max-width:1440px;margin:0 auto;display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap">
       <button sc-camel-on-click="{{ goToMenu }}" data-noprint="" style="display:flex;align-items:center;gap:6px;height:32px;padding:0 12px;background:transparent;border:1px solid var(--gray-15);color:var(--gray-50);font-size:12px;font-weight:700;cursor:pointer;text-transform:uppercase;letter-spacing:0.04em" style-hover="background:var(--gray-5)">
         <svg width="15" height="15" style="transform:rotate(90deg)"><use href="#ui-caret"></use></svg>All Storyboards
@@ -504,11 +553,11 @@
     </div>
     <div style="max-width:1440px;margin:0 auto">
       <div style="display:flex;flex-wrap:wrap;gap:24px;align-items:flex-start;justify-content:space-between">
-        <div style="flex:1;min-width:280px">
+        <div class="sl-title-box" style="flex:1;min-width:280px">
           <div style="font-family:var(--font-mono);font-size:11px;letter-spacing:0.14em;text-transform:uppercase;color:var(--gray-30);margin-bottom:8px">Storyboard</div>
-          <input data-field="title" sc-camel-default-value="{{ meta.title }}" sc-camel-on-input="{{ onMetaInput }}" placeholder="UNTITLED STORYBOARD" style="font-family:var(--font-display);font-weight:900;font-size:40px;line-height:0.9;letter-spacing:-0.02em;text-transform:uppercase;color:var(--black);border:none;background:transparent;width:100%;padding:0 0 4px">
+          <input class="sl-title-input" data-field="title" sc-camel-default-value="{{ meta.title }}" sc-camel-on-input="{{ onMetaInput }}" placeholder="UNTITLED STORYBOARD" style="font-family:var(--font-display);font-weight:900;font-size:40px;line-height:0.9;letter-spacing:-0.02em;text-transform:uppercase;color:var(--black);border:none;background:transparent;width:100%;padding:0 0 4px">
         </div>
-        <div style="padding:14px 16px;flex:0 0 auto;min-width:260px">
+        <div class="sl-colorkey" style="padding:14px 16px;flex:0 0 auto;min-width:260px">
           <div style="font-family:var(--font-mono);font-size:10px;letter-spacing:0.09em;text-transform:uppercase;color:var(--gray-30);margin-bottom:10px">Color Key</div>
           <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px 18px">
             <sc-for list="{{ tagKey }}" as="t" hint-placeholder-count="5">
@@ -520,7 +569,7 @@
           </div>
         </div>
       </div>
-      <div style="display:flex;flex-wrap:wrap;gap:26px;margin-top:16px">
+      <div class="sl-meta" style="display:flex;flex-wrap:wrap;gap:26px;margin-top:16px">
         <label style="display:flex;flex-direction:column;gap:3px;min-width:150px">
           <span style="font-family:var(--font-mono);font-size:10px;letter-spacing:0.09em;text-transform:uppercase;color:var(--gray-30)">Project / Client</span>
           <input data-field="project" sc-camel-default-value="{{ meta.project }}" sc-camel-on-input="{{ onMetaInput }}" placeholder="Add project" style="font-size:14px;font-weight:700;border:none;border-bottom:1px solid var(--gray-15);background:transparent;padding:4px 0">
@@ -537,7 +586,7 @@
     </div>
   </header>
 
-  <div data-noprint="" style="position:sticky;top:0;z-index:20;background:var(--white);border-bottom:1px solid var(--gray-15);padding:12px 32px">
+  <div class="sl-toolbar" data-noprint="" style="position:sticky;top:0;z-index:20;background:var(--white);border-bottom:1px solid var(--gray-15);padding:12px 32px">
     <div style="max-width:1440px;margin:0 auto;display:flex;align-items:center;gap:18px;flex-wrap:wrap">
       <div style="font-family:var(--font-mono);font-size:12px;letter-spacing:0.06em;text-transform:uppercase;color:var(--gray-40);font-weight:500">{{ shotCount }} Shots</div>
 
@@ -621,7 +670,7 @@
     </div>
   </div>
 
-  <main style="flex:1;padding:28px 32px 64px">
+  <main class="sl-main" style="flex:1;padding:28px 32px 64px">
     <div style="max-width:1440px;margin:0 auto">
 
       <sc-if value="{{ isEmpty }}" hint-placeholder-val="{{ true }}">
@@ -656,7 +705,7 @@
             <sc-if value="{{ f.hasTag }}" hint-placeholder-val="{{ false }}"><div style="{{ f.tagStripStyle }}"></div></sc-if>
 
             <sc-if value="{{ f.showImage }}" hint-placeholder-val="{{ true }}">
-            <div data-id="{{ f.id }}" sc-camel-on-mouse-enter="{{ onImgHoverIn }}" sc-camel-on-mouse-leave="{{ onImgHoverOut }}" style="{{ f.wrapStyle }}">
+            <div class="sl-imgwrap" data-id="{{ f.id }}" sc-camel-on-mouse-enter="{{ onImgHoverIn }}" sc-camel-on-mouse-leave="{{ onImgHoverOut }}" style="{{ f.wrapStyle }}">
               <sc-if value="{{ f.hasImage }}" hint-placeholder-val="{{ false }}">
                 <div data-id="{{ f.id }}" sc-camel-on-pointer-down="{{ onImgPointerDown }}" title="Drag to reposition" style="position:absolute;inset:0;overflow:hidden;cursor:move;touch-action:none">
                   <img src="{{ f.image }}" alt="" draggable="{{ false }}" style="width:100%;height:100%;object-fit:cover;object-position:{{ f.cropPos }};transform:scale({{ f.zoom }});transform-origin:{{ f.cropPos }};display:block;pointer-events:none;user-select:none">
@@ -679,7 +728,7 @@
                 </div>
               </sc-if>
               <sc-if value="{{ f.hasImage }}" hint-placeholder-val="{{ false }}">
-                <div data-noprint="" style="{{ f.toolbarStyle }}">
+                <div class="sl-imgtools" data-noprint="" style="{{ f.toolbarStyle }}">
                   <input type="range" min="1" max="3" step="0.01" value="{{ f.zoom }}" data-id="{{ f.id }}" sc-camel-on-input="{{ onZoom }}" title="Zoom" style="accent-color: var(--cglp-blue); cursor: pointer; width: 70px; position: sticky; padding-left: 0px; padding-right: 0px">
                   <button data-id="{{ f.id }}" sc-camel-on-click="{{ openAspectMenu }}" title="Aspect ratio" style="height:26px;padding:0 8px;background:rgba(0,0,0,0.55);border:none;color:#fff;font-family:var(--font-mono);font-size:10px;font-weight:600;letter-spacing:0.04em;cursor:pointer">{{ f.aspectLabel }}</button>
                   <label title="Replace image" style="width:26px;height:26px;background:rgba(0,0,0,0.55);color:#fff;cursor:pointer;display:flex;align-items:center;justify-content:center">
@@ -694,8 +743,8 @@
             </div>
             </sc-if>
 
-            <div style="{{ fieldsStyle }}">
-              <div style="display:flex;align-items:flex-start;gap:10px">
+            <div class="sl-fields" style="{{ fieldsStyle }}">
+              <div class="sl-fieldrow" style="display:flex;align-items:flex-start;gap:10px">
                 <div style="display:flex;flex-direction:column;gap:2px;width:52px;flex:0 0 52px">
                   <span style="font-family:var(--font-mono);font-size:9px;letter-spacing:0.08em;text-transform:uppercase;color:var(--gray-30)">Scene</span>
                   <input data-id="{{ f.id }}" data-field="scene" value="{{ f.scene }}" sc-camel-on-input="{{ onFieldInput }}" placeholder="1" style="font-family:var(--font-display);font-weight:900;font-size:18px;border:none;border-bottom:1px solid var(--gray-15);background:transparent;padding:2px 0;width:100%">
@@ -737,7 +786,7 @@
                   </sc-raw-select>
                 </div>
                 <sc-if value="{{ f.camInline }}" hint-placeholder-val="{{ false }}">
-                <div style="display:flex;flex-direction:column;gap:2px;flex:1;min-width:0">
+                <div class="sl-caminline" style="display:flex;flex-direction:column;gap:2px;flex:1;min-width:0">
                   <span style="font-family:var(--font-mono);font-size:9px;letter-spacing:0.08em;text-transform:uppercase;color:var(--gray-30)">Camera Move</span>
                   <button data-id="{{ f.id }}" sc-camel-on-click="{{ openCamMenu }}" data-noprint="" style="display:flex;align-items:center;gap:6px;border:1px solid var(--gray-15);background:var(--white);padding:5px 7px;cursor:pointer;text-align:left" style-hover="background:var(--gray-5)">
                     <svg width="16" height="16" style="flex:0 0 auto;color:var(--cglp-blue)"><use href="{{ f.iconHref }}"></use></svg>
@@ -775,7 +824,7 @@
                 </sc-if>
               </div>
 
-              <div style="{{ f.descDialogueWrapStyle }}">
+              <div class="sl-descdlg" style="{{ f.descDialogueWrapStyle }}">
               <div style="display:flex;flex-direction:column;gap:2px;flex:1;min-width:0">
                 <span style="font-family:var(--font-mono);font-size:9px;letter-spacing:0.08em;text-transform:uppercase;color:var(--gray-30)">Action / Description</span>
                 <textarea data-id="{{ f.id }}" data-field="description" value="{{ f.description }}" sc-camel-on-input="{{ onFieldInput }}" placeholder="What happens in this shot…" style="font-size:13px;line-height:1.45;color:var(--gray-60);border:1px solid var(--gray-15);background:var(--gray-2);padding:8px;width:100%;resize:vertical;min-height:52px"></textarea>
@@ -787,7 +836,7 @@
               </div>
               </div>
 
-              <div data-noprint="" style="display:flex;align-items:center;gap:6px;margin-top:2px;padding-top:8px;border-top:1px solid var(--gray-10)">
+              <div class="sl-cardfoot" data-noprint="" style="display:flex;align-items:center;gap:6px;margin-top:2px;padding-top:8px;border-top:1px solid var(--gray-10)">
                 <span data-id="{{ f.id }}" draggable="{{ true }}" sc-camel-on-drag-start="{{ onHandleDragStart }}" sc-camel-on-drag-end="{{ onHandleDragEnd }}" sc-camel-on-click="{{ onHandleClick }}" title="Click to select (shift/cmd for multiple) — drag to move" style="{{ f.handleStyle }}">
                   <svg width="16" height="16"><use href="#ui-drag"></use></svg>{{ f.handleLabel }}
                 </span>

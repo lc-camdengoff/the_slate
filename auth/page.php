@@ -127,6 +127,18 @@ function fm_page_head(string $title): void
     display: flex; justify-content: space-between; align-items: baseline;
     gap: 16px; flex-wrap: wrap; margin-bottom: 4px;
   }
+
+  /* Phones. Tables scroll sideways inside their card rather than pushing
+     the page wider than the screen, and codes stay on one line. */
+  @media (max-width: 640px) {
+    .page-body { padding: 16px 12px; align-items: flex-start; }
+    .card { padding: 24px 18px; }
+    h1 { font-size: 26px; }
+    .card table { display: block; overflow-x: auto; -webkit-overflow-scrolling: touch; }
+    .card table td, .card table th { white-space: nowrap; }
+    td code { word-break: normal; white-space: nowrap; }
+    .row > label { flex: 1 1 100% !important; width: auto !important; }
+  }
 </style>
 </head>
 <body>

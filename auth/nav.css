@@ -79,3 +79,13 @@
   --fm-muted: rgba(239, 237, 231, 0.28);
   --fm-pad: 16px 28px;
 }
+
+/* Phones: the wordmark gets its own row and the links wrap under it, and
+   the name (already on the Account page) makes room for them. */
+@media (max-width: 640px) {
+  .fmnav { --fm-pad: 8px 10px; gap: 2px; }
+  .fmnav.dark { --fm-pad: 12px 14px; }
+  .fmnav a.home { flex: 1 1 100%; margin: 0 0 2px; }
+  .fmnav .spacer, .fmnav .who { display: none; }
+  .fmnav a, .fmnav button { padding: 8px 9px; letter-spacing: 0.08em; }
+}
