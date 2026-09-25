@@ -1717,25 +1717,47 @@ class Component extends DCLogic {
     this.setState({ camFor: null }, this.save);
   };
 
-  // Images: downscale + re-encode to keep browser storage usage sane
+  // Images: every picture added to a shot is shrunk and re-encoded here,
+  // whichever way it arrives (file picker, drop, replace), because it is
+  // stored inside the board on the server — and in each kept version.
+  //
+  // 1280px on the long side is plenty for the grid and for a 2x PDF, and
+  // WebP at 0.72 stores a photo in roughly a third of what the old 1600px
+  // JPEG at 0.82 took. HEIF/AVIF would be smaller still, but no browser can
+  // encode them, and Chrome and Firefox cannot even show HEIF. A browser that
+  // cannot make WebP hands back PNG instead (much bigger), so that falls back
+  // to JPEG at the same size.
+  shrinkImage = (img) => {
+    const MAX = 1280, QUALITY = 0.72;
+    const scale = Math.min(1, MAX / Math.max(img.width, img.height));
+    const w = Math.max(1, Math.round(img.width * scale));
+    const h = Math.max(1, Math.round(img.height * scale));
+    const canvas = document.createElement('canvas');
+    canvas.width = w; canvas.height = h;
+    const ctx = canvas.getContext('2d');
+    // Transparent PNGs would turn black as JPEG; white matches the card.
+    ctx.fillStyle = '#FFFFFF';
+    ctx.fillRect(0, 0, w, h);
+    ctx.drawImage(img, 0, 0, w, h);
+    const webp = canvas.toDataURL('image/webp', QUALITY);
+    return webp.indexOf('data:image/webp') === 0 ? webp : canvas.toDataURL('image/jpeg', QUALITY);
+  };
   readFile = (id, file) => {
     if (!file || !file.type || file.type.indexOf('image') !== 0) return;
     const img = new Image();
     const url = URL.createObjectURL(file);
     img.onload = () => {
       URL.revokeObjectURL(url);
-      const MAX = 1600;
-      const scale = Math.min(1, MAX / Math.max(img.width, img.height));
-      const w = Math.max(1, Math.round(img.width * scale));
-      const h = Math.max(1, Math.round(img.height * scale));
-      const canvas = document.createElement('canvas');
-      canvas.width = w; canvas.height = h;
-      canvas.getContext('2d').drawImage(img, 0, 0, w, h);
-      const dataUrl = canvas.toDataURL('image/jpeg', 0.82);
+      const dataUrl = this.shrinkImage(img);
       const f = this.state.frames.find(x => x.id === id);
       if (f) { this.snapshot(); f.image = dataUrl; this.forceUpdate(); this.save(); }
     };
-    img.onerror = () => URL.revokeObjectURL(url);
+    img.onerror = () => {
+      URL.revokeObjectURL(url);
+      // Most often an iPhone HEIC photo in a browser other than Safari.
+      window.alert('This browser can\'t open that picture' + (/hei[cf]/i.test(file.type + file.name) ? ' (HEIC)' : '')
+        + '. Save it as a JPEG or PNG first, or add it from Safari.');
+    };
     img.src = url;
   };
   onImgPick = (e) => { this.readFile(e.target.dataset.id, e.target.files[0]); e.target.value = ''; };
