@@ -220,6 +220,26 @@ Two things to keep right:
   it an FTP deploy with `server-dir: ./<tool>/` (the FTP account is rooted at
   `filmmaking`).
 
+### The Cage
+
+The Cage is a Node app on its own subdomain, so it can neither run PHP nor
+read the session cookie. It calls `auth/verify.php` instead: username and
+password in, "is this person real" out. No session is started — The Cage mints
+its own.
+
+That keeps `auth.php` the only thing that ever checks a password. The
+alternative, giving The Cage database credentials and reimplementing argon2 in
+Node, means two copies of the logic, two rate limiters, and a silent breakage
+the day PHP's `password_hash()` defaults move.
+
+`verify.php` needs `cage_auth_secret` in the config, matching The Cage's
+`SLATE_VERIFY_SECRET`. Without it the endpoint answers 503 rather than
+becoming an unauthenticated password oracle on the public internet.
+
+Its counterpart is `src/slate-auth.js` in the-cage's repository. Two halves of
+one contract in two repositories drift without anyone noticing, so when one
+changes, copy it across.
+
 ### A tool on its own subdomain
 
 The Cage lives at `cage.creativemedia.church`, not in a folder here. Three
