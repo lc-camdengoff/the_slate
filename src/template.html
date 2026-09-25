@@ -2,6 +2,7 @@
 <html><head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
+<title>The Slate — Filmmaking</title>
 <script src="8c1bf615-7c7d-4333-a658-1609fb97b2ec"></script>
 </head>
 <body>
@@ -1040,7 +1041,19 @@ class Component extends DCLogic {
   };
   cardEls = {};
 
+  // The browser tab: the storyboard's name while one is open, otherwise the
+  // tool's. Kept here rather than in render(), which must not touch the page.
+  syncTitle() {
+    const title = this.state.view === 'board' && this.state.meta && this.state.meta.title && this.state.meta.title.trim()
+      ? this.state.meta.title.trim() + ' — The Slate'
+      : 'The Slate — Filmmaking';
+    if (document.title !== title) document.title = title;
+  }
+  componentDidUpdate() {
+    this.syncTitle();
+  }
   componentDidMount() {
+    this.syncTitle();
     document.documentElement.setAttribute('data-theme', this.state.theme);
     this.initBoards();
     if (LIB_ENABLED) this.loadLibrary();
