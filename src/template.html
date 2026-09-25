@@ -350,6 +350,7 @@
   @media screen and (max-width:640px){
     .sl-share-card{width:100%!important;max-width:none!important;min-height:100vh;border:none!important}
     .sl-share-wrap{padding:0!important;align-items:stretch!important}
+    .sl-request-card{min-height:0!important;border-bottom:1px solid var(--gray-15)!important}
   }
   /* Reorder buttons: for touch screens (no drag and drop) and narrow
      windows. Everywhere else, drag the handle. */
@@ -549,6 +550,9 @@
               <div style="display:flex;align-items:center;gap:6px;font-family:var(--font-mono);font-size:11px;letter-spacing:0.04em;text-transform:uppercase;color:var(--cglp-blue)">
                 <svg width="13" height="13"><use href="#ui-user"></use></svg>{{ b.shareLine }}
               </div>
+            </sc-if>
+            <sc-if value="{{ b.hasRequestLine }}" hint-placeholder-val="{{ false }}">
+              <div style="align-self:flex-start;margin-top:4px;font-family:var(--font-mono);font-size:11px;font-weight:700;letter-spacing:0.04em;text-transform:uppercase;color:#fff;background:var(--cglp-blue);padding:3px 7px">{{ b.requestLine }}</div>
             </sc-if>
           </div>
         </sc-for>
@@ -1034,6 +1038,23 @@
         <div style="font-size:14px;color:var(--gray-40)">Loading…</div>
       </sc-if>
 
+      <sc-if value="{{ hasShareRequests }}" hint-placeholder-val="{{ false }}">
+        <div style="border:1px solid var(--cglp-blue);padding:4px 14px">
+          <div style="font-family:var(--font-mono);font-size:10px;letter-spacing:0.09em;text-transform:uppercase;color:var(--gray-30);padding:8px 0 2px">Asking for access</div>
+          <sc-for list="{{ shareRequests }}" as="q" hint-placeholder-count="0">
+            <div class="sl-share-request" style="display:flex;align-items:center;gap:8px;padding:10px 0;border-bottom:1px solid var(--gray-10);flex-wrap:wrap">
+              <span style="flex:1 1 150px;min-width:0">
+                <span style="display:block;font-size:14px;font-weight:700">{{ q.name }}</span>
+                <span style="display:block;font-family:var(--font-mono);font-size:11px;color:var(--gray-30)">{{ q.sub }}</span>
+              </span>
+              <button data-id="{{ q.id }}" data-level="{{ q.first }}" sc-camel-on-click="{{ shareAllow }}" style="{{ addBtnStyle }}" style-hover="opacity:0.88">{{ q.firstLabel }}</button>
+              <button data-id="{{ q.id }}" data-level="{{ q.second }}" sc-camel-on-click="{{ shareAllow }}" style="height:36px;padding:0 10px;background:transparent;border:1px solid var(--gray-15);color:var(--gray-50);font-size:11px;font-weight:700;cursor:pointer;text-transform:uppercase;letter-spacing:0.04em" style-hover="border-color:var(--black);color:var(--black)">{{ q.secondLabel }}</button>
+              <button data-id="{{ q.id }}" sc-camel-on-click="{{ shareDecline }}" style="height:36px;padding:0 10px;background:transparent;border:1px solid var(--gray-15);color:var(--gray-40);font-size:11px;font-weight:700;cursor:pointer;text-transform:uppercase;letter-spacing:0.04em" style-hover="color:var(--red-500);border-color:var(--red-500)">Decline</button>
+            </div>
+          </sc-for>
+        </div>
+      </sc-if>
+
       <sc-if value="{{ shareReady }}" hint-placeholder-val="{{ false }}">
         <div style="display:flex;flex-direction:column;gap:8px">
           <input class="sl-share-search" value="{{ shareQuery }}" sc-camel-on-input="{{ onShareQuery }}" placeholder="Add people by name" autocomplete="off" style="font-size:15px;font-weight:600;border:1px solid var(--gray-20);background:var(--white);padding:10px 12px;width:100%">
@@ -1107,6 +1128,47 @@
         <span style="flex:1;min-width:120px;font-size:12px;color:var(--gray-40)">{{ shareStatus }}</span>
         <button sc-camel-on-click="{{ closeShare }}" style="{{ addBtnStyle }}" style-hover="opacity:0.88">Done</button>
       </div>
+    </div>
+  </div>
+</sc-if>
+
+<!-- A link to a storyboard I can't open: ask its owner for access. -->
+<sc-if value="{{ requestOpen }}" hint-placeholder-val="{{ false }}">
+  <div class="sl-share-wrap" data-noprint="" sc-camel-on-click="{{ closeRequest }}" style="position:fixed;inset:0;z-index:60;background:rgba(0,0,0,0.45);display:flex;align-items:flex-start;justify-content:center;padding:12vh 16px;overflow:auto">
+    <div class="sl-share-card sl-request-card" role="dialog" aria-label="Request access" sc-camel-on-click="{{ stopShareClick }}" style="width:460px;max-width:100%;background:var(--white);border:1px solid var(--gray-15);box-shadow:var(--shadow-2);padding:24px;display:flex;flex-direction:column;gap:16px;color:var(--black)">
+      <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:12px">
+        <div>
+          <div style="font-family:var(--font-mono);font-size:11px;letter-spacing:0.14em;text-transform:uppercase;color:var(--gray-30);margin-bottom:6px">Shared link</div>
+          <div style="font-family:var(--font-display);font-weight:900;font-size:24px;line-height:1;letter-spacing:-0.01em;text-transform:uppercase">You need access</div>
+        </div>
+        <button sc-camel-on-click="{{ closeRequest }}" title="Close" aria-label="Close" style="width:32px;height:32px;flex:0 0 32px;background:transparent;border:1px solid var(--gray-15);color:var(--gray-40);cursor:pointer;display:flex;align-items:center;justify-content:center;padding:0" style-hover="border-color:var(--black);color:var(--black)">
+          <svg width="15" height="15"><use href="#ui-close"></use></svg>
+        </button>
+      </div>
+      <sc-if value="{{ requestAsking }}" hint-placeholder-val="{{ true }}">
+        <div style="font-size:14px;color:var(--gray-50)">This storyboard hasn’t been shared with you. Ask its owner, and they’ll see your request the next time they open the Slate.</div>
+        <div style="display:flex;gap:10px;flex-wrap:wrap">
+          <button data-level="edit" sc-camel-on-click="{{ requestAccess }}" style="{{ addBtnStyle }}" style-hover="opacity:0.88">Ask to edit</button>
+          <button data-level="view" sc-camel-on-click="{{ requestAccess }}" style="height:44px;padding:0 18px;background:transparent;border:1px solid var(--gray-20);color:var(--gray-50);font-size:13px;font-weight:700;cursor:pointer;text-transform:uppercase;letter-spacing:0.04em" style-hover="border-color:var(--black);color:var(--black)">Ask to view</button>
+        </div>
+        <sc-if value="{{ requestSending }}" hint-placeholder-val="{{ false }}">
+          <div style="font-size:12px;color:var(--gray-40)">Sending…</div>
+        </sc-if>
+      </sc-if>
+      <sc-if value="{{ requestSent }}" hint-placeholder-val="{{ false }}">
+        <div style="border-left:4px solid var(--cglp-blue);padding:8px 12px;font-size:14px;color:var(--gray-50)">{{ requestSentNote }}</div>
+      </sc-if>
+      <sc-if value="{{ requestGone }}" hint-placeholder-val="{{ false }}">
+        <div style="font-size:14px;color:var(--gray-50)">That storyboard doesn’t exist any more. It may have been deleted; ask whoever sent the link.</div>
+      </sc-if>
+      <sc-if value="{{ hasRequestError }}" hint-placeholder-val="{{ false }}">
+        <div style="border:1px solid var(--red-500);color:var(--red-500);padding:10px 12px;font-size:13px">{{ requestError }}</div>
+      </sc-if>
+      <sc-if value="{{ requestDone }}" hint-placeholder-val="{{ false }}">
+        <div style="display:flex;justify-content:flex-end">
+          <button sc-camel-on-click="{{ closeRequest }}" style="{{ addBtnStyle }}" style-hover="opacity:0.88">Done</button>
+        </div>
+      </sc-if>
     </div>
   </div>
 </sc-if>
@@ -1333,6 +1395,11 @@ class Component extends DCLogic {
     shareBusy: false,
     shareError: '',
     shareNote: '',
+    boardRequests: 0,
+    // A link to a board I can't open: asking for access.
+    requestFor: null,
+    requestState: '',
+    requestError: '',
   };
   cardEls = {};
 
@@ -1429,6 +1496,7 @@ class Component extends DCLogic {
     const sharing = (r) => ({
       access: r.access || 'owner', canManage: !!r.canManage, visibility: r.visibility,
       sharedWithMe: !!r.sharedWithMe, ownerName: r.ownerName || '', shareCount: r.shareCount || 0,
+      requestCount: r.requestCount || 0,
     });
     (remote || []).forEach(r => {
       const local = byLibraryId.get(r.id);
@@ -1465,7 +1533,10 @@ class Component extends DCLogic {
     // Open right now, and its sharing changed: follow it.
     const openEntry = index.find(b => b.id === this.state.boardId);
     if (this.state.view === 'board' && openEntry && openEntry.access) {
-      this.setState({ boardAccess: openEntry.access, boardOwnerName: openEntry.ownerName || '', boardCanManage: !!openEntry.canManage });
+      this.setState({
+        boardAccess: openEntry.access, boardOwnerName: openEntry.ownerName || '', boardCanManage: !!openEntry.canManage,
+        boardRequests: openEntry.requestCount || 0,
+      });
     }
 
     try { localStorage.setItem(INDEX_KEY, JSON.stringify(index)); } catch (e) {}
@@ -1595,7 +1666,7 @@ class Component extends DCLogic {
       layout: this.props.startLayout || 'grid', aspect: '16 / 9', frames: [], selected: [],
       tagNames: {},
       libraryId: null, libraryRev: 0, libraryStatus: '',
-      boardAccess: 'owner', boardOwnerName: '', boardCanManage: true,
+      boardAccess: 'owner', boardOwnerName: '', boardCanManage: true, boardRequests: 0,
     });
   };
   onTagLabelInput = (e) => {
@@ -1651,6 +1722,7 @@ class Component extends DCLogic {
       boardAccess: (entry && entry.access) || 'owner',
       boardOwnerName: (entry && entry.ownerName) || '',
       boardCanManage: entry && entry.access ? !!entry.canManage : true,
+      boardRequests: (entry && entry.requestCount) || 0,
     });
   };
   goToMenu = () => {
@@ -1868,6 +1940,7 @@ class Component extends DCLogic {
   };
   onKeyDown = (e) => {
     if (e.key === 'Escape' && this.state.shareOpen) { this.closeShare(); return; }
+    if (e.key === 'Escape' && this.state.requestFor) { this.closeRequest(); return; }
     const isMeta = e.metaKey || e.ctrlKey;
     if (!isMeta) return;
     const tag = (e.target.tagName || '').toLowerCase();
@@ -2379,7 +2452,7 @@ class Component extends DCLogic {
   onShareQuery = (e) => this.setState({ shareQuery: e.target.value });
 
   /** Send the whole of who-has-what; the server keeps the board's own lock. */
-  putShare = async (visibility, shares, note) => {
+  putShare = async (visibility, shares, note, dismiss) => {
     const current = this.state.share;
     if (!current || !this.state.libraryId) return;
     const map = {};
@@ -2390,9 +2463,12 @@ class Component extends DCLogic {
       const data = await libRequest('share.php?id=' + encodeURIComponent(this.state.libraryId), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', 'X-Slate-CSRF': this.state.libraryCsrf || '' },
-        body: JSON.stringify({ visibility, shares: map }),
+        body: JSON.stringify({ visibility, shares: map, dismiss: dismiss || [] }),
       });
-      this.setState({ share: Object.assign({}, current, data, { people: current.people }), shareBusy: false, shareNote: note || 'Saved' });
+      this.setState({
+        share: Object.assign({}, current, data, { people: current.people }), shareBusy: false, shareNote: note || 'Saved',
+        boardRequests: (data.requests || []).length,
+      });
     } catch (err) {
       this.setState({ share: current, shareBusy: false, shareError: libMessage(err) });
     }
@@ -2405,6 +2481,24 @@ class Component extends DCLogic {
     this.setState({ shareQuery: '' });
     this.putShare(s.visibility, s.shares.concat([Object.assign({}, person, { level: 'edit' })]),
       person.name + ' can edit. It is in their storyboards now.');
+  };
+  // Someone asked, from a link: let them in at what they asked for or the
+  // other level, or turn them down.
+  shareAllow = (e) => {
+    const id = Number(e.currentTarget.dataset.id), level = e.currentTarget.dataset.level;
+    const s = this.state.share;
+    const person = s && (s.requests || []).find(r => r.id === id);
+    if (!person) return;
+    const rest = s.shares.filter(x => x.id !== id);
+    this.putShare(s.visibility, rest.concat([Object.assign({}, person, { level })]),
+      person.name + (level === 'view' ? ' can view' : ' can edit') + '. It is in their storyboards now.');
+  };
+  shareDecline = (e) => {
+    const id = Number(e.currentTarget.dataset.id);
+    const s = this.state.share;
+    const person = s && (s.requests || []).find(r => r.id === id);
+    if (!person) return;
+    this.putShare(s.visibility, s.shares, 'Declined. ' + person.name + ' can ask again from the link.', [id]);
   };
   shareSetLevel = (e) => {
     const id = Number(e.currentTarget.dataset.id), level = e.currentTarget.dataset.level;
@@ -2452,7 +2546,35 @@ class Component extends DCLogic {
       await this.openLibraryBoard({ currentTarget: { dataset: { id: libId } } });
       return;
     }
-    window.alert('That storyboard hasn’t been shared with you. Ask whoever sent the link to add you.');
+    // Not mine, not the team's: offer to ask for it.
+    this.setState({ requestFor: libId, requestState: '', requestError: '' });
+  };
+  closeRequest = () => this.setState({ requestFor: null, requestState: '', requestError: '' });
+  requestAccess = async (e) => {
+    const level = e.currentTarget.dataset.level;
+    const libId = this.state.requestFor;
+    if (!libId || this.state.requestState === 'sending') return;
+    this.setState({ requestState: 'sending', requestError: '' });
+    try {
+      const data = await libRequest('share.php?action=request&id=' + encodeURIComponent(libId), {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'X-Slate-CSRF': this.state.libraryCsrf || '' },
+        body: JSON.stringify({ level }),
+      });
+      if (data.already) {
+        // Given access since this page loaded the list: just open it.
+        this.closeRequest();
+        try { history.replaceState(null, '', location.pathname + location.search + '#board=' + libId); } catch (err) {}
+        await this.loadLibrary();
+        return;
+      }
+      this.setState({ requestState: level === 'view' ? 'sent-view' : 'sent-edit' });
+    } catch (err) {
+      this.setState({
+        requestState: err.message === 'not_found' ? 'gone' : '',
+        requestError: err.message === 'not_found' ? '' : libMessage(err),
+      });
+    }
   };
 
   // Trash: loaded when opened, since most visits never look at it.
@@ -2604,6 +2726,8 @@ class Component extends DCLogic {
           : b.shareCount ? 'Shared with ' + (b.shareCount === 1 ? '1 person' : b.shareCount + ' people') : '',
         hasShareLine: !!(b.sharedWithMe || b.visibility === 'team' || b.shareCount),
         deleteTitle: b.sharedWithMe ? 'Remove from my storyboards' : 'Delete',
+        hasRequestLine: !!(b.canManage && b.requestCount),
+        requestLine: b.requestCount === 1 ? '1 person is asking for access' : (b.requestCount || 0) + ' people are asking for access',
       };
     });
 
@@ -2917,7 +3041,9 @@ class Component extends DCLogic {
       isViewOnly: access === 'view',
       viewOnlyNote: (this.state.boardOwnerName || 'Its owner') + ' shared this with you to look at. You can print or export it, but not change it.',
       canShare: LIB_ENABLED && !!this.state.boardCanManage,
-      shareBtnLabel: 'Share',
+      shareBtnLabel: this.state.boardRequests
+        ? 'Share · ' + (this.state.boardRequests === 1 ? '1 request' : this.state.boardRequests + ' requests')
+        : 'Share',
       shareBtnStyle: {
         display: 'flex', alignItems: 'center', gap: '6px', height: '36px', padding: '0 14px',
         background: accent, border: 'none', color: '#fff', fontSize: '12px', fontWeight: '700',
@@ -2944,6 +3070,26 @@ class Component extends DCLogic {
         removeLabel: 'Remove ' + x.name,
       })),
       shareNobody: !!s && shares.length === 0,
+      hasShareRequests: !!s && (s.requests || []).length > 0,
+      shareRequests: ((s && s.requests) || []).map(r => ({
+        id: r.id, name: r.name,
+        sub: 'Asked to ' + (r.level === 'view' ? 'view' : 'edit') + (r.at ? ' · ' + libWhen(r.at) : ''),
+        // What they asked for first, and the other as a second choice.
+        first: r.level === 'view' ? 'view' : 'edit', firstLabel: r.level === 'view' ? 'Allow view' : 'Allow edit',
+        second: r.level === 'view' ? 'edit' : 'view', secondLabel: r.level === 'view' ? 'Allow edit' : 'Allow view only',
+      })),
+      shareAllow: this.shareAllow, shareDecline: this.shareDecline,
+      requestOpen: !!this.state.requestFor,
+      requestAsking: !this.state.requestState || this.state.requestState === 'sending',
+      requestSending: this.state.requestState === 'sending',
+      requestSent: /^sent/.test(this.state.requestState || ''),
+      requestSentNote: 'Request sent. Once the owner says yes, it will be in Your Storyboards'
+        + (this.state.requestState === 'sent-view' ? ' to view.' : ' to edit.'),
+      requestGone: this.state.requestState === 'gone',
+      requestDone: /^sent|gone/.test(this.state.requestState || ''),
+      hasRequestError: !!this.state.requestError,
+      requestError: this.state.requestError || '',
+      requestAccess: this.requestAccess, closeRequest: this.closeRequest,
       shareGeneral: general,
       hasShareError: !!this.state.shareError,
       shareError: this.state.shareError || '',

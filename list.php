@@ -94,6 +94,8 @@ foreach (glob($saved . '/*.json') ?: [] as $path) {
         'sharedWithMe' => isset($shares[(int) $user['id']]) && !slate_owns($meta, $me),
         'shareCount' => count($shares),
         'canManage' => slate_can_manage($meta, $user),
+        // Waiting on an answer from whoever manages it; nobody else is told.
+        'requestCount' => slate_can_manage($meta, $user) ? count(slate_requests($meta)) : 0,
         // Reads go through load.php now: ../saved/ is closed to the web.
         'file' => 'load.php?id=' . $name,
     ];

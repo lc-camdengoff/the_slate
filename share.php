@@ -5,7 +5,14 @@
  *   GET  share.php?id=...                 its sharing, and who it could go to
  *   POST share.php?id=...                 {"visibility": "private"|"team",
  *                                          "shares": {"<account id>": "view"|"edit"}}
+ *                                          [, "dismiss": [<account id>, ...]]}
  *   POST share.php?id=...&action=leave    take it off your own list
+ *   POST share.php?id=...&action=request  {"level": "view"|"edit"}: ask for
+ *                                         access to a board you were sent a
+ *                                         link to and cannot open
+ *
+ * Giving someone access, or the whole team, answers their request; dismiss
+ * turns requests down.
  *
  * Only the owner and admins may change sharing (slate_can_manage). Someone a
  * board was shared with may leave it. Changing who can see a board is not an
@@ -42,6 +49,39 @@ if (!is_file(slate_board_path($saved, $id))) {
     slate_fail(404, 'not_found');
 }
 $meta = slate_read_meta($saved, $id);
+$action = (string) ($_GET['action'] ?? '');
+
+// Asking is the one thing someone without access may do. It says the board
+// exists, which having its link already told them, and nothing else: not
+// its title, not whose it is.
+if ($method === 'POST' && $action === 'request') {
+    $access = slate_access($meta, $username, $userId);
+    if ($access !== '') {
+        slate_json(200, ['ok' => true, 'id' => $id, 'already' => $access]);
+    }
+    $body = json_decode((string) file_get_contents('php://input', false, null, 0, 4096), true);
+    $level = is_array($body) ? (string) ($body['level'] ?? '') : '';
+    if ($level !== SLATE_VIEW && $level !== SLATE_EDIT) {
+        slate_fail(400, 'bad_level');
+    }
+    $lock = slate_lock($saved, $id);
+    $meta = slate_read_meta($saved, $id) ?? ['id' => $id];
+    $requests = slate_requests($meta);
+    // Asking again just updates what for and when.
+    $requests[$userId] = ['level' => $level, 'at' => slate_now_ms()];
+    uasort($requests, static fn($a, $b) => $b['at'] <=> $a['at']);
+    $requests = array_slice($requests, 0, SLATE_MAX_REQUESTS, true);
+    $ok = is_file(slate_board_path($saved, $id))
+        && slate_write_meta($saved, $id, slate_with_requests($meta, $requests));
+    flock($lock, LOCK_UN);
+    fclose($lock);
+    if (!$ok) {
+        slate_fail(500, 'write_failed');
+    }
+    error_log('slate: ' . $username . ' asked for ' . $level . ' access to ' . $id);
+    slate_json(200, ['ok' => true, 'id' => $id, 'requested' => $level]);
+}
+
 if (!slate_can_read($meta, $username, $userId)) {
     slate_fail(404, 'not_found');
 }
@@ -64,11 +104,18 @@ function slate_share_view(?array $meta, array $people): array
             $ownerName = $person['name'];
         }
     }
+    $requests = [];
+    foreach (slate_requests($meta) as $personId => $request) {
+        if (isset($people[$personId])) {
+            $requests[] = $people[$personId] + $request;
+        }
+    }
     return [
         'visibility' => slate_visibility($meta),
         'owner' => $owner,
         'ownerName' => $ownerName,
         'shares' => $shares,
+        'requests' => $requests,
     ];
 }
 
@@ -86,7 +133,6 @@ if ($method === 'GET' || $method === 'HEAD') {
     slate_json(200, ['ok' => true, 'id' => $id] + $view);
 }
 
-$action = (string) ($_GET['action'] ?? '');
 if ($action === 'leave') {
     $lock = slate_lock($saved, $id);
     $meta = slate_read_meta($saved, $id) ?? [];
@@ -150,6 +196,10 @@ if (trim((string) ($meta['owner'] ?? '')) === '') {
     $meta['owner'] = slate_owner($meta) !== '' ? slate_owner($meta) : $username;
 }
 $meta = slate_with_shares($meta, $shares);
+// Answered: given access, turned down, or the whole team can now edit it.
+$dismiss = array_flip(array_map('intval', (array) ($body['dismiss'] ?? [])));
+$requests = $visibility === SLATE_TEAM ? [] : array_diff_key(slate_requests($meta), $shares, $dismiss);
+$meta = slate_with_requests($meta, $requests);
 $ok = slate_write_meta($saved, $id, $meta);
 flock($lock, LOCK_UN);
 fclose($lock);
