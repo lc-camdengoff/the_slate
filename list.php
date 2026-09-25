@@ -52,6 +52,10 @@ if ($saved === null) {
     slate_fail(500, 'storage_unavailable');
 }
 
+// Prune old copies and month-old trash. Does the work at most once an hour,
+// so on almost every call this is one stat() of a marker file.
+slate_housekeeping();
+
 $boards = [];
 $mine = [];
 foreach (glob($saved . '/*.json') ?: [] as $path) {

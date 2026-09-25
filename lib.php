@@ -17,8 +17,20 @@ declare(strict_types=1);
 // so an older 30-shot board can reach the high single-digit megabytes.
 const SLATE_MAX_BYTES = 33554432; // 32 MB
 
-// Previous copies kept per board when a save overwrites an existing one.
-const SLATE_VERSIONS_KEPT = 3;
+// Previous copies kept per board when a save overwrites an existing one. One
+// is enough to undo a bad save; each extra copy costs a whole board's worth
+// of pictures. Older copies beyond this are pruned by slate_housekeeping().
+const SLATE_VERSIONS_KEPT = 1;
+
+// Deleted boards stay recoverable in saved/.trash for this long, then go.
+const SLATE_TRASH_DAYS = 30;
+
+// Pictures are re-encoded to this by the Storage page, matching what the app
+// does to new uploads (shrinkImage() in src/template.html).
+const SLATE_IMAGE_MAX_PX = 1280;
+const SLATE_IMAGE_QUALITY = 72;
+// Marker in a board's sidecar once its pictures have been through that.
+const SLATE_IMAGES_SHRUNK = 1;
 
 const SLATE_ID_RE = '/^[a-z0-9](?:[a-z0-9-]{0,51}[a-z0-9])?-[0-9a-f]{6}$/';
 
@@ -322,15 +334,305 @@ function slate_trash_board(string $saved, string $id): bool
     if (!@rename(slate_board_path($saved, $id), $prefix . '.json')) {
         return false;
     }
-    @rename(slate_meta_path($saved, $id), $prefix . '.meta.json');
+    @touch($prefix . '.json'); // the 30-day clock starts now, not at last save
+    if (@rename(slate_meta_path($saved, $id), $prefix . '.meta.json')) {
+        @touch($prefix . '.meta.json');
+    }
 
     $versions = $saved . '/.versions';
     if (is_dir($versions)) {
         foreach (glob($versions . '/' . $id . '.*.json') ?: [] as $old) {
-            @rename($old, $trash . '/' . basename($old));
+            $to = $trash . '/' . basename($old);
+            if (@rename($old, $to)) {
+                @touch($to);
+            }
         }
     }
     return true;
+}
+
+// ---------------------------------------------------------------------------
+// Housekeeping
+// ---------------------------------------------------------------------------
+
+/**
+ * Prune previous copies beyond SLATE_VERSIONS_KEPT and empty trash older than
+ * SLATE_TRASH_DAYS. Cheap to call often: it does the work at most once an
+ * hour unless forced, using a marker file's age.
+ *
+ * @return array{ran: bool, versions: int, trash: int, bytes: int}
+ */
+function slate_housekeeping(bool $force = false): array
+{
+    $result = ['ran' => false, 'versions' => 0, 'trash' => 0, 'bytes' => 0];
+    $saved = slate_saved_dir();
+    if ($saved === null) {
+        return $result;
+    }
+    $tmp = slate_internal_dir($saved, '.tmp');
+    $marker = $tmp === null ? null : $tmp . '/housekeeping';
+    if (!$force && $marker !== null && is_file($marker) && filemtime($marker) > time() - 3600) {
+        return $result;
+    }
+    if ($marker !== null) {
+        @touch($marker);
+    }
+    $result['ran'] = true;
+
+    // Previous copies: newest SLATE_VERSIONS_KEPT per board survive.
+    $versions = $saved . '/.versions';
+    if (is_dir($versions)) {
+        $byBoard = [];
+        foreach (glob($versions . '/*.json') ?: [] as $file) {
+            if (preg_match('/^(.+)\.(\d+)\.json$/', basename($file), $m) && slate_is_id($m[1])) {
+                $byBoard[$m[1]][(int) $m[2]] = $file;
+            }
+        }
+        foreach ($byBoard as $files) {
+            krsort($files, SORT_NUMERIC);
+            foreach (array_slice($files, SLATE_VERSIONS_KEPT, null, true) as $file) {
+                $size = (int) @filesize($file);
+                if (@unlink($file)) {
+                    $result['versions']++;
+                    $result['bytes'] += $size;
+                }
+            }
+        }
+    }
+
+    // Trash: by when it was deleted. Files trashed before trashing touched
+    // them still carry the deletion time in their name, so take the later of
+    // the two rather than purge a board deleted yesterday but last saved in
+    // the spring.
+    $trash = $saved . '/.trash';
+    if (is_dir($trash)) {
+        $cutoff = time() - SLATE_TRASH_DAYS * 86400;
+        foreach (glob($trash . '/*.json') ?: [] as $file) {
+            $when = (int) @filemtime($file);
+            if (preg_match('/\.(\d{13})(\.meta)?\.json$/', basename($file), $m)) {
+                $when = max($when, intdiv((int) $m[1], 1000));
+            }
+            if ($when > 0 && $when < $cutoff) {
+                $size = (int) @filesize($file);
+                if (@unlink($file)) {
+                    $result['trash']++;
+                    $result['bytes'] += $size;
+                }
+            }
+        }
+    }
+    return $result;
+}
+
+/**
+ * What saved/ holds, for the Storage page.
+ *
+ * @return array<string, array{files: int, bytes: int}> boards, versions, trash
+ */
+function slate_storage_stats(): array
+{
+    $out = ['boards' => ['files' => 0, 'bytes' => 0], 'versions' => ['files' => 0, 'bytes' => 0],
+            'trash' => ['files' => 0, 'bytes' => 0], 'unshrunk' => ['files' => 0, 'bytes' => 0]];
+    $saved = slate_saved_dir();
+    if ($saved === null) {
+        return $out;
+    }
+    foreach (glob($saved . '/*.json') ?: [] as $file) {
+        if (substr($file, -10) === '.meta.json') {
+            continue;
+        }
+        $size = (int) @filesize($file);
+        $out['boards']['files']++;
+        $out['boards']['bytes'] += $size;
+        $id = basename($file, '.json');
+        $meta = slate_is_id($id) ? slate_read_meta($saved, $id) : null;
+        if ((int) ($meta['imagesShrunk'] ?? 0) < SLATE_IMAGES_SHRUNK) {
+            $out['unshrunk']['files']++;
+            $out['unshrunk']['bytes'] += $size;
+        }
+    }
+    foreach (['versions' => '.versions', 'trash' => '.trash'] as $key => $dir) {
+        foreach (glob($saved . '/' . $dir . '/*.json') ?: [] as $file) {
+            $out[$key]['files']++;
+            $out[$key]['bytes'] += (int) @filesize($file);
+        }
+    }
+    return $out;
+}
+
+// ---------------------------------------------------------------------------
+// Shrinking pictures already stored
+// ---------------------------------------------------------------------------
+
+/** 'webp', 'jpeg' or '' — what this server's PHP can re-encode pictures as. */
+function slate_image_encoder(): string
+{
+    if (!function_exists('imagecreatefromstring') || !function_exists('imagecopyresampled')) {
+        return '';
+    }
+    if (function_exists('imagewebp') && (gd_info()['WebP Support'] ?? false)) {
+        return 'webp';
+    }
+    return function_exists('imagejpeg') ? 'jpeg' : '';
+}
+
+/**
+ * A picture re-encoded to SLATE_IMAGE_MAX_PX / SLATE_IMAGE_QUALITY, or null
+ * when it is already that small, not a picture we understand, or would not
+ * get any smaller.
+ */
+function slate_shrink_data_url(string $url, string $encoder): ?string
+{
+    if ($encoder === '' || !preg_match('#^data:image/(jpeg|jpg|png|webp|gif);base64,#i', $url, $m)) {
+        return null;
+    }
+    $bytes = base64_decode(substr($url, strlen($m[0])), true);
+    if ($bytes === false || $bytes === '') {
+        return null;
+    }
+    $info = @getimagesizefromstring($bytes);
+    if (!$info || $info[0] < 1 || $info[1] < 1) {
+        return null;
+    }
+    [$w, $h] = $info;
+    $mime = strtolower((string) ($info['mime'] ?? ''));
+    $longest = max($w, $h);
+    if ($longest <= SLATE_IMAGE_MAX_PX && $mime === 'image/' . $encoder) {
+        return null; // already what a new upload would be
+    }
+    $src = @imagecreatefromstring($bytes);
+    if ($src === false) {
+        return null;
+    }
+    $scale = min(1, SLATE_IMAGE_MAX_PX / $longest);
+    $nw = max(1, (int) round($w * $scale));
+    $nh = max(1, (int) round($h * $scale));
+    $dst = imagecreatetruecolor($nw, $nh);
+    // White under anything transparent, as the app does, rather than black.
+    imagefill($dst, 0, 0, imagecolorallocate($dst, 255, 255, 255));
+    imagecopyresampled($dst, $src, 0, 0, 0, 0, $nw, $nh, $w, $h);
+    imagedestroy($src);
+
+    ob_start();
+    $ok = $encoder === 'webp' ? imagewebp($dst, null, SLATE_IMAGE_QUALITY) : imagejpeg($dst, null, SLATE_IMAGE_QUALITY);
+    $out = (string) ob_get_clean();
+    imagedestroy($dst);
+    if (!$ok || $out === '' || strlen($out) >= strlen($bytes)) {
+        return null;
+    }
+    return 'data:image/' . $encoder . ';base64,' . base64_encode($out);
+}
+
+/**
+ * Re-encode every oversized picture in one stored board file, in place.
+ *
+ * @return array{0: int, 1: int, 2: int} [pictures changed, bytes before, bytes after]
+ */
+function slate_shrink_board_file(string $path, string $encoder): array
+{
+    $raw = @file_get_contents($path);
+    $before = $raw === false ? 0 : strlen($raw);
+    $board = $raw === false ? null : json_decode($raw, true);
+    if (!is_array($board) || !is_array($board['frames'] ?? null)) {
+        return [0, $before, $before];
+    }
+    $changed = 0;
+    foreach ($board['frames'] as &$frame) {
+        if (is_array($frame) && is_string($frame['image'] ?? null)) {
+            $smaller = slate_shrink_data_url($frame['image'], $encoder);
+            if ($smaller !== null) {
+                $frame['image'] = $smaller;
+                $changed++;
+            }
+        }
+    }
+    unset($frame);
+    if ($changed === 0) {
+        return [0, $before, $before];
+    }
+    $json = json_encode($board, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE);
+    $tmp = $path . '.shrink.tmp';
+    if ($json === false || @file_put_contents($tmp, $json) === false || !@rename($tmp, $path)) {
+        @unlink($tmp);
+        return [0, $before, $before];
+    }
+    @chmod($path, 0644);
+    return [$changed, $before, strlen($json)];
+}
+
+/**
+ * Work through boards whose pictures predate the smaller format, until done
+ * or out of time. Resumable: each finished board is marked in its sidecar.
+ *
+ * A board is locked while it is rewritten, the same lock save.php takes. Its
+ * revision moves on by one millisecond — the date people see is unchanged —
+ * so a browser holding the old copy fetches the new one, and anyone with it
+ * open is told it changed elsewhere rather than silently saving the big
+ * pictures back. Boards saved in the last ten minutes are left for a later
+ * run, since someone is probably still working on them.
+ *
+ * @return array{boards: int, pictures: int, bytes: int, remaining: int, skipped: int}
+ */
+function slate_shrink_boards(string $encoder, float $seconds): array
+{
+    $out = ['boards' => 0, 'pictures' => 0, 'bytes' => 0, 'remaining' => 0, 'skipped' => 0];
+    $saved = slate_saved_dir();
+    if ($saved === null || $encoder === '') {
+        return $out;
+    }
+    $deadline = microtime(true) + $seconds;
+    $lockDir = slate_internal_dir($saved, '.tmp');
+    $recent = slate_now_ms() - 10 * 60 * 1000;
+
+    foreach (glob($saved . '/*.meta.json') ?: [] as $metaPath) {
+        $id = substr(basename($metaPath), 0, -strlen('.meta.json'));
+        $meta = slate_is_id($id) ? slate_read_meta($saved, $id) : null;
+        if (!$meta || (int) ($meta['imagesShrunk'] ?? 0) >= SLATE_IMAGES_SHRUNK) {
+            continue;
+        }
+        if ((int) ($meta['updatedAt'] ?? 0) > $recent) {
+            $out['skipped']++;
+            $out['remaining']++;
+            continue;
+        }
+        if (microtime(true) > $deadline) {
+            $out['remaining']++;
+            continue;
+        }
+        $lock = $lockDir === null ? false : @fopen($lockDir . '/' . $id . '.lock', 'c');
+        if ($lock === false || !flock($lock, LOCK_EX)) {
+            $out['remaining']++;
+            continue;
+        }
+        try {
+            $meta = slate_read_meta($saved, $id); // again, under the lock
+            if (!$meta) {
+                continue;
+            }
+            [$pics, $before, $after] = slate_shrink_board_file(slate_board_path($saved, $id), $encoder);
+            // Its previous copy too: otherwise the old pictures live on there.
+            foreach (glob($saved . '/.versions/' . $id . '.*.json') ?: [] as $version) {
+                [$vp, $vb, $va] = slate_shrink_board_file($version, $encoder);
+                $out['bytes'] += $vb - $va;
+            }
+            $meta['imagesShrunk'] = SLATE_IMAGES_SHRUNK;
+            if ($pics > 0) {
+                $meta['updatedAt'] = (int) ($meta['updatedAt'] ?? 0) + 1;
+                $meta['bytes'] = $after;
+                $out['pictures'] += $pics;
+                $out['bytes'] += $before - $after;
+            }
+            $tmp = $metaPath . '.tmp';
+            if (@file_put_contents($tmp, json_encode($meta, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE)) !== false) {
+                @rename($tmp, $metaPath);
+            }
+            $out['boards']++;
+        } finally {
+            flock($lock, LOCK_UN);
+            fclose($lock);
+        }
+    }
+    return $out;
 }
 
 // ---------------------------------------------------------------------------
@@ -446,4 +748,20 @@ function slate_account_deleted(string $username): array
         }
         return $meta;
     });
+}
+
+/** 12.3 MB, for people. */
+function slate_format_bytes(int $bytes): string
+{
+    if ($bytes < 1024) {
+        return $bytes . ' B';
+    }
+    $units = ['KB', 'MB', 'GB', 'TB'];
+    $value = $bytes / 1024;
+    $i = 0;
+    while ($value >= 1024 && $i < count($units) - 1) {
+        $value /= 1024;
+        $i++;
+    }
+    return ($value >= 100 ? round($value) : round($value, 1)) . ' ' . $units[$i];
 }

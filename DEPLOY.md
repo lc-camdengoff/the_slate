@@ -21,7 +21,7 @@ shared cPanel hosting (LiteSpeed, cPanel user `creaueyu`).
     │   ├── app.html        the app as one self-unpacking bundle (the source)
     │   ├── page.html       the same, unpacked at deploy — what index.php serves
     │   ├── assets/         its fonts and scripts, cached by browsers for a year
-    │   ├── list.php  save.php  load.php  delete.php  diag.php
+    │   ├── list.php  save.php  load.php  delete.php  diag.php  storage.php
     │   ├── lib.php
     │   └── .htaccess  .user.ini
     └── saved/              ← the team's storyboards, NEVER deployed
@@ -421,17 +421,32 @@ reason.
 
 ## Housekeeping
 
-Two folders grow quietly and are never served:
+Two folders sit beside the boards and are never served:
 
-- `saved/.versions/` — the last 3 copies of each board, kept automatically when
-  someone overwrites one. Older copies are pruned on each save.
-- `saved/.trash/` — boards removed from the library, with their versions. These
-  are never pruned, so empty this folder occasionally. **This is also where you
-  recover a storyboard someone deleted by mistake**: move the newest
-  `<id>.<timestamp>.json` back to `saved/<id>.json` and rename its
-  `.meta.json` alongside it.
+- `saved/.versions/` — the previous copy of each board (one, to undo a bad
+  save), kept automatically when someone overwrites it.
+- `saved/.trash/` — boards removed from the library, with their previous copy.
+  They are kept for 30 days from deletion and then removed for good. **This is
+  where you recover a storyboard someone deleted by mistake**: within those 30
+  days, move the newest `<id>.<timestamp>.json` back to `saved/<id>.json` and
+  rename its `.meta.json` alongside it.
 
-Both live inside `saved/`, so nothing here is touched by a deploy.
+Both are tidied automatically, at most once an hour, when someone opens the
+Slate (`slate_housekeeping()` in `lib.php`). Both live inside `saved/`, so
+nothing here is touched by a deploy.
+
+**Team admin → The Slate · Storage** shows how much space boards, previous
+copies and trash take, and has two buttons:
+
+- **Shrink older pictures** re-encodes pictures stored before uploads were
+  shrunk (1600px JPEG) to what new uploads get (1280px WebP, about a third of
+  the size), in every board including private ones and in their previous copy.
+  It works in batches of about 20 seconds, marks each board done so it is never
+  redone, and leaves boards saved in the last ten minutes for a later run.
+  Nothing else about a board changes, not its date or who saved it; anyone with
+  it open is told it changed elsewhere and gets the new copy on reopening. It
+  needs PHP's GD extension (WebP if available, JPEG otherwise).
+- **Clean up now** runs the pruning and trash-emptying straight away.
 
 Expired sessions, old sign-in attempts and used reset codes are cleaned up
 automatically on each successful sign-in.

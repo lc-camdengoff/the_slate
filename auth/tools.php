@@ -15,7 +15,8 @@
  * have roles in it. 'hooks' is an optional PHP file, relative to the tools
  * folder, defining <key>_account_renamed($old, $new) and/or
  * <key>_account_deleted($username), for a tool that stores usernames of its
- * own and has to follow when an admin renames or deletes someone. 'roles' is the tool's own list, least to most powerful;
+ * own and has to follow when an admin renames or deletes someone. 'admin'
+ * lists admin-only pages of the tool (label, path, blurb) for Team admin. 'roles' is the tool's own list, least to most powerful;
  * the admin page offers these plus "No access". 'default_role' is what
  * someone gets in the tool until an admin says otherwise.
  */
@@ -34,6 +35,9 @@ function fm_tools(): array
             'default_role' => 'member',
             // Storyboards record their owner by username; see people.php.
             'hooks' => 'slate/lib.php',
+            // Admin-only pages the tool has, linked from Team admin.
+            'admin' => [['label' => 'Storage', 'path' => 'slate/storage.php',
+                         'blurb' => 'Space used, shrink older pictures, clean up']],
         ],
         [
             'key' => 'cage', 'label' => 'The Cage', 'url' => 'https://cage.creativemedia.church/',
