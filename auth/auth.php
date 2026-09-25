@@ -118,7 +118,28 @@ function fm_base_path(): string
  */
 function fm_cookie_domain(): string
 {
-    return trim((string) (fm_config()['cookie_domain'] ?? ''));
+    static $domain = null;
+    if ($domain !== null) {
+        return $domain;
+    }
+    $configured = strtolower(trim((string) (fm_config()['cookie_domain'] ?? '')));
+    if ($configured === '') {
+        return $domain = '';
+    }
+
+    /* A browser silently drops a cookie whose domain does not cover the host
+       that set it, and a dropped session cookie looks exactly like a sign-in
+       that loops back to the page it came from. So a value with a scheme, a
+       port, or a domain this host is not under is ignored and logged, and the
+       cookie stays host-only — one sign-in per host beats nobody signing in. */
+    $host = strtolower((string) preg_replace('/:\d+$/', '', (string) ($_SERVER['HTTP_HOST'] ?? '')));
+    $bare = ltrim($configured, '.');
+    $covers = $host === $bare || substr($host, -strlen('.' . $bare)) === '.' . $bare;
+    if (!preg_match('/^\.?[a-z0-9-]+(\.[a-z0-9-]+)+$/', $configured) || ($host !== '' && !$covers)) {
+        error_log("slate: ignoring cookie_domain '$configured' — it does not cover host '$host'");
+        return $domain = '';
+    }
+    return $domain = $configured;
 }
 
 /**
@@ -303,9 +324,41 @@ function fm_start_session(int $userId): void
         substr((string) ($_SERVER['HTTP_USER_AGENT'] ?? ''), 0, 300),
     ]);
 
-    $cookie = [
-        'expires' => time() + fm_session_days() * 86400,
-        'path' => fm_cookie_path(),
+    fm_set_session_cookie($token);
+}
+
+/**
+ * Every path/domain a session cookie could have been set under.
+ *
+ * A cookie is identified by name, domain AND path, so changing cookie_domain
+ * or cookie_path does not replace the old cookie — it adds a second one with
+ * the same name. The browser then sends both, the more specific path first,
+ * and $_COOKIE keeps only the first. A stale "/filmmaking/" cookie therefore
+ * hides a fresh "/" one, and signing in appears to do nothing. Knowing every
+ * variant is what lets the stale ones be expired.
+ *
+ * @return list<array{path: string, domain: string}>
+ */
+function fm_cookie_variants(): array
+{
+    $domains = array_unique(['', fm_cookie_domain()]);
+    $paths = array_unique([fm_cookie_path(), fm_base_path(), '/']);
+    $variants = [];
+    foreach ($domains as $domain) {
+        foreach ($paths as $path) {
+            $variants[] = ['path' => $path, 'domain' => $domain];
+        }
+    }
+    return $variants;
+}
+
+/**
+ * Set the session cookie, expiring any same-named cookie left under another
+ * path or domain first. Pass '' to clear every variant.
+ */
+function fm_set_session_cookie(string $token): void
+{
+    $base = [
         'secure' => fm_is_https(),
         'httponly' => true,
         // Lax keeps the cookie off cross-site POSTs, which is most of CSRF
@@ -314,14 +367,60 @@ function fm_start_session(int $userId): void
         // sign-in to reach a tool on its own subdomain.
         'samesite' => 'Lax',
     ];
-    if (fm_cookie_domain() !== '') {
-        $cookie['domain'] = fm_cookie_domain();
+    $current = ['path' => fm_cookie_path(), 'domain' => fm_cookie_domain()];
+
+    foreach (fm_cookie_variants() as $variant) {
+        if ($token !== '' && $variant === $current) {
+            continue; // set below; expiring it here would race the real one
+        }
+        $cookie = $base + ['expires' => time() - 3600, 'path' => $variant['path']];
+        if ($variant['domain'] !== '') {
+            $cookie['domain'] = $variant['domain'];
+        }
+        setcookie(FM_COOKIE, '', $cookie);
+    }
+
+    if ($token === '') {
+        return;
+    }
+    $cookie = $base + ['expires' => time() + fm_session_days() * 86400, 'path' => $current['path']];
+    if ($current['domain'] !== '') {
+        $cookie['domain'] = $current['domain'];
     }
     setcookie(FM_COOKIE, $token, $cookie);
 }
 
-/** The signed-in user, or null. Extends the session as a side effect. */
 /**
+ * Every session token the browser sent, in the order it sent them.
+ *
+ * Read from the raw Cookie header because $_COOKIE keeps only the first of
+ * several same-named cookies — the exact situation fm_cookie_variants()
+ * describes.
+ *
+ * @return list<string>
+ */
+function fm_cookie_tokens(): array
+{
+    $tokens = [];
+    foreach (explode(';', (string) ($_SERVER['HTTP_COOKIE'] ?? '')) as $pair) {
+        $parts = explode('=', $pair, 2);
+        if (count($parts) === 2 && trim($parts[0]) === FM_COOKIE) {
+            $value = trim(urldecode($parts[1]));
+            if (preg_match('/^[0-9a-f]{64}$/', $value)) {
+                $tokens[] = $value;
+            }
+        }
+    }
+    // Fallback for a SAPI that does not expose the raw header.
+    $single = (string) ($_COOKIE[FM_COOKIE] ?? '');
+    if ($tokens === [] && preg_match('/^[0-9a-f]{64}$/', $single)) {
+        $tokens[] = $single;
+    }
+    return array_values(array_unique($tokens));
+}
+
+/**
+ * Resolve a session token to its user, extending the session.
  * Resolve a session token to its user, extending the session.
  *
  * Separate from the cookie so a tool that cannot read a PHP session can ask
@@ -357,44 +456,75 @@ function fm_user_by_token(string $token): ?array
     return $found;
 }
 
+/**
+ * The token of the live session this request belongs to, or ''.
+ *
+ * The first of the browser's tokens that resolves, not simply the first one
+ * sent — see fm_cookie_variants() for why those can differ.
+ */
+function fm_session_token(): string
+{
+    fm_current_user();
+    return fm_session_state()['token'];
+}
+
+/** @return array{looked: bool, token: string, user: ?array} */
+function &fm_session_state(): array
+{
+    static $state = ['looked' => false, 'token' => '', 'user' => null];
+    return $state;
+}
+
+/** The signed-in user, or null. Extends the session as a side effect. */
 function fm_current_user(): ?array
 {
-    static $user = null;
-    static $looked = false;
-    if ($looked) {
-        return $user;
+    $state = &fm_session_state();
+    if ($state['looked']) {
+        return $state['user'];
     }
-    $looked = true;
+    $state['looked'] = true;
 
-    $user = fm_user_by_token((string) ($_COOKIE[FM_COOKIE] ?? ''));
-    return $user;
+    $tokens = fm_cookie_tokens();
+    foreach ($tokens as $token) {
+        $user = fm_user_by_token($token);
+        if ($user) {
+            $state['token'] = $token;
+            $state['user'] = $user;
+            break;
+        }
+    }
+
+    /* Re-issue the cookie under the configured path and domain, expiring any
+       other copies. This keeps the browser's expiry in step with the session's
+       sliding one, and it is what moves someone signed in before cookie_domain
+       was set onto the shared cookie — without it they would have to sign out
+       and back in before The Cage could see them. */
+    if ($state['user'] !== null && !headers_sent()) {
+        fm_set_session_cookie($state['token']);
+    } elseif ($state['user'] === null && $tokens !== [] && !headers_sent()) {
+        fm_set_session_cookie(''); // only dead tokens; stop sending them
+    }
+    return $state['user'];
 }
 
 function fm_end_session(): void
 {
-    $token = (string) ($_COOKIE[FM_COOKIE] ?? '');
-    if ($token !== '' && preg_match('/^[0-9a-f]{64}$/', $token)) {
+    $token = fm_session_token();
+    if ($token !== '') {
         $stmt = fm_db()->prepare('DELETE FROM sessions WHERE token_hash = ?');
         $stmt->execute([hash('sha256', $token)]);
     }
-    // Must match how it was set, or the browser keeps the original.
-    $cookie = [
-        'expires' => time() - 3600,
-        'path' => fm_cookie_path(),
-        'secure' => fm_is_https(),
-        'httponly' => true,
-        'samesite' => 'Lax',
-    ];
-    if (fm_cookie_domain() !== '') {
-        $cookie['domain'] = fm_cookie_domain();
-    }
-    setcookie(FM_COOKIE, '', $cookie);
+    // Every variant, or a leftover copy would keep this browser signed in.
+    fm_set_session_cookie('');
+
+    $state = &fm_session_state();
+    $state = ['looked' => true, 'token' => '', 'user' => null];
 }
 
 /** Drop every session for a user — used after a password change. */
 function fm_end_all_sessions(int $userId, bool $keepCurrent = false): void
 {
-    $token = (string) ($_COOKIE[FM_COOKIE] ?? '');
+    $token = fm_session_token();
     if ($keepCurrent && preg_match('/^[0-9a-f]{64}$/', $token)) {
         $stmt = fm_db()->prepare('DELETE FROM sessions WHERE user_id = ? AND token_hash <> ?');
         $stmt->execute([$userId, hash('sha256', $token)]);
@@ -424,7 +554,7 @@ function fm_prune(): void
  */
 function fm_csrf_token(): string
 {
-    $token = (string) ($_COOKIE[FM_COOKIE] ?? '');
+    $token = fm_session_token();
     if ($token === '') {
         return '';
     }
