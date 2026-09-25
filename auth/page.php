@@ -1,6 +1,6 @@
 <?php
 /**
- * The Slate — shared chrome for the account pages.
+ * Filmmaking tools — shared chrome for the account pages.
  *
  * The brand fonts are packed inside the app bundle and are not available as
  * standalone files, so these pages use system fonts with the same colours,
@@ -30,7 +30,7 @@ function fm_page_head(string $title): void
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <link rel="stylesheet" href="<?= fm_h(fm_auth_url('nav.css')) ?>">
 <script src="<?= fm_h(fm_auth_url('forms.js')) ?>" defer></script>
-<title><?= fm_h($title) ?> — The Slate</title>
+<title><?= fm_h($title) ?> — Filmmaking</title>
 <style>
   :root {
     --black: #1D242B; --accent: #56C4E5; --white: #FFFFFF;
